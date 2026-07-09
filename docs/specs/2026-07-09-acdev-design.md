@@ -1,20 +1,20 @@
-# Shipyard — Claude Code Plugin Design
+# acdev — Claude Code Plugin Design
 
 **Date:** 2026-07-09
-**Status:** Approved in conversation; pending final review of this document
+**Status:** Approved (2026-07-09)
 **License:** MIT
 **Language:** Plugin content in English; artifacts generated inside user projects are written in the language chosen at project intake.
 
 ## 1. Purpose
 
-Shipyard is a Claude Code plugin that takes a software project from idea to production — or adopts an existing one — through a systematic, gated, documentation-first pipeline. It covers every production layer (frontend, APIs, data, auth, security, performance, delivery, CI/CD) with strict token discipline.
+acdev is a Claude Code plugin that takes a software project from idea to production — or adopts an existing one — through a systematic, gated, documentation-first pipeline. It covers every production layer (frontend, APIs, data, auth, security, performance, delivery, CI/CD) with strict token discipline.
 
 It replaces two things in the author's environment:
 
-- The personal `proyecto-kike` skill (a 5-stage documentation-first pipeline distilled from building a real SaaS), which Shipyard inherits as its backbone and extends.
-- The `superpowers` plugin, whose process discipline Shipyard distills into 5 integrated skills.
+- The personal `proyecto-kike` skill (a 5-stage documentation-first pipeline distilled from building a real SaaS), which acdev inherits as its backbone and extends.
+- The `superpowers` plugin, whose process discipline acdev distills into 5 integrated skills.
 
-**Core design principle — cover only the delta.** Claude Code natively provides plan mode, parallel subagents (Agent tool), worktrees, `/code-review`, `/resume`, `/rewind`, task tracking, and context management. Shipyard adds only what the harness does not have: the gated pipeline, production-layer knowledge, and cross-session project continuity. Anything that re-teaches native behavior is dead weight and is excluded.
+**Core design principle — cover only the delta.** Claude Code natively provides plan mode, parallel subagents (Agent tool), worktrees, `/code-review`, `/resume`, `/rewind`, task tracking, and context management. acdev adds only what the harness does not have: the gated pipeline, production-layer knowledge, and cross-session project continuity. Anything that re-teaches native behavior is dead weight and is excluded.
 
 ## 2. Goals
 
@@ -35,7 +35,7 @@ It replaces two things in the author's environment:
 | Multi-harness packaging (Cursor, Codex, Gemini...) | Claude Code only. Note: generated projects remain multi-AI (CLAUDE.md + AGENTS.md mirror) |
 | Stack packs | v1 is fully stack-agnostic; opinionated packs may come later as separate additions |
 | Custom subagent definitions (`agents/`) | Each agent description is permanent context cost; narrow subagents are spawned via the native Agent tool with injected layer references |
-| Classic `commands/` directory | Modern skills are both user-invocable (`/shipyard:<name>`) and model-invocable; a parallel command set would duplicate them |
+| Classic `commands/` directory | Modern skills are both user-invocable (`/acdev:<name>`) and model-invocable; a parallel command set would duplicate them |
 
 Nothing here is banned forever. v1 refuses to pay fixed costs for speculative value — the number one lesson from every reference repo reviewed.
 
@@ -55,7 +55,7 @@ Nothing here is banned forever. v1 refuses to pay fixed costs for speculative va
 
 ## 5. Architecture: a disciplined toolbox
 
-Shipyard is a flat toolbox of **21 skills in 4 groups** (user's chosen approach), plus one SessionStart hook and a set of deterministic scripts. Every skill auto-activates through its description; the 7 pipeline skills are also user-invocable as `/shipyard:<name>`.
+acdev is a flat toolbox of **21 skills in 4 groups** (user's chosen approach), plus one SessionStart hook and a set of deterministic scripts. Every skill auto-activates through its description; the 7 pipeline skills are also user-invocable as `/acdev:<name>`.
 
 What keeps the toolbox disciplined:
 
@@ -68,14 +68,14 @@ What keeps the toolbox disciplined:
 
 | Group | Skill | Invocation | Trigger (description draft) |
 |---|---|---|---|
-| Gateway | `using-shipyard` | hook-injected | How and when to use every Shipyard skill; loaded each session |
-| Pipeline | `new-project` | `/shipyard:new-project` + auto | Use when starting a new software project from scratch: intake interview, then VISION.md and MVP.md with approval gates |
-| Pipeline | `mockups` | `/shipyard:mockups` + auto | Use after MVP approval to build the static HTML mockups of every MVP screen plus the post-MVP skeleton inventory, and to run revision rounds until the visual contract is approved |
-| Pipeline | `blueprint` | `/shipyard:blueprint` + auto | Use after mockup approval to produce normative docs, ADRs (stack decided here), technical spikes for unproven dependencies, the AI context system and repo mechanics |
-| Pipeline | `onboard` | `/shipyard:onboard` + auto | Use when adopting an existing repo: build a truthful situation map (what exists, what is missing, declared gaps) and propose adopting the pipeline |
-| Pipeline | `build` | `/shipyard:build` + auto | Use when constructing an approved project: vertical slices, just-in-time spec/plan per slice, TDD loop, decision classification |
-| Pipeline | `ship` | `/shipyard:ship` + auto | Use when closing a slice or phase: full verification in green, docs drift check, checkpoint, commit/PR, ROADMAP update |
-| Pipeline | `status` | `/shipyard:status` + auto | Use when resuming work or asking where the project stands: reads state + latest checkpoint + ROADMAP for ~2k tokens; can also write a manual checkpoint |
+| Gateway | `using-acdev` | hook-injected | How and when to use every acdev skill; loaded each session |
+| Pipeline | `new-project` | `/acdev:new-project` + auto | Use when starting a new software project from scratch: intake interview, then VISION.md and MVP.md with approval gates |
+| Pipeline | `mockups` | `/acdev:mockups` + auto | Use after MVP approval to build the static HTML mockups of every MVP screen plus the post-MVP skeleton inventory, and to run revision rounds until the visual contract is approved |
+| Pipeline | `blueprint` | `/acdev:blueprint` + auto | Use after mockup approval to produce normative docs, ADRs (stack decided here), technical spikes for unproven dependencies, the AI context system and repo mechanics |
+| Pipeline | `onboard` | `/acdev:onboard` + auto | Use when adopting an existing repo: build a truthful situation map (what exists, what is missing, declared gaps) and propose adopting the pipeline |
+| Pipeline | `build` | `/acdev:build` + auto | Use when constructing an approved project: vertical slices, just-in-time spec/plan per slice, TDD loop, decision classification |
+| Pipeline | `ship` | `/acdev:ship` + auto | Use when closing a slice or phase: full verification in green, docs drift check, checkpoint, commit/PR, ROADMAP update |
+| Pipeline | `status` | `/acdev:status` + auto | Use when resuming work or asking where the project stands: reads state + latest checkpoint + ROADMAP for ~2k tokens; can also write a manual checkpoint |
 | Process | `designing` | auto | Use before any creative/feature work outside the pipeline stages: conversational design until an approved design doc exists |
 | Process | `planning` | auto | Use when a task needs a multi-step plan with verifiable completion criteria |
 | Process | `tdd` | auto | Use when implementing any feature or bugfix: red-green-refactor, test first |
@@ -94,7 +94,7 @@ What keeps the toolbox disciplined:
 
 ### 5.2 The gateway
 
-`using-shipyard` is printed into context by the SessionStart hook. Budget: **<400 tokens**. Contents: the invocation rule (if a skill matches, invoke it before responding), the skill map (one line per skill), and one instruction: "when resuming a project, run `/shipyard:status` first." Nothing else — no philosophy, no repeated system-prompt behavior.
+`using-acdev` is printed into context by the SessionStart hook. Budget: **<400 tokens**. Contents: the invocation rule (if a skill matches, invoke it before responding), the skill map (one line per skill), and one instruction: "when resuming a project, run `/acdev:status` first." Nothing else — no philosophy, no repeated system-prompt behavior.
 
 ## 6. The pipeline
 
@@ -143,7 +143,7 @@ Build proceeds by vertical slices, not by horizontal layers: each slice crosses 
 
 ## 7. Project-side artifacts
 
-What Shipyard generates inside each user project:
+What acdev generates inside each user project:
 
 ```
 project/
@@ -158,14 +158,14 @@ project/
 ├── mockups/                   # stage 3: index.html + one page per MVP screen
 ├── spikes/NNN-*/              # blueprint: disposable experiments (if any)
 ├── scripts/verify/            # blueprint: per-project verification commands
-├── .shipyard/
+├── .acdev/
 │   ├── state.md               # pipeline stage, gates passed with dates
 │   └── checkpoints/           # YYYYMMDD-HHmm-<slug>.md
 ├── CLAUDE.md                  # router: golden rules from Model section + stack
 └── AGENTS.md                  # mirror of CLAUDE.md (multi-AI projects)
 ```
 
-- `.shipyard/` is **committed** — git is the memory; state travels with the repo across machines.
+- `.acdev/` is **committed** — git is the memory; state travels with the repo across machines.
 - Verification scripts are **generated per project** in blueprint (the agnostic plugin ships templates; the concrete project gets concrete commands — checking RLS in Supabase is nothing like checking it in raw Postgres).
 - All generated artifacts are written in the project language chosen at intake.
 
@@ -223,15 +223,15 @@ Native features each skill references in one line instead of duplicating: worktr
 
 ## 11. Hook
 
-`hooks/hooks.json` registers one SessionStart hook: `node "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.mjs"`, which prints `skills/using-shipyard/SKILL.md` (<400 tokens) — single source of truth, so the hook and the skill can never drift apart. Node.js is the most portable runtime available where Claude Code runs; if `node` is missing the hook fails silently and Shipyard still works with degraded auto-activation (descriptions only). This risk is validated during implementation on Windows (author's platform), macOS and Linux.
+`hooks/hooks.json` registers one SessionStart hook: `node "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.mjs"`, which prints `skills/using-acdev/SKILL.md` (<400 tokens) — single source of truth, so the hook and the skill can never drift apart. Node.js is the most portable runtime available where Claude Code runs; if `node` is missing the hook fails silently and acdev still works with degraded auto-activation (descriptions only). This risk is validated during implementation on Windows (author's platform), macOS and Linux.
 
 ## 12. Plugin repository layout
 
 ```
-shipyard/
+acdev/
 ├── .claude-plugin/
 │   ├── plugin.json            # name, version (semver), description, author, MIT
-│   └── marketplace.json       # for /plugin marketplace add <user>/shipyard
+│   └── marketplace.json       # for /plugin marketplace add acnetcenter/acdev
 ├── skills/                    # 21 skills, one directory each
 │   └── <name>/SKILL.md        #   + references/ where depth exists
 ├── shared/
@@ -240,7 +240,7 @@ shipyard/
 │                              # checkpoint, router CLAUDE.md, verify-script stubs)
 ├── hooks/
 │   ├── hooks.json
-│   └── session-start.mjs      # prints skills/using-shipyard/SKILL.md
+│   └── session-start.mjs      # prints skills/using-acdev/SKILL.md
 ├── scripts/
 │   ├── checkpoint.mjs         # read/write checkpoints + state.md
 │   └── lint-budgets.mjs       # structure + budget lint (CI)
@@ -253,15 +253,15 @@ shipyard/
 
 ## 13. Distribution and migration
 
-- Installable from the author's GitHub: `/plugin marketplace add <user>/shipyard` then `/plugin install shipyard`.
-- README documents the migration: uninstall `superpowers` and remove the personal `proyecto-kike` skill when adopting Shipyard — keeping them would mean two startup hooks and duplicate skills (two TDDs, two brainstormings) competing for activation.
-- Existing projects created with proyecto-kike are compatible: their VISION/ROADMAP/ADRs are read as-is; `/shipyard:onboard` adopts them, detecting what exists and declaring what is missing (it generates MVP.md retroactively only if the project still has unbuilt scope worth gating).
+- Installable from the author's GitHub: `/plugin marketplace add acnetcenter/acdev` then `/plugin install acdev`.
+- README documents the migration: uninstall `superpowers` and remove the personal `proyecto-kike` skill when adopting acdev — keeping them would mean two startup hooks and duplicate skills (two TDDs, two brainstormings) competing for activation.
+- Existing projects created with proyecto-kike are compatible: their VISION/ROADMAP/ADRs are read as-is; `/acdev:onboard` adopts them, detecting what exists and declaring what is missing (it generates MVP.md retroactively only if the project still has unbuilt scope worth gating).
 
-## 14. Verifying Shipyard itself
+## 14. Verifying acdev itself
 
 1. `scripts/lint-budgets.mjs` — structural lint: valid frontmatter in all 21 skills, description ≤ 100 tokens, body < 500 lines, no emojis, required sections present. Runs in CI.
 2. `plugin.json` validation against the current Claude Code plugin schema.
-3. Manual acceptance, before first release: install locally → run `/shipyard:new-project` on a toy project through stage 4 → run `/shipyard:onboard` on a real existing repo → verify `/shipyard:status` costs <2k tokens → verify the SessionStart hook injects the gateway on Windows.
+3. Manual acceptance, before first release: install locally → run `/acdev:new-project` on a toy project through stage 4 → run `/acdev:onboard` on a real existing repo → verify `/acdev:status` costs <2k tokens → verify the SessionStart hook injects the gateway on Windows.
 4. Description routing review: each skill description names the trigger words a user would actually say (manual review in v1; automated routing evals are a v2 candidate).
 
 ## 15. Resolved decisions log
@@ -270,12 +270,12 @@ All open questions were resolved during the design conversation with the user:
 
 | Decision | Resolution |
 |---|---|
-| Relation to proyecto-kike | Shipyard replaces it (inherits the backbone) |
-| Relation to superpowers | Shipyard replaces it (distilled process skills) |
+| Relation to proyecto-kike | acdev replaces it (inherits the backbone) |
+| Relation to superpowers | acdev replaces it (distilled process skills) |
 | Stack | Fully agnostic; stack decided per-project in ADRs; no stack packs in v1 |
 | Language / distribution | English, shareable, MIT, author's GitHub marketplace |
 | Architecture | Toolbox of auto-invocable skills (user's choice) with discipline mechanisms |
-| Plugin name | shipyard |
+| Plugin name | acdev (initially proposed as "shipyard"; renamed by the user) |
 | MVP handling | Separate MVP.md with its own hard gate; mockups derive from MVP.md |
 | Technical risk | Optional timeboxed spikes during blueprint |
 | Post-MVP screens | Skeleton inventory at stage 3; detailed mockups just-in-time per phase |
