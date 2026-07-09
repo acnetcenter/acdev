@@ -49,18 +49,27 @@ Signs a proposed slice needs to be re-cut before work starts:
 
 ## Audit table example (slice 2: create invoice happy path)
 
+Before the slice plan is written, one question is put to the user because
+it is a user-challenge decision — it changes what the product does, not
+just how it's built, so it is asked and answered explicitly instead of
+auto-decided:
+
+> **Draft vs. submitted state (user-challenge, asked and confirmed with
+> the user):** invoices are submitted immediately, no draft state in
+> phase 1. Reason: changes what the product does, not just how it's
+> built — outside auto-decision. Recorded as an ADR alongside the slice
+> plan.
+
+With that settled, the slice plan's audit table covers only the
+mechanical and taste decisions made while implementing it — user-challenge
+decisions are asked, not auto-decided, so they are not rows in this table:
+
 | Decision | Class | Choice | Reason |
 |---|---|---|---|
 | Form field order | Taste | Client, amount, due date, notes | Matches mockup layout; no existing convention to follow |
 | Validation library | Mechanical | Reuse the form validator already used on the login slice | Avoids a second validation approach in the same codebase |
 | Invoice ID format | Taste | UUID v4 | Already the project's convention for all other entity IDs |
 | Success feedback | Taste | Inline toast, not a redirect | Matches the frozen mockup for this screen |
-| Draft vs. submitted state | User-challenge | Asked and confirmed with the user: invoices are submitted immediately, no draft state in phase 1 | Changes what the product does, not just how it's built — outside auto-decision |
-
-The user-challenge row is not auto-resolved: it is asked and answered in
-conversation before the slice proceeds, then recorded here with the
-user's actual answer (and, if it also affects the data model or VISION/MVP
-text, as an ADR alongside it).
 
 ## Subagent prompt template
 
