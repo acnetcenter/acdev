@@ -62,14 +62,6 @@ to blueprint (new projects) or onboard (existing repos).
 ## How to verify
 
 Run the project's `scripts/verify/` suite locally and confirm CI invokes
-the same commands, not a divergent copy. Otherwise probe generically: push
-a change with a failing test and confirm the merge is blocked; check the
-recorded pipeline duration and confirm it is measured, not guessed;
-attempt a direct push to `main` and confirm it is rejected; make a
-malformed commit message and confirm it is caught, or confirm the
-convention is documented in `CLAUDE.md`; check that the last shipped slice
-has exactly one commit with a green CI run; check the latest release tag
-against the changelog; compare timing between a cold and a warm CI run to
-confirm caching; scan workflow files for inline secret values; confirm the
-production deploy step is gated separately from the test job and requires
-approval or a protected environment.
+the same commands, not a divergent copy. Otherwise run the `verify:` probe
+attached to each checklist item above directly, scoped to what the current
+change touched, and paste the decisive output lines as evidence.

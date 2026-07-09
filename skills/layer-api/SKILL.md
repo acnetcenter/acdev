@@ -59,13 +59,7 @@ to blueprint (new projects) or onboard (existing repos).
 
 ## How to verify
 
-Run the project's `scripts/verify/` suite for the API layer if one
-exists. Otherwise probe generically: send a malformed payload to each new
-or changed endpoint and confirm 400 with field errors; call a list
-endpoint against a large dataset and confirm pagination; replay a mutating
-request with the same idempotency key and confirm a single effect; force
-a mid-transaction failure and confirm no partial state; measure query
-count on a relation-heavy endpoint at two list sizes and confirm it does
-not scale with the list; force a background job failure and confirm it
-retries then reaches the dead-letter queue; simulate a slow outbound
-dependency and confirm the timeout fires.
+Run the project's `scripts/verify/` checks for this layer if present.
+Otherwise run the `verify:` probe attached to each checklist item above
+directly, scoped to what the current slice touched, and paste the decisive
+output lines as evidence.

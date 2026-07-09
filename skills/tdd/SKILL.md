@@ -47,3 +47,10 @@ expressed as an assertion; see the `debugging` skill for how to get there.
 If the project has no test runner set up, that setup IS the first slice
 task — not a yak-shave to route around. The blueprint's CI skeleton names
 the runner to use; wire it in before writing the first test.
+
+## Throwaway exception
+
+Genuinely disposable code — a scratch script run once and deleted, spike
+code under `blueprint`'s spike protocol — may skip the loop; say so
+explicitly when skipping. The moment the code is kept, wired into the
+project, or shipped, it stops being throwaway and gets tests.

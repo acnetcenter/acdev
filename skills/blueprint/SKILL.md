@@ -89,7 +89,11 @@ Produce the mechanical scaffolding the project needs before build starts:
   verification command per applicable layer (auth, security/RLS,
   migrations, smoke). The plugin ships an agnostic stub; the project gets
   a concrete, runnable probe per layer — this is the agnosticism contract
-  layer skills and `ship` rely on later.
+  layer skills and `ship` rely on later. For the frontend layer,
+  `shared/references/templates/verify-design-tells.mjs` ships ready-made
+  (mechanical scan for transition: all, lone ease-in, scale(0), gradient
+  text, over-budget durations, raw hex outside the token file); copy it
+  in and adjust its targets.
 
 ## Gate
 

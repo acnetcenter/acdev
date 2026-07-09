@@ -90,12 +90,15 @@ Once confirmed, propose the adoption plan:
   checkpoint by running:
 
   ```
-  node "${CLAUDE_PLUGIN_ROOT}/scripts/checkpoint.mjs" write --stage <s> --branch <b> --next "<text>"
+  node "<plugin-root>/scripts/checkpoint.mjs" write --stage <s> --branch <b> --next "<text>"
   ```
 
+  `<plugin-root>` is the absolute path printed as `acdev plugin root:` in
+  the session context at startup.
   `--stage`, `--branch`, and `--next` are required. Set `--stage` to the
   pipeline stage the project should resume at (per the adoption plan just
-  agreed), and `--next` to the concrete next action.
+  agreed) — one of `intake`, `vision`, `mvp`, `mockups`, `blueprint`,
+  `build` — and `--next` to the concrete next action.
 
 Hand off to whichever skill matches that resume stage — `blueprint` if
 VISION/MVP already exist or were just written and only the normative

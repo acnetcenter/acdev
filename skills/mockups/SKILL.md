@@ -18,7 +18,16 @@ here must trace to a flow or feature already agreed in the MVP.
 
 Follow `references/mockups-guide.md` for the concrete authoring rules
 (directory layout, filenames, shared stylesheet, data rules, states,
-accessibility). At a minimum, produce:
+accessibility), and `references/design-craft.md` for the durable
+anti-generic floor: structural tells to avoid, contrast and type-scale
+rules, one deliberate aesthetic risk per key screen. When a dedicated
+design-direction skill is installed (e.g. the native `frontend-design`
+plugin), use it for the aesthetic direction while authoring — always
+subordinated to this pipeline: MVP.md decides scope, the gate below
+decides approval, and once frozen the contract outranks any skill's
+suggestions.
+
+At a minimum, produce:
 
 1. One HTML page per MVP screen — every screen named or implied by
    `docs/MVP.md`'s in-scope feature list gets a page.
@@ -75,6 +84,13 @@ build: `blueprint` derives its UI-DESIGN doc from them, and `build`
 replicates them in the real frontend — no redesigning on the fly during
 build. Reopening the contract after approval requires re-approval through
 this skill again, and an ADR if the change also touches VISION or MVP.
+
+The freeze is normative for what the mockups actually draw: layout,
+hierarchy, navigation, design tokens, copy, and the flows between screens.
+What they do not draw — hover and focus details, undrawn breakpoints,
+animation and micro-interactions — is illustrative: `build` decides those
+as taste-class decisions recorded in its audit table, without reopening
+this gate. Reopening applies to normative changes only.
 
 Post-MVP phases do not get mockups now. Each phase gets its mockups
 just-in-time during `build`, phase by phase, by returning to this same

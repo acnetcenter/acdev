@@ -1,6 +1,6 @@
 {
   "name": "acdev",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Systematic, gated, documentation-first pipeline that takes a software project from idea to production - or adopts an existing one - with strict token discipline.",
   "author": {
     "name": "acnetcenter",

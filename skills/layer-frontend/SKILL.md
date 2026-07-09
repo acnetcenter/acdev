@@ -46,6 +46,11 @@ to blueprint (new projects) or onboard (existing repos).
 - Copy must be i18n-ready when VISION declares multiple languages —
   verify: every user-facing string in the slice resolves through the
   i18n layer, none hardcoded inline.
+- Motion must follow `references/motion-craft.md` — transform/opacity
+  only, ease-out entrances, duration budgets by element class,
+  `prefers-reduced-motion` respected — verify: the design-tells scan in
+  `scripts/verify/` passes, and the critical flow still works with
+  reduced motion enabled.
 
 ## Pitfalls
 
@@ -62,10 +67,7 @@ to blueprint (new projects) or onboard (existing repos).
 
 ## How to verify
 
-Run the project's `scripts/verify/` suite for the frontend layer if one
-exists. Otherwise probe generically: load each screen in the slice with
-an empty dataset, a forced error, and a throttled network to confirm the
-three states render; attempt a forbidden route by URL while authenticated
-as a lower-privilege role; tab through the critical flow keyboard-only;
-diff the rendered screen against its mockup; grep the slice's new files
-for hex colors or raw pixel values outside the token file.
+Run the project's `scripts/verify/` checks for this layer if present.
+Otherwise run the `verify:` probe attached to each checklist item above
+directly, scoped to what the current slice touched, and paste the decisive
+output lines as evidence.

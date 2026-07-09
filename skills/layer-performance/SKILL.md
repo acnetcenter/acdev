@@ -59,15 +59,7 @@ to blueprint (new projects) or onboard (existing repos).
 
 ## How to verify
 
-Run the project's `scripts/verify/` suite for the performance layer if
-one exists. Otherwise probe generically: check each cache site for a
-comment or ADR link naming the metric or slow query that justified it;
-write then immediately read a cached value and confirm freshness, and
-confirm every cache key has a TTL; request the same cached endpoint as
-two different tenants/locales/roles and confirm distinct results; inspect
-cache-control headers on a static asset versus the HTML document; request
-an authenticated page twice from different sessions and confirm no
-cross-user cached response; inspect the content-encoding header on a
-compressible response; compare current p95 latency and page weight
-against the budgets stated in the blueprint; check the query plan behind
-any cache added for a slow query.
+Run the project's `scripts/verify/` checks for this layer if present.
+Otherwise run the `verify:` probe attached to each checklist item above
+directly, scoped to what the current slice touched, and paste the decisive
+output lines as evidence.

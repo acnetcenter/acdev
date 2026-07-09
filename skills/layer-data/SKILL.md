@@ -53,12 +53,7 @@ to blueprint (new projects) or onboard (existing repos).
 
 ## How to verify
 
-Run the project's `scripts/verify/` suite for the data layer if one
-exists. Otherwise probe generically: clone fresh and run migrations to
-confirm the schema matches; attempt an insert that violates a constraint
-and confirm it fails at the DB; run EXPLAIN on each hot query touched by
-the slice and confirm index use; diff DATA-MODEL against the schema for
-PII coverage; on multi-tenant tables, attempt an insert without a tenant
-key and confirm it fails; confirm a recent restore drill note exists;
-request a stored object via its raw URL without a signature and confirm
-it is rejected.
+Run the project's `scripts/verify/` checks for this layer if present.
+Otherwise run the `verify:` probe attached to each checklist item above
+directly, scoped to what the current slice touched, and paste the decisive
+output lines as evidence.

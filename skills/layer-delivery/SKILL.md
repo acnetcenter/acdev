@@ -64,15 +64,7 @@ to blueprint (new projects) or onboard (existing repos).
 
 ## How to verify
 
-Run the project's `scripts/verify/` suite for the delivery layer if one
-exists. Otherwise probe generically: confirm the same artifact used in
-staging is the one promoted to production; confirm no deploy path exists
-outside the CI pipeline; run a rollback drill from the current version to
-N-1 and confirm service is restored; deliberately fail the health check on
-a new deploy and confirm it is kept out of traffic; walk through a
-breaking schema change and confirm old code keeps working against the new
-schema during the window; inspect the secret store and confirm
-per-environment values with none in the repo; force a test error and
-confirm it lands in the error tracker and fires the uptime alert to a
-human channel; check that the first slice shipped already went through
-the deploy pipeline.
+Run the project's `scripts/verify/` checks for this layer if present.
+Otherwise run the `verify:` probe attached to each checklist item above
+directly, scoped to what the current slice touched, and paste the decisive
+output lines as evidence.

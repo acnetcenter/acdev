@@ -52,8 +52,11 @@ is a decision the next person has to rediscover the hard way.
 Once verification is green and drift is fixed, write the checkpoint:
 
 ```
-node "${CLAUDE_PLUGIN_ROOT}/scripts/checkpoint.mjs" write --stage build --branch <branch> --slice "<n: name>" --files "<changed>" --next "<next slice or phase gate>"
+node "<plugin-root>/scripts/checkpoint.mjs" write --stage build --branch <branch> --slice "<n: name>" --files "<changed>" --next "<next slice or phase gate>"
 ```
+
+`<plugin-root>` is the absolute path printed as `acdev plugin root:` in the
+session context at startup.
 
 - `--stage`, `--branch`, and `--next` are required; `--slice` and `--files`
   are optional but always supply them here — they are what makes the

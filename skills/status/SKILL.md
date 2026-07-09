@@ -14,10 +14,14 @@ and the current phase of the ROADMAP — never from scanning the codebase.
 Run:
 
 ```
-node "${CLAUDE_PLUGIN_ROOT}/scripts/checkpoint.mjs" read
+node "<plugin-root>/scripts/checkpoint.mjs" read
 ```
 
-This prints `.acdev/state.md` (stage, updated, latest checkpoint path) and
+`<plugin-root>` is the absolute path printed as `acdev plugin root:` in the
+session context at startup.
+
+This prints `.acdev/state.md` (stage, updated, acdev_version, latest
+checkpoint path) and
 the full latest checkpoint file. Then read **only the current phase
 section** of `docs/ROADMAP.md` — the phase named by `state.md`'s stage, not
 the whole document. A multi-phase roadmap is not a status input; the phase
@@ -52,11 +56,12 @@ branch, the slice in progress (if any), the files touched so far, and a
 concrete next step. Then call:
 
 ```
-node "${CLAUDE_PLUGIN_ROOT}/scripts/checkpoint.mjs" write --stage <s> --branch <b> --next "<text>" [--slice "<n: name>"] [--files "<a,b>"] [--blocked "<text>"] [--notes "<text>"]
+node "<plugin-root>/scripts/checkpoint.mjs" write --stage <s> --branch <b> --next "<text>" [--slice "<n: name>"] [--files "<a,b>"] [--blocked "<text>"] [--notes "<text>"]
 ```
 
 `--stage`, `--branch`, and `--next` are required; the script exits with an
-error naming the missing flag if any of them are absent. `--slice`,
+error naming the missing flag if any of them are absent. `--stage` must be
+one of `intake`, `vision`, `mvp`, `mockups`, `blueprint`, `build`. `--slice`,
 `--files`, `--blocked`, and `--notes` are optional — supply them when the
 session has the information, skip them otherwise. Use `--blocked` when
 work is genuinely stuck, not as a routine field.

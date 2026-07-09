@@ -56,13 +56,7 @@ to blueprint (new projects) or onboard (existing repos).
 
 ## How to verify
 
-Run the project's `scripts/verify/` suite for the auth layer if one
-exists. Otherwise probe generically: call a protected route with an
-expired or revoked token and confirm 401; call each changed endpoint
-directly with a forbidden role and confirm 403; run the matrix-derived
-tests for critical resources and confirm one per row passes; send a
-forged tenant id in a request payload and confirm no cross-tenant access;
-reuse a password reset token twice and confirm the second use fails;
-confirm the auth secret rotation procedure is documented; inspect an
-OAuth authorization request for state and PKCE parameters where
-applicable.
+Run the project's `scripts/verify/` checks for this layer if present.
+Otherwise run the `verify:` probe attached to each checklist item above
+directly, scoped to what the current slice touched, and paste the decisive
+output lines as evidence.

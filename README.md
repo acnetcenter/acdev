@@ -11,6 +11,14 @@ acdev is a Claude Code plugin that takes a software project from idea to product
 /plugin install acdev@acnetcenter
 ```
 
+Or from a local clone (the plugin is fully usable before it is published
+to GitHub):
+
+```
+/plugin marketplace add <absolute-path-to-this-repo>
+/plugin install acdev@acnetcenter
+```
+
 Requirements:
 
 - Claude Code with plugins enabled.
@@ -81,16 +89,16 @@ Zero product code is written before stage 5.
 
 ## Token cost ledger
 
-Every session pays a fixed cost, regardless of which skills get used: the 21 `description:` frontmatter lines (needed for auto-activation) plus the full `using-acdev` gateway file, which the SessionStart hook prints into context verbatim.
+Every session pays a fixed cost, regardless of which skills get used: the 21 `description:` frontmatter lines (needed for auto-activation) plus the `using-acdev` gateway body, which the SessionStart hook prints into context (frontmatter stripped) together with a one-line `acdev plugin root:` path.
 
 Measured directly from the repository, not estimated:
 
 - Sum of the 21 `description:` values: **3,060 characters**.
-- Full `skills/using-acdev/SKILL.md` file (frontmatter + body, injected in full by the hook): **950 characters**.
-- Total fixed cost: **4,010 characters**.
-- Approximated at 4 characters/token (the same ratio `lint-budgets.mjs` uses): **~1,003 tokens/session**.
+- `using-acdev` gateway body as injected by the hook (frontmatter stripped): **845 characters**, plus the one-line plugin-root path (varies with the install location).
+- Total fixed cost: **3,905 characters**.
+- Approximated at 4 characters/token (the same ratio `lint-budgets.mjs` uses): **~976 tokens/session**.
 
-That is the honest, measured number — well under the plan's original ~2.3k-token estimate, because in practice the descriptions run far shorter than the 400-character (~100-token) budget: 3,060 / 21 ≈ 146 characters (~36 tokens) on average.
+That is the honest, measured number — well under the plan's original ~2.3k-token estimate, because in practice the descriptions run far shorter than the 400-character (~100-token) budget. `lint-budgets.mjs` recomputes every number in this ledger from the tree and fails CI when the ledger goes stale.
 
 What is **not** loaded at session start, and only enters context on demand:
 
@@ -105,6 +113,8 @@ Budgets enforced by `scripts/lint-budgets.mjs` (and checked in CI):
 | Skill `description` | <= 400 characters (~100 tokens) |
 | Skill body | < 500 lines and < 20,000 characters (~5k tokens) |
 | Gateway file (`using-acdev/SKILL.md`, whole file) | <= 1,600 characters (~400 tokens) |
+
+Beyond budgets, the lint also rejects emojis in every markdown file under `skills/` and `shared/`, verifies that `plugin.json`, `marketplace.json` and `package.json` parse and agree on version and description, and checks the skill tables and token ledger in this README against the actual frontmatter — doc drift about the plugin fails its CI the same way doc drift about a project fails a slice.
 
 ## Migration from superpowers / proyecto-kike
 

@@ -58,6 +58,15 @@ Examples:
 5. Any change to what the product does or promises the user (a feature's
    actual behavior, not its implementation).
 
+## When in doubt
+
+When a decision sits between two classes, escalate to the higher one
+(mechanical < taste < user-challenge). Misclassifying a user-challenge
+decision as taste is the one unrecoverable error of this system — a
+product decision auto-taken and buried in a table instead of asked. A
+cheap tell: if the Reason for a mechanical or taste row takes more than
+one sentence to justify, it probably belongs a class higher.
+
 ## Audit table format
 
 Every plan document — the blueprint summary, and later every `build` slice

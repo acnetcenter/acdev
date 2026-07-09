@@ -64,18 +64,7 @@ to blueprint (new projects) or onboard (existing repos).
 
 ## How to verify
 
-Run the project's `scripts/verify/` suite for the security layer if one
-exists. Otherwise probe generically: authenticate as user A and query for
-user B's rows, confirming the RLS isolation test exists and runs in CI
-with an empty result; create a table or route with no policy and confirm
-it denies access rather than allowing it; hit an auth or expensive route
-past its limit from two different app instances or processes and confirm
-a shared count and a 429 with Retry-After; send malformed input to the
-API, a webhook, an upload handler, and a queue consumer and confirm each
-rejects it; scan git history for secrets and confirm `.env.example` has
-names only; inspect response headers on the deployed app for CSP, HSTS,
-X-Content-Type-Options, and frame-ancestors; send a webhook request with
-a bad signature and a replayed old signature and confirm both are
-rejected; confirm CI runs a dependency audit with a documented triage
-owner; confirm the most recent phase-exit report includes an OWASP Top 10
-pass.
+Run the project's `scripts/verify/` checks for this layer if present.
+Otherwise run the `verify:` probe attached to each checklist item above
+directly, scoped to what the current slice touched, and paste the decisive
+output lines as evidence.

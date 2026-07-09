@@ -17,8 +17,9 @@ that order — wait for it.
 
 Once both hold, read `docs/ROADMAP.md` for the current phase, the relevant
 `docs/adr/` entries, and the latest checkpoint (`node
-"${CLAUDE_PLUGIN_ROOT}/scripts/checkpoint.mjs" read`) before writing any
-plan. The stack, hosting, data store, auth approach, and tenancy model were
+"<plugin-root>/scripts/checkpoint.mjs" read`, where `<plugin-root>` is the
+absolute path printed as `acdev plugin root:` in the session context at
+startup) before writing any plan. The stack, hosting, data store, auth approach, and tenancy model were
 already decided in `blueprint` and recorded as ADRs — read them, do not
 re-derive them. If an ADR seems wrong, that is a discovered trap (see
 Close), not license to silently pick something else.
@@ -61,7 +62,11 @@ For each slice, once its plan is settled:
 1. **Frontend replicates the frozen mockups.** The approved mockups are the
    visual contract; build implements what they show. No redesigning on the
    fly — a mockup limitation discovered mid-slice is a mockups-skill
-   conversation, not a build-time improvisation.
+   conversation, not a build-time improvisation. Detail the mockups never
+   drew — hover and focus behavior, undrawn breakpoints,
+   micro-interactions — is not a limitation: decide it here as a
+   taste-class decision in the audit table, per the mockups skill's
+   normative-vs-illustrative rule, without reopening the gate.
 2. **TDD loop per the `tdd` skill.** Test first, watch it fail (red), make
    it pass (green), then refactor. This applies at every layer the slice
    touches, not only the backend.
