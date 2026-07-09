@@ -1,0 +1,14 @@
+{
+  "name": "acnetcenter",
+  "owner": {
+    "name": "acnetcenter",
+    "url": "https://github.com/acnetcenter"
+  },
+  "plugins": [
+    {
+      "name": "acdev",
+      "source": "./",
+      "description": "Systematic, gated, documentation-first pipeline that takes a software project from idea to production - or adopts an existing one - with strict token discipline."
+    }
+  ]
+}
