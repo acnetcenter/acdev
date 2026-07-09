@@ -1,5 +1,7 @@
 # acdev
 
+[![ci](https://github.com/acnetcenter/acdev/actions/workflows/ci.yml/badge.svg)](https://github.com/acnetcenter/acdev/actions/workflows/ci.yml)
+
 acdev is a Claude Code plugin that takes a software project from idea to production — or adopts an existing one — through a gated, documentation-first, token-disciplined pipeline. For its author it replaces two overlapping setups: the general-purpose `superpowers` plugin and the personal `proyecto-kike` skill, which together meant two startup hooks and duplicate skills (two TDDs, two brainstormings) competing for activation on every session. acdev's core principle is to cover only the delta over native Claude Code: it does not re-teach what Claude already does well, it adds the process discipline, the hard approval gates, and the per-layer production checklists that a real project needs on top of that.
 
 ## Install
