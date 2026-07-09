@@ -1,0 +1,13 @@
+{
+  "name": "acdev",
+  "version": "0.1.0",
+  "description": "Systematic, gated, documentation-first pipeline that takes a software project from idea to production - or adopts an existing one - with strict token discipline.",
+  "author": {
+    "name": "acnetcenter",
+    "url": "https://github.com/acnetcenter"
+  },
+  "homepage": "https://github.com/acnetcenter/acdev",
+  "repository": "https://github.com/acnetcenter/acdev",
+  "license": "MIT",
+  "keywords": ["pipeline", "documentation-first", "production", "token-economy"]
+}
