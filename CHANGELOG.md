@@ -3,6 +3,9 @@
 ## [Unreleased]
 
 ### Added
+- Documentation-language rule now travels with every session: the gateway instructs matching `docs/VISION.md`'s language for all generated artifacts, and `state.md` records a sticky `language` field (set via `checkpoint.mjs --lang`, normally at onboard; preserved by later writes).
+- Lint guards the deliberately duplicated layer blocks: the eight "Before advising" blocks must be identical, and every "How to verify" must keep the shared verify-probe sentence (wrap-insensitive).
+- Spike timebox softened to "roughly 2-6 hours" — process numbers are heuristics; only the lint budgets are hard limits.
 - `mockups/references/design-craft.md`: durable anti-generic design floor for mockups — structural AI tells to avoid, contrast and type-scale rules, per-screen audit pass. Distilled from Emil Kowalski's skills (MIT) and leonxlnx/taste-skill (MIT); concepts from pbakaus/impeccable (Apache-2.0, ideas only). Trend-sensitive taste (font/palette bans) deliberately excluded.
 - `layer-frontend/references/motion-craft.md`: durable animation rules — frequency-based decisions, duration budgets per element class, easing rules, transform/opacity-only, reduced-motion. New motion item in the layer-frontend production checklist points at it.
 - `shared/references/templates/verify-design-tells.mjs`: ready-made mechanical `scripts/verify/` scan for AI-design tells (transition: all, lone ease-in, scale-from-zero, gradient text, over-budget durations, raw hex values outside token files) covering CSS, camelCase JS object styles, Framer Motion props and Tailwind classes; comment-stripping, token files exempt, per-line `motion-ok` suppression for audited exceptions, hard fail when nothing is scanned. Referenced from blueprint's repo mechanics.

@@ -63,6 +63,16 @@ test('yaml-hostile values are escaped in the checkpoint frontmatter', () => {
   assert.ok(ckpt.includes('files_modified: ["src/a b.ts", "src/#c.ts"]'));
 });
 
+test('language is set via --lang and sticky across later writes', () => {
+  const proj = mkdtempSync(join(tmpdir(), 'acdev-lang-'));
+  const w1 = write(proj, ['--lang', 'spanish']);
+  assert.equal(w1.status, 0, w1.stderr);
+  assert.match(readFileSync(join(proj, '.acdev', 'state.md'), 'utf8'), /language: spanish/);
+  const w2 = write(proj, []);
+  assert.equal(w2.status, 0, w2.stderr);
+  assert.match(readFileSync(join(proj, '.acdev', 'state.md'), 'utf8'), /language: spanish/);
+});
+
 test('write without required flags fails', () => {
   const proj = mkdtempSync(join(tmpdir(), 'acdev-bad-'));
   const r = spawnSync(process.execPath, [script, 'write', '--stage', 'build'], { cwd: proj, encoding: 'utf8' });

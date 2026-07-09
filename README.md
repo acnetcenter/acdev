@@ -94,9 +94,9 @@ Every session pays a fixed cost, regardless of which skills get used: the 21 `de
 Measured directly from the repository, not estimated:
 
 - Sum of the 21 `description:` values: **3,060 characters**.
-- `using-acdev` gateway body as injected by the hook (frontmatter stripped): **845 characters**, plus the one-line plugin-root path (varies with the install location).
-- Total fixed cost: **3,905 characters**.
-- Approximated at 4 characters/token (the same ratio `lint-budgets.mjs` uses): **~976 tokens/session**.
+- `using-acdev` gateway body as injected by the hook (frontmatter stripped): **971 characters**, plus the one-line plugin-root path (varies with the install location).
+- Total fixed cost: **4,031 characters**.
+- Approximated at 4 characters/token (the same ratio `lint-budgets.mjs` uses): **~1,008 tokens/session**.
 
 That is the honest, measured number — well under the plan's original ~2.3k-token estimate, because in practice the descriptions run far shorter than the 400-character (~100-token) budget. `lint-budgets.mjs` recomputes every number in this ledger from the tree and fails CI when the ledger goes stale.
 

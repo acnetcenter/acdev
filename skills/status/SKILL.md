@@ -20,8 +20,8 @@ node "<plugin-root>/scripts/checkpoint.mjs" read
 `<plugin-root>` is the absolute path printed as `acdev plugin root:` in the
 session context at startup.
 
-This prints `.acdev/state.md` (stage, updated, acdev_version, latest
-checkpoint path) and
+This prints `.acdev/state.md` (stage, updated, acdev_version, language,
+latest checkpoint path) and
 the full latest checkpoint file. Then read **only the current phase
 section** of `docs/ROADMAP.md` — the phase named by `state.md`'s stage, not
 the whole document. A multi-phase roadmap is not a status input; the phase

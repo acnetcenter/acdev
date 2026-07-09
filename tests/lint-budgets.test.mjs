@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -42,6 +42,28 @@ test('invalid skills fail with named violations', () => {
   assert.match(r.stderr, /layer-broken\/references\/note\.md: contains emoji/);
   assert.match(r.stderr, /layer-broken\/references\/flag\.md: contains emoji/);
   assert.match(r.stderr, /layer-broken\/references\/keycap\.md: contains emoji/);
+  assert.match(r.stderr, /layer-broken: "How to verify" is missing the shared verify-probe sentence/);
+});
+
+test('diverging layer "Before advising" blocks fail', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'acdev-layers-'));
+  const mk = (name, advice) => {
+    mkdirSync(join(dir, name));
+    writeFileSync(join(dir, name, 'SKILL.md'), [
+      '---', `name: ${name}`, `description: Use when testing ${name}.`, '---', '',
+      `# ${name}`, '',
+      '## Before advising', '', advice, '',
+      '## Production checklist', '', '- item', '',
+      '## Pitfalls', '', '- none', '',
+      '## How to verify', '',
+      'Otherwise run the `verify:` probe attached to each checklist item above directly.', ''
+    ].join('\n'));
+  };
+  mk('layer-one', 'Read the ADRs first.');
+  mk('layer-two', 'Read something else entirely.');
+  const r = runLint(dir);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /"Before advising" blocks diverge: layer-(one|two)\s+vs\s+layer-(one|two)/);
 });
 
 test('an empty skills dir fails instead of passing green', () => {

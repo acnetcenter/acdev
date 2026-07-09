@@ -79,7 +79,31 @@ for (const dir of dirs) {
       if (!body.includes(h)) errors.push(`${lbl}: missing required heading "${h}"`);
     }
   }
-  if (name && desc) skills.push({ name, desc, raw, body });
+  if (name && desc) skills.push({ name, desc, raw, body, dir: dir.name });
+}
+
+// The layer skills repeat two shared blocks by design (each skill loads in
+// isolation); this guards that an edit to one of them reaches all of them.
+const layerSkills = skills.filter((s) => s.dir.startsWith('layer-'));
+if (layerSkills.length > 1) {
+  const variants = new Map();
+  for (const l of layerSkills) {
+    const t = norm(l.body).match(/## Before advising\n([\s\S]*?)(?=\n## )/)?.[1]?.trim() ?? '<missing>';
+    if (!variants.has(t)) variants.set(t, []);
+    variants.get(t).push(l.dir);
+  }
+  if (variants.size > 1) {
+    const groups = [...variants.values()].map((v) => v.join(', ')).join('  vs  ');
+    errors.push(`layer skills "Before advising" blocks diverge: ${groups}`);
+  }
+}
+// "How to verify" may vary per layer, but every variant must keep the shared
+// verify-probe mechanism sentence (whitespace-collapsed: line wrapping differs).
+const PROBE_SENTENCE = 'run the `verify:` probe attached to each checklist item';
+for (const l of layerSkills) {
+  if (!norm(l.body).replace(/\s+/g, ' ').includes(PROBE_SENTENCE)) {
+    errors.push(`skills/${l.dir}: "How to verify" is missing the shared verify-probe sentence`);
+  }
 }
 
 // The no-emoji rule covers references and templates too, not only SKILL.md.

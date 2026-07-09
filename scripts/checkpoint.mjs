@@ -43,7 +43,8 @@ if (cmd === 'write') {
         slice: { type: 'string' },
         files: { type: 'string' },
         blocked: { type: 'string' },
-        notes: { type: 'string' }
+        notes: { type: 'string' },
+        lang: { type: 'string' }
       }
     }));
   } catch (err) {
@@ -80,7 +81,12 @@ if (cmd === 'write') {
   for (let n = 2; existsSync(file); n++) file = join(CKPT_DIR, `${base}-${n}.md`);
   writeFileSync(file, fm + (a.notes ?? '') + '\n');
   const rel = relative(cwd, file).replaceAll('\\', '/');
-  writeFileSync(STATE, `# acdev state\n\nstage: ${a.stage}\nupdated: ${t.human}\nacdev_version: ${pluginVersion()}\nlatest_checkpoint: ${rel}\n`);
+  // language is sticky: set once (usually at onboard), preserved by later writes.
+  let lang = a.lang;
+  if (!lang && existsSync(STATE)) {
+    lang = readFileSync(STATE, 'utf8').match(/^language:\s*(.+)$/m)?.[1]?.trim();
+  }
+  writeFileSync(STATE, `# acdev state\n\nstage: ${a.stage}\nupdated: ${t.human}\nacdev_version: ${pluginVersion()}\nlanguage: ${lang ?? 'unknown'}\nlatest_checkpoint: ${rel}\n`);
   console.log(rel);
 } else if (cmd === 'read') {
   if (!existsSync(CKPT_DIR)) {

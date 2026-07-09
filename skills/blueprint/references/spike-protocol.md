@@ -16,7 +16,7 @@ then it is thrown away.
 2. **Success criterion written BEFORE any code.** State precisely what
    "it works" means, as an observable, checkable fact — never an
    open-ended "explore the API" or "see if this is feasible."
-3. **Timebox: 2-6 hours.** Pick a number inside that range up front and
+3. **Timebox: roughly 2-6 hours.** Pick a number inside that range up front and
    stop at it, whether or not the criterion was met. A spike that needs
    more than 6 hours is answering the wrong question or is not actually a
    spike — split it or replace it with a smaller question.

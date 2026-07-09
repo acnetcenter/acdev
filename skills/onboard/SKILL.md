@@ -90,11 +90,13 @@ Once confirmed, propose the adoption plan:
   checkpoint by running:
 
   ```
-  node "<plugin-root>/scripts/checkpoint.mjs" write --stage <s> --branch <b> --next "<text>"
+  node "<plugin-root>/scripts/checkpoint.mjs" write --stage <s> --branch <b> --next "<text>" --lang "<documentation language>"
   ```
 
   `<plugin-root>` is the absolute path printed as `acdev plugin root:` in
-  the session context at startup.
+  the session context at startup. `--lang` records the project's
+  documentation language in `state.md` (from the existing docs or agreed
+  with the user); later checkpoint writes preserve it automatically.
   `--stage`, `--branch`, and `--next` are required. Set `--stage` to the
   pipeline stage the project should resume at (per the adoption plan just
   agreed) — one of `intake`, `vision`, `mvp`, `mockups`, `blueprint`,

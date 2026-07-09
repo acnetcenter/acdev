@@ -48,7 +48,7 @@ While drafting an ADR, flag any decision that depends on something
 unproven — a third-party API, a critical integration, a doubtful
 performance requirement — and run `references/spike-protocol.md` before
 freezing that ADR. A spike writes its success criterion before any code,
-stays timeboxed to 2-6 hours, lives in `spikes/NNN-question/`, and its
+stays timeboxed to roughly 2-6 hours, lives in `spikes/NNN-question/`, and its
 result (works / does not work / works with limits) is recorded back in the
 ADR. Spike code never merges into product code. A CRUD on a known stack
 with no unproven dependency produces zero spikes — this step is optional

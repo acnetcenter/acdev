@@ -13,4 +13,4 @@ Process (auto): designing (before creative work) | planning (multi-step plans) |
 
 Layers (auto when touching that layer): layer-frontend, layer-api, layer-data, layer-auth, layer-security, layer-performance, layer-delivery, layer-cicd.
 
-Zero product code before build is ordered. Docs drift is fixed in the same commit.
+Zero product code before build is ordered. Docs drift is fixed in the same commit. Every generated artifact (docs, ADRs, checkpoints) is written in the project's documentation language — match docs/VISION.md.
