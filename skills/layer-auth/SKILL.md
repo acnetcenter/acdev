@@ -17,8 +17,11 @@ to blueprint (new projects) or onboard (existing repos).
 ## Production checklist
 
 - Session/token strategy must match the ADR — server sessions vs
-  short-lived JWT plus refresh, never both improvised — verify: the
-  implementation matches the documented choice, not a mix.
+  short-lived JWT plus refresh, never both improvised — verify: inspect
+  the running implementation and compare it field by field against the
+  ADR — token transport (httpOnly cookie vs Authorization header), token
+  lifetime/TTL, and refresh mechanism each match the ADR's documented
+  choice, with no second mechanism present alongside it.
 - Tokens and sessions must expire and revoke server-side — verify: an
   expired or revoked token returns 401 on a protected route.
 - Authorization must be enforced at the API boundary for every route, not
