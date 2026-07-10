@@ -45,8 +45,9 @@ request, not part of a status check.
 
 **Missing `.acdev/`.** If `.acdev/` does not exist in the project, say so
 plainly and stop — do not infer a stage from the repo's code. Offer two
-paths: `onboard` if the repo already has code, `new-project` if it is
-empty. Let the user pick; do not run either automatically.
+paths: `/acdev:onboard` if the repo already has code, `/acdev:new-project`
+if it is empty. Both are user-invoked; let the user pick and run the
+command themselves.
 
 ## Write (manual checkpoint)
 

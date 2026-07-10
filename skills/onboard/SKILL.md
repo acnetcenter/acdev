@@ -1,12 +1,14 @@
 ---
 name: onboard
 description: Use when adopting an existing repo into acdev: build a truthful situation map of what exists and what is missing, with declared gaps, then propose adopting the pipeline.
+disable-model-invocation: true
 ---
 
 # Onboard (adopt an existing repo)
 
-This skill is where `new-project` routes when the repo already exists. Its
-job is not to redesign the project — it is to find out, cheaply and
+This skill is the user-invoked entry point (`/acdev:onboard`) for adopting
+an existing repo; `new-project` sends the user here when the repo already
+exists. Its job is not to redesign the project — it is to find out, cheaply and
 truthfully, what is already there, write that down as `docs/SITUATION.md`,
 and then propose which acdev artifacts are worth adding on top of it.
 

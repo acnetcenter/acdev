@@ -279,3 +279,16 @@ All open questions were resolved during the design conversation with the user:
 | MVP handling | Separate MVP.md with its own hard gate; mockups derive from MVP.md |
 | Technical risk | Optional timeboxed spikes during blueprint |
 | Post-MVP screens | Skeleton inventory at stage 3; detailed mockups just-in-time per phase |
+
+## Amendments
+
+- 2026-07-09 (post-v0.1.0, deterministic-routing pack): `new-project` and
+  `onboard` are now user-run entry points (`disable-model-invocation: true`).
+  The "+ auto" markers for those two rows in the skill table above no longer
+  apply, and every instruction that told the model to switch to them now has
+  the user run the `/acdev:` command instead. A `UserPromptSubmit` hook
+  (`hooks/prompt-context.mjs`) injects the current stage, skill precedence
+  and the disambiguation rule on every prompt inside a project with
+  `.acdev/state.md`. The implementation plan
+  (`docs/plans/2026-07-09-acdev-implementation.md`) predates this amendment
+  and snapshots the old wording.

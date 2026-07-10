@@ -79,7 +79,32 @@ for (const dir of dirs) {
       if (!body.includes(h)) errors.push(`${lbl}: missing required heading "${h}"`);
     }
   }
-  if (name && desc) skills.push({ name, desc, raw, body, dir: dir.name });
+  const noModel = /^disable-model-invocation:\s*true$/m.test(fm);
+  if (name && desc) skills.push({ name, desc, raw, body, dir: dir.name, noModel });
+}
+
+// Lexical overlap between model-invocable descriptions: two skills whose
+// trigger vocabularies overlap heavily will collide at activation time.
+// Threshold calibrated against the real tree (max legitimate pair: 0.143,
+// ship ~ status). The shared-words floor keeps tiny vocabularies from
+// false-positiving; an empty union is skipped, not treated as identical.
+const OVERLAP_MAX = 0.25;
+const MIN_SHARED = 3;
+const STOPWORDS = new Set('use when the a an or and to of for with on in is are it this that any every before after from into'.split(' '));
+const descWords = (d) => new Set(d.toLowerCase().replace(/[^a-z0-9\s-]/g, ' ').split(/\s+/).filter((w) => w.length > 3 && !STOPWORDS.has(w)));
+const invocable = skills.filter((s) => !s.noModel);
+for (let i = 0; i < invocable.length; i++) {
+  for (let j = i + 1; j < invocable.length; j++) {
+    const a = descWords(invocable[i].desc);
+    const b = descWords(invocable[j].desc);
+    const inter = [...a].filter((w) => b.has(w)).length;
+    const union = a.size + b.size - inter;
+    if (union === 0) continue;
+    const jaccard = inter / union;
+    if (inter >= MIN_SHARED && jaccard > OVERLAP_MAX) {
+      errors.push(`description overlap ${jaccard.toFixed(2)} > ${OVERLAP_MAX} between "${invocable[i].dir}" and "${invocable[j].dir}" — their triggers will collide`);
+    }
+  }
 }
 
 // The layer skills repeat two shared blocks by design (each skill loads in
@@ -148,17 +173,19 @@ if (REPO_CHECKS) {
   for (const m of readme.matchAll(/^\| `([a-z][a-z0-9-]*)` \|/gm)) {
     if (!names.has(m[1])) errors.push(`README.md: skill table row for "${m[1]}" refers to a skill that does not exist`);
   }
-  for (const needle of [`## The ${skills.length} skills`, `the ${skills.length} \`description:\` frontmatter lines`]) {
+  for (const needle of [`## The ${skills.length} skills`, `the ${invocable.length} model-invocable \`description:\` frontmatter lines`]) {
     if (!readme.includes(needle)) errors.push(`README.md: stale skill count (expected "${needle}")`);
   }
   const gateway = skills.find((s) => s.name === 'using-acdev');
   if (gateway) {
-    const sumDesc = skills.reduce((n, s) => n + s.desc.length, 0);
+    // Only model-invocable descriptions load into context; user-run entry
+    // points (disable-model-invocation) cost nothing per session.
+    const sumDesc = invocable.reduce((n, s) => n + s.desc.length, 0);
     // Measure what the hook actually injects: the body, frontmatter stripped.
     const gatewayLen = norm(gateway.body).trim().length;
     const total = sumDesc + gatewayLen;
     const ledger = [
-      [`Sum of the ${skills.length} \`description:\` values: **${fmt(sumDesc)} characters**`, 'description sum'],
+      [`Sum of the ${invocable.length} model-invocable \`description:\` values: **${fmt(sumDesc)} characters**`, 'description sum'],
       [`gateway body as injected by the hook (frontmatter stripped): **${fmt(gatewayLen)} characters**`, 'gateway size'],
       [`Total fixed cost: **${fmt(total)} characters**`, 'total fixed cost'],
       [`**~${fmt(Math.round(total / 4))} tokens/session**`, 'token estimate']

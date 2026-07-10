@@ -16,7 +16,11 @@ If the work belongs to a project already running the acdev pipeline
 (`.acdev/` exists), this skill does not run its own process. It routes to
 the pipeline stage that already owns this kind of decision instead:
 
-- New product or feature at the VISION/MVP level → `new-project`.
+- A change to what THIS product does, at the VISION/MVP level → not a new
+  project: amend `docs/VISION.md` / `docs/MVP.md` with the user (it is a
+  user-challenge decision), then re-derive the affected downstream docs.
+- A separate new product → have the user run `/acdev:new-project` in its
+  own repository (entry points are user-invoked, not model-invoked).
 - A new or changed screen → `mockups`.
 - Architecture, stack, or a normative doc → `blueprint`.
 

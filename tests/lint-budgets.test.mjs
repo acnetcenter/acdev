@@ -66,6 +66,20 @@ test('diverging layer "Before advising" blocks fail', () => {
   assert.match(r.stderr, /"Before advising" blocks diverge: layer-(one|two)\s+vs\s+layer-(one|two)/);
 });
 
+test('near-identical model-invocable descriptions fail the overlap check', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'acdev-overlap-'));
+  const mk = (name, desc) => {
+    mkdirSync(join(dir, name));
+    writeFileSync(join(dir, name, 'SKILL.md'),
+      `---\nname: ${name}\ndescription: ${desc}\n---\n\n# ${name}\n\nBody.\n`);
+  };
+  mk('first-skill', 'Use when implementing any feature or bugfix with tests and verification evidence.');
+  mk('second-skill', 'Use when implementing any feature or bugfix with verification tests and evidence.');
+  const r = runLint(dir);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /description overlap \d\.\d+ > 0\.25 between "first-skill" and "second-skill"/);
+});
+
 test('an empty skills dir fails instead of passing green', () => {
   const empty = mkdtempSync(join(tmpdir(), 'acdev-noskills-'));
   const r = runLint(empty);

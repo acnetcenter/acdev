@@ -1,6 +1,7 @@
 ---
 name: new-project
 description: Use when starting a new software project from scratch: intake interview, then VISION.md and MVP.md conversed section by section with hard approval gates. Zero product code.
+disable-model-invocation: true
 ---
 
 # New project (stages 0-2)
@@ -12,7 +13,7 @@ This skill runs the first three stages of the acdev pipeline: intake, VISION.md,
 Ask the following in ONE message and wait for the answers before doing anything else:
 
 1. Project name and one sentence describing what it is and who it is for.
-2. New repository or existing one? If existing, stop this skill and switch to the `onboard` skill instead — do not run the VISION/MVP interview on an existing codebase.
+2. New repository or existing one? If existing and not yet on acdev, stop this skill and have the user run `/acdev:onboard` instead — do not run the VISION/MVP interview on an existing codebase. If it already runs the pipeline (`.acdev/` exists), stop too: changes to an adopted product are VISION/MVP amendments made through the pipeline, not a new project.
 3. Documentation language: the language every generated artifact (VISION.md, MVP.md, and everything downstream) will be written in.
 4. Claude Code only, or multi-AI (Codex, Cursor, Copilot, ...)? This decides whether an `AGENTS.md` mirror of `CLAUDE.md` is generated later, at blueprint stage.
 

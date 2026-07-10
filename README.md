@@ -22,9 +22,9 @@ to GitHub):
 Requirements:
 
 - Claude Code with plugins enabled.
-- Node.js >= 20 on `PATH`, used by the SessionStart hook and by `scripts/checkpoint.mjs` / `scripts/lint-budgets.mjs`.
+- Node.js >= 20 on `PATH`, used by the SessionStart and UserPromptSubmit hooks and by `scripts/checkpoint.mjs` / `scripts/lint-budgets.mjs`.
 
-Node is not strictly required: without it the SessionStart hook fails silently and acdev still works, but skills activate from their descriptions alone (degraded auto-activation) instead of from the gateway skill map injected at session start.
+Node is not strictly required: without it both hooks fail silently and acdev still works, but skills activate from their descriptions alone (degraded auto-activation) instead of from the gateway skill map injected at session start and the per-prompt routing line.
 
 ## Quickstart
 
@@ -52,7 +52,7 @@ Zero product code is written before stage 5.
 |---|---|
 | `using-acdev` | How and when to use every acdev skill; loaded at session start. |
 
-**Pipeline** (also available as slash commands):
+**Pipeline** (also available as slash commands; `new-project` and `onboard` are user-invoked entry points — the model recommends the command instead of activating them):
 
 | Skill | Description |
 |---|---|
@@ -89,14 +89,16 @@ Zero product code is written before stage 5.
 
 ## Token cost ledger
 
-Every session pays a fixed cost, regardless of which skills get used: the 21 `description:` frontmatter lines (needed for auto-activation) plus the `using-acdev` gateway body, which the SessionStart hook prints into context (frontmatter stripped) together with a one-line `acdev plugin root:` path.
+Every session pays a fixed cost, regardless of which skills get used: the 19 model-invocable `description:` frontmatter lines (needed for auto-activation; `new-project` and `onboard` are user-run entry points whose descriptions never load) plus the `using-acdev` gateway body, which the SessionStart hook prints into context (frontmatter stripped) together with a one-line `acdev plugin root:` path.
 
 Measured directly from the repository, not estimated:
 
-- Sum of the 21 `description:` values: **3,060 characters**.
-- `using-acdev` gateway body as injected by the hook (frontmatter stripped): **971 characters**, plus the one-line plugin-root path (varies with the install location).
-- Total fixed cost: **4,031 characters**.
-- Approximated at 4 characters/token (the same ratio `lint-budgets.mjs` uses): **~1,008 tokens/session**.
+- Sum of the 19 model-invocable `description:` values: **2,719 characters**.
+- `using-acdev` gateway body as injected by the hook (frontmatter stripped): **1,288 characters**, plus the one-line plugin-root path (varies with the install location).
+- Total fixed cost: **4,007 characters**.
+- Approximated at 4 characters/token (the same ratio `lint-budgets.mjs` uses): **~1,002 tokens/session**.
+
+Inside a project with `.acdev/state.md`, the `UserPromptSubmit` hook additionally injects one routing line per prompt (current stage, skill precedence, disambiguation rule — about 60 tokens); outside acdev projects it injects nothing.
 
 That is the honest, measured number — well under the plan's original ~2.3k-token estimate, because in practice the descriptions run far shorter than the 400-character (~100-token) budget. `lint-budgets.mjs` recomputes every number in this ledger from the tree and fails CI when the ledger goes stale.
 

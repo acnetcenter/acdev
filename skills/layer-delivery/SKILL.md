@@ -11,7 +11,8 @@ Production knowledge for hosting, deployment, and environments, stack-agnostic.
 
 Read `docs/adr/` and `ARCHITECTURE.md` first. The stack is already decided;
 never re-derive or second-guess it here. If no ADRs exist, say so and route
-to blueprint (new projects) or onboard (existing repos).
+to blueprint (new projects) or have the user run /acdev:onboard (existing
+repos).
 
 ## Production checklist
 

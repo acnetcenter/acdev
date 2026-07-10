@@ -8,8 +8,9 @@ description: Use after MVP approval to build static HTML mockups of every MVP sc
 This skill runs stage 3 of the acdev pipeline: turning the approved MVP into
 a walkable set of static HTML mockups, plus a skeleton inventory of the
 post-MVP screens. Precondition: `docs/MVP.md` is approved (stage 2 hard
-gate). If the project has no UI, this stage was already skipped at
-`new-project` — do not run it now.
+gate). If the project has no UI, this stage does not
+apply — it was skipped at `new-project`, or `onboard` set the resume
+stage past it. Do not run it now.
 
 Mockups derive from MVP.md, not from VISION.md directly. Every screen built
 here must trace to a flow or feature already agreed in the MVP.
