@@ -3,7 +3,7 @@
 ## [Unreleased]
 
 ### Added
-- Deterministic routing pack: `new-project` and `onboard` are now user-invoked entry points (`disable-model-invocation: true`) — their descriptions no longer load or compete for activation, and `designing`/`status`/`new-project` recommend the slash command instead of invoking them. Net fixed cost drops to ~980 tokens/session.
+- Deterministic routing pack: `new-project` and `onboard` are now user-invoked entry points (`disable-model-invocation: true`) — their descriptions no longer load or compete for activation, and `designing`/`status`/`new-project` recommend the slash command instead of invoking them. Net fixed cost drops to ~1,002 tokens/session.
 - `UserPromptSubmit` hook (`hooks/prompt-context.mjs`): inside a project with `.acdev/state.md`, injects one line per prompt with the current stage, skill precedence (pipeline outranks process) and the disambiguation rule; silent outside acdev projects.
 - Disambiguation rule in the gateway and the per-prompt line: in doubt or ambiguity about which skill applies, offer the matching `/acdev` commands and let the user choose instead of picking silently.
 - Description-overlap lint: model-invocable skill descriptions whose trigger vocabularies overlap beyond a calibrated threshold (Jaccard > 0.25 with at least 3 shared trigger words; current real maximum 0.143) fail CI.
