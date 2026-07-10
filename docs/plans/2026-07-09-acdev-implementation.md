@@ -1212,7 +1212,7 @@ git commit -m "ci: tests and budget lint on push and pr"
 
 - [ ] **Step 1: Install the plugin locally from the working tree**
 
-In a Claude Code session: `/plugin marketplace add C:\githubRepositories\Kike-AI-Project` then `/plugin install acdev@acnetcenter`. Restart the session.
+In a Claude Code session: `/plugin marketplace add C:\githubRepositories\Plugin-acdev` then `/plugin install acdev@acnetcenter`. Restart the session.
 Expected: plugin listed as installed; no load errors.
 
 - [ ] **Step 2: Verify the SessionStart hook on Windows**
