@@ -2,8 +2,13 @@
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-07-10
+
+First fix from the real pilot: the VISION interview felt like a cold
+questionnaire and the gate could ask approval for a never-shown document.
+
 ### Changed
-- `new-project` intake now opens by listening: one question — tell the idea in a few sentences — before any paperwork; the remaining intake questions follow in one message with defaults proposed from the idea (first real-pilot feedback).
+- `new-project` intake now opens by listening: one question — tell the idea in a few sentences — before any paperwork; the remaining intake questions follow in one message with defaults proposed from the idea.
 - VISION.md is now written in front of the user: each questionnaire section closes by showing the section as document text ("this is what we have so far") for correction on the spot, so by the gate the user has already read every line.
 - The VISION hard gate no longer allows presenting "a summary" — the full document, always; the gate confirms a document the user watched grow, it does not reveal one.
 
