@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-07-11
+
+### Added
+- Continuous build mode (pilot feedback): at the blueprint gate, alongside the model-switch offer, the user can approve building the whole MVP phase slice after slice without pausing. Per-slice quality gates are untouched (just-in-time plan, TDD, verification, full `ship` close per slice); mechanical/taste decisions auto-decide into the audit table as always; a user-challenge decision or a plan-invalidating trap stops the run with a `--blocked` checkpoint — autonomy covers execution, never decisions. The run ends at the phase exit; post-MVP phases need their own mockups gate first.
+
 ## [0.1.3] - 2026-07-10
 
 ### Added

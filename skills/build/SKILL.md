@@ -102,6 +102,36 @@ Two situations can surface mid-slice and each has its own handling:
   commit as the code change (the drift rule) — the docs and the behavior
   they describe never diverge, even for one commit.
 
+## Continuous build
+
+Only on the user's explicit approval, offered at the blueprint gate or
+given any time during build ("build the whole MVP without stopping").
+Without it, build pauses at each slice boundary as usual.
+
+In continuous mode:
+
+- The loop and its quality gates DO NOT change: every slice still gets
+  its just-in-time plan, the TDD loop, verification per the `verifying`
+  skill, and a full `ship` close (green verification, drift check,
+  checkpoint, one commit) before the next slice starts. Continuous mode
+  removes the pauses between slices, never the gates inside them.
+- Mechanical and taste decisions are auto-decided into the audit table,
+  as always. A user-challenge decision STOPS the run: write the
+  checkpoint with `--blocked` naming the question, report it, and wait —
+  autonomy covers execution, never decisions. The user answers and says
+  "continue" to resume.
+- A discovered trap that invalidates the current plan stops the run the
+  same way — this is already the rule; continuous mode does not soften
+  it.
+- Scope: the run ends at the current phase's exit — for phase 1, the MVP
+  exit criteria in `docs/ROADMAP.md`. Post-MVP phases each need their own
+  mockups gate first, then their own continuous run if the user wants
+  one.
+- Narrate every slice close in one short line ("slice N shipped,
+  verification green — next: X") without waiting for a reply; the user
+  can interrupt at any point. If the session dies mid-run, the
+  checkpoints already cover resumption: `/acdev:status`, then "continue".
+
 ## Post-MVP phases
 
 When a phase beyond the MVP starts, its screens have no mockups yet — they

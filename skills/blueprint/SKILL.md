@@ -108,9 +108,15 @@ docs: full project blueprint and ai context system
 Next step: the `build` skill. It starts ONLY on the user's explicit order
 — finishing this gate is not itself the order to build.
 
-**Model switch point.** When closing this gate, advise the user: the
-thinking-heavy stages are done — everything downstream is construction
-against approved documents (ADRs, frozen mockups, just-in-time slice
-plans). If they want to cut cost, this is the moment to switch to a
-cheaper model (`/model`) for `build`: the document stages deserve the
-most capable model; construction follows instructions.
+**Model switch point and continuous-build offer.** When closing this
+gate, advise the user: the thinking-heavy stages are done — everything
+downstream is construction against approved documents (ADRs, frozen
+mockups, just-in-time slice plans). Offer two choices in one message:
+
+- Switch to a cheaper model (`/model`) for `build` — the document stages
+  deserve the most capable model; construction follows instructions.
+- Continuous build: with their explicit approval, `build` runs the whole
+  MVP phase slice after slice without pausing between them, under the
+  rules in `build`'s "Continuous build" section (per-slice quality gates
+  stay; a user-challenge decision stops the run). Without that approval,
+  build proceeds slice by slice as usual.
