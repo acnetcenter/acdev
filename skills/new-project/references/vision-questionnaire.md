@@ -7,16 +7,20 @@ sections.
 
 ## Procedure
 
-1. Present the sections one at a time (or in blocks of 2-3 if the user prefers
-   speed). For every question, offer your best draft answer as a starting
-   point — the user corrects a draft better than they compose one cold.
-2. After each block, summarize what was decided in 3-5 lines and ask for
-   confirmation.
+1. Present the sections one at a time (blocks of 2-3 only if the user asks
+   for speed). For every question, offer your best draft answer as a
+   starting point, seeded from what the user has already told — they
+   correct a draft better than they compose one cold.
+2. Close each section by showing it AS DOCUMENT TEXT — "this is what we
+   have so far" — and let the user correct or extend it right there before
+   moving on. The preview is the document being written, not a chat
+   summary; by the last section the user has seen every line of the
+   future VISION.md.
 3. Challenge weak answers: if the user says "for everyone," ask who is NOT a
    customer; if they say "as complete as possible," ask what is explicitly OUT
    of the v1. A good VISION says as much through what it excludes as through
    what it includes.
-4. Only once all 7 sections are agreed, write `docs/VISION.md`.
+4. Only once all 7 sections are agreed — and seen — write `docs/VISION.md`.
 
 ## The 7 sections
 
