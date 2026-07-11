@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-07-10
+
+### Added
+- Model switch point at the blueprint gate: when the documentation package is approved, the user is advised that everything downstream is construction against approved documents, and that `build` can run on a cheaper model (`/model`) — the document stages deserve the most capable one (pilot feedback).
+
 ## [0.1.2] - 2026-07-10
 
 First fix from the real pilot: the VISION interview felt like a cold

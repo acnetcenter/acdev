@@ -107,3 +107,10 @@ docs: full project blueprint and ai context system
 
 Next step: the `build` skill. It starts ONLY on the user's explicit order
 — finishing this gate is not itself the order to build.
+
+**Model switch point.** When closing this gate, advise the user: the
+thinking-heavy stages are done — everything downstream is construction
+against approved documents (ADRs, frozen mockups, just-in-time slice
+plans). If they want to cut cost, this is the moment to switch to a
+cheaper model (`/model`) for `build`: the document stages deserve the
+most capable model; construction follows instructions.
