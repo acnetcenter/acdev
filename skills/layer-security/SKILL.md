@@ -44,8 +44,9 @@ repos).
   pipeline runs a dependency audit step and a documented rule states who
   triages findings and by when.
 - An OWASP Top 10 pass over the permission matrix and injection surfaces
-  must happen at each phase exit — verify: the phase-exit checklist or
-  report references this pass and lists what was checked.
+  must happen at each phase exit (owned and run by `ship`'s phase-exit
+  security pass) — verify: the phase-exit checklist or report references
+  this pass and lists what was checked.
 
 ## Pitfalls
 

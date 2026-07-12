@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-07-11
+
+### Added
+- Phase-exit security pass, owned by `ship` (pilot feedback): before a phase can be marked complete, run the native `/security-review` over the phase's full diff, the OWASP Top 10 pass from `layer-security` (permission matrix, injection surfaces) and the project's `scripts/verify/` security probes — with evidence. If build ran on a cheaper model, this is the switch-back point to the most capable one: construction follows instructions, hunting vulnerabilities takes adversarial reasoning. A high-severity finding blocks the phase close; accepting it is an explicit user-challenge decision, never automatic. The continuous-build run ends through this same pass.
+
 ## [0.1.4] - 2026-07-11
 
 ### Added

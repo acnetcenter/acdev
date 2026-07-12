@@ -124,9 +124,9 @@ In continuous mode:
   same way — this is already the rule; continuous mode does not soften
   it.
 - Scope: the run ends at the current phase's exit — for phase 1, the MVP
-  exit criteria in `docs/ROADMAP.md`. Post-MVP phases each need their own
-  mockups gate first, then their own continuous run if the user wants
-  one.
+  exit criteria in `docs/ROADMAP.md` plus `ship`'s phase-exit security
+  pass. Post-MVP phases each need their own mockups gate first, then
+  their own continuous run if the user wants one.
 - Narrate every slice close in one short line ("slice N shipped,
   verification green — next: X") without waiting for a reply; the user
   can interrupt at any point. If the session dies mid-run, the

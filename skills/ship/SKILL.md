@@ -84,8 +84,27 @@ pr create --fill`) — this skill does not re-teach `gh` usage.
 
 **Phase exit.** When the slice just closed was the last one in its phase,
 verify the phase's exit criteria in `docs/ROADMAP.md` against what was
-actually built and verified — not against intent. Mark the phase
-complete only once every exit criterion is actually met. Then stop: do not
+actually built and verified — not against intent.
+
+The phase-exit security pass runs before the phase can be marked
+complete. If build ran on a cheaper model, this is the moment to switch
+back to the most capable one (`/model`) — construction follows
+instructions, but hunting vulnerabilities takes adversarial reasoning.
+Three parts, each with evidence:
+
+1. Native `/security-review` over the phase's full diff (first slice of
+   the phase to HEAD) — it already knows how to hunt vulnerabilities;
+   this skill does not re-teach it.
+2. The OWASP Top 10 pass from `layer-security`'s checklist, over the
+   permission matrix and the phase's injection surfaces.
+3. The project's `scripts/verify/` security probes.
+
+A high-severity finding blocks the phase close the same way a red check
+blocks a slice: fix it, or put the acceptance to the user as an explicit
+user-challenge decision — security posture is never auto-accepted.
+
+Mark the phase complete only once every exit criterion is actually met
+and the security pass is clean or explicitly accepted. Then stop: do not
 start the next phase's slices without the next-phase gate (mockups for any
 new screens, blueprint deltas for new decisions) being satisfied first.
 
