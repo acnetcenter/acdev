@@ -57,6 +57,9 @@ Examples:
    migrate away from later.
 5. Any change to what the product does or promises the user (a feature's
    actual behavior, not its implementation).
+6. Which jurisdictions the product operates and holds data in, and the
+   compliance obligations that follow (data residency, retention,
+   deletion).
 
 ## When in doubt
 

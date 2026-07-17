@@ -129,6 +129,45 @@ Keeping either alongside acdev means two SessionStart hooks and duplicate skills
 
 Projects built with the kike-era pipeline are compatible: their `VISION.md`, `ROADMAP.md` and ADRs are read as-is. Run `/acdev:onboard` on such a repo to adopt it — it builds a truthful situation map of what exists and what is missing, and generates `MVP.md` retroactively only if the project still has unbuilt scope worth gating.
 
+## Evals
+
+The structural lint proves budgets and drift; it cannot prove the semantic
+surface — that a session routes a user prompt to the right skill, and that
+a skill body produces the required decision at its hard gates. Two
+on-demand eval suites cover that:
+
+- `evals/routing.cases.json` — realistic user prompts (English and
+  Spanish, because real users mix both) with the skill expected to
+  activate first, judged over the session-start activation surface
+  (gateway body + model-invocable descriptions; the per-prompt stage line
+  `prompt-context.mjs` injects inside a project is not simulated).
+  Includes `RECOMMEND` cases for the user-run entry points, `OFFER` cases
+  for genuine ambiguity, and `NONE` cases where acdev must stay out of
+  the way.
+- `evals/gates.cases.json` — multiple-choice scenarios probing the hard
+  rules one at a time (full-document VISION approval, red-check-blocks-close,
+  continuous-build stop on user-challenge, drift fixed in the same commit,
+  the phase-exit security pass, ...), judged against the governing skill
+  body itself.
+
+Each case is one `claude -p` call (default model: haiku), so the suites
+cost real money and run on demand — never in CI. A single-sample judge is
+noisy, so a failing answer is retried once (`--retries`) before the case
+counts as failed; a pass on retry is printed as a flake signal, and a case
+that fails twice in a row is a real finding:
+
+```
+npm run evals                     # both suites
+npm run evals -- --suite routing --filter layer
+npm run evals -- --dry-run        # print the constructed prompts, no calls
+```
+
+Run them before a release and after changing any skill description, the
+gateway, or the wording of a gate. A failing case is always a real
+finding: either the description, the gate text, or the case itself needs
+fixing. The runner's own pipeline is tested without model calls
+(`tests/run-evals.test.mjs` injects a fake judge via `ACDEV_EVAL_CMD`).
+
 ## Development
 
 Run the test suite and the structural lint before sending changes:

@@ -30,6 +30,11 @@ repos).
   index use, not a sequential scan.
 - PII columns must be marked in DATA-MODEL with a retention rule — verify:
   the table listing PII exists and matches the actual schema.
+- Retention and deletion must be enforced, not only declared: when the
+  compliance ADR grants users deletion or a retention window expires, the
+  data must actually be erased or anonymized — verify: running the
+  deletion path for a test subject removes or anonymizes their rows and
+  stored files, and a documented note states how backups age out.
 - On multi-tenant projects, tenant-owned tables must carry the tenant key
   and it must be non-nullable — verify: inserting a row without a tenant
   key fails at the DB.

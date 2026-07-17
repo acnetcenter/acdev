@@ -1,0 +1,187 @@
+{
+  "about": "Gate-obedience eval cases: a scenario at one of acdev's hard rules, four candidate next actions, and the letter the governing text requires. context paths are repo-relative files inlined into the judge prompt (frontmatter stripped). Authoring rules: the correct option is a bare action — the rule that makes it correct lives ONLY in the injected context, never restated inside the option — and option lengths are balanced so the answer is not identifiable by length or detail alone.",
+  "cases": [
+    {
+      "id": "gate-vision-full-doc",
+      "context": ["skills/new-project/SKILL.md"],
+      "scenario": "You are near the end of the VISION interview. The user has seen and corrected sections 1 through 5 as they were drafted, but not 6 and 7 yet, and says: 'this is taking long — it all looks right so far, just move on to the MVP.'",
+      "options": {
+        "A": "Treat the running section previews as sufficient approval and move on to cutting MVP.md from what was agreed.",
+        "B": "Compress sections 6 and 7 into a two-line summary each, confirm those summaries, then start MVP.md.",
+        "C": "Finish sections 6 and 7 with the user, then present the complete document and ask for its explicit approval.",
+        "D": "Open MVP.md now and circle back for the VISION approval once an MVP draft exists to give it context."
+      },
+      "expect": "C",
+      "why": "The VISION hard gate requires explicit approval of the full document; partial or implied approval does not count."
+    },
+    {
+      "id": "gate-mvp-derivation",
+      "context": ["skills/new-project/SKILL.md"],
+      "scenario": "While cutting MVP.md you notice that a flow VISION section 5 promises contradicts what section 1 declares out of scope.",
+      "options": {
+        "A": "Pause the MVP cut and take the contradiction to the user as a correction to VISION.md first.",
+        "B": "Resolve it in MVP.md, the more recent document, and note the deviation in its introduction for review.",
+        "C": "Adopt the reading that yields the smaller MVP, record the choice in the audit table, and continue.",
+        "D": "Keep both documents unchanged and register the conflict as an open question for the next phase."
+      },
+      "expect": "A",
+      "why": "The derivation rule: a gap or contradiction found while cutting the MVP is fixed in VISION first, never patched into the child document."
+    },
+    {
+      "id": "gate-zero-product-code",
+      "context": ["skills/mockups/SKILL.md"],
+      "scenario": "During mockup revisions the user says: 'just build the login screen for real in React so we can feel it — it is tiny.'",
+      "options": {
+        "A": "Build it in React on a throwaway branch that never merges, keeping the experiment out of the product tree.",
+        "B": "Build only the standalone component with mock data, leaving out routing, state and any backend wiring.",
+        "C": "Agree and start the real login screen now, since its visual design is already agreed in the mockups.",
+        "D": "Keep the login screen as a static HTML mockup and make it fully walkable with links instead."
+      },
+      "expect": "D",
+      "why": "Mockups are plain HTML/CSS drawings, not product code; zero product code before build."
+    },
+    {
+      "id": "gate-mockups-illustrative",
+      "context": ["skills/mockups/SKILL.md"],
+      "scenario": "During build, you need a button's hover state and the frozen mockups never drew it.",
+      "options": {
+        "A": "Reopen the mockups gate, add the hover state to the frozen set, and ask for re-approval of the set.",
+        "B": "Decide the hover state now as a taste-class decision, record it in the audit table, and keep building.",
+        "C": "Ship the button without hover behavior so the implementation stays exactly faithful to the drawings.",
+        "D": "Pause the slice and ask the user to specify the hover design before any further frontend work."
+      },
+      "expect": "B",
+      "why": "What the mockups do not draw is illustrative: build decides it as a taste-class decision without reopening the gate."
+    },
+    {
+      "id": "gate-blueprint-not-order",
+      "context": ["skills/build/SKILL.md"],
+      "scenario": "The user just approved the blueprint documentation package and says 'great work'.",
+      "options": {
+        "A": "Begin slice 1 immediately — the walking skeleton — since the approved blueprint already defines it.",
+        "B": "Scaffold the repo and CI from the blueprint's repo mechanics now and leave feature code for later.",
+        "C": "Report the gate as closed and wait for the user to explicitly order construction to start.",
+        "D": "Write the plans for every phase-1 slice now so construction can begin the moment it is requested."
+      },
+      "expect": "C",
+      "why": "Build requires both the approved blueprint AND an explicit order to start; gate approval alone is not the order."
+    },
+    {
+      "id": "gate-ship-red-check",
+      "context": ["skills/ship/SKILL.md"],
+      "scenario": "At slice close, the suite is green except one lint error; the feature itself works when clicked through.",
+      "options": {
+        "A": "Commit the slice and record the lint error as a known issue in the checkpoint's notes field.",
+        "B": "Fix the lint error now, or write a --blocked checkpoint and report the slice as blocked.",
+        "C": "Exclude the offending file from the lint configuration so the close can proceed today.",
+        "D": "Commit the feature work now and dedicate the following commit entirely to the lint cleanup."
+      },
+      "expect": "B",
+      "why": "A red check blocks the close, no exceptions — no committing around it, no narrowing scope to dodge it."
+    },
+    {
+      "id": "gate-continuous-user-challenge",
+      "context": ["skills/build/SKILL.md", "shared/references/decision-classification.md"],
+      "scenario": "Mid continuous-build run, slice 4's plan raises the question whether refunds return to the original payment method or become account credit.",
+      "options": {
+        "A": "Choose refund-to-original-payment-method, the industry default, log the choice, and keep the run going.",
+        "B": "Auto-decide it as a taste decision, record it in the audit table, and let the user review it later.",
+        "C": "Queue the question, finish the remaining slices of the phase, and ask everything at the phase exit.",
+        "D": "Stop the run, write a checkpoint with --blocked naming the refunds question, and wait."
+      },
+      "expect": "D",
+      "why": "Refund handling is a user-challenge decision (decision-classification example 1), and a user-challenge decision stops a continuous run."
+    },
+    {
+      "id": "gate-drift-same-commit",
+      "context": ["skills/ship/SKILL.md"],
+      "scenario": "The slice being closed added a column, and DATA-MODEL.md no longer matches the real schema.",
+      "options": {
+        "A": "Update DATA-MODEL.md in the same commit as the slice.",
+        "B": "Open a docs follow-up task to fix it at the phase exit.",
+        "C": "Note the drift in the checkpoint and move on.",
+        "D": "Revert the column so the code matches the document again."
+      },
+      "expect": "A",
+      "why": "Drift is fixed in the same commit as the slice, never a follow-up."
+    },
+    {
+      "id": "gate-status-budget",
+      "context": ["skills/status/SKILL.md"],
+      "scenario": "In a project with .acdev/, the user asks: 'where are we?'",
+      "options": {
+        "A": "Scan the repo tree and recent commit history to double-check the checkpoint before answering.",
+        "B": "Read state.md, the latest checkpoint, the current ROADMAP phase section and the plans grep, then answer.",
+        "C": "Read every document under docs/ so the answer reflects the complete current picture.",
+        "D": "Summarize the last 50 git commits and reconstruct the project state from what they show."
+      },
+      "expect": "B",
+      "why": "Status answers from its three cheap sources under ~2k tokens; no repo scanning."
+    },
+    {
+      "id": "gate-user-run-entry",
+      "context": ["skills/using-acdev/SKILL.md"],
+      "scenario": "In a repo with no .acdev/, the user says: 'start a new acdev project for my gym idea'.",
+      "options": {
+        "A": "Invoke the new-project skill and open the intake interview with its one-question opener.",
+        "B": "Create docs/VISION.md directly from the gym idea as told, then review it with the user.",
+        "C": "Run the VISION questionnaire in conversation first and create the files at the end.",
+        "D": "Tell the user to run /acdev:new-project themselves and stop there."
+      },
+      "expect": "D",
+      "why": "Entry points are user-run; the model recommends the command instead of activating the skill."
+    },
+    {
+      "id": "gate-decision-escalation",
+      "context": ["shared/references/decision-classification.md"],
+      "scenario": "You cannot decide whether the retry behavior for failed payment charges is a taste decision or a user-challenge decision.",
+      "options": {
+        "A": "Class it as taste: several retry policies are valid and swapping one for another later is cheap.",
+        "B": "Class it as mechanical: apply the payment platform's default retry policy and move on silently.",
+        "C": "Class it as user-challenge and put the question to the user before proceeding.",
+        "D": "Defer the classification until a payment actually fails and the behavior matters in practice."
+      },
+      "expect": "C",
+      "why": "When in doubt between classes, escalate to the higher one; money is user-challenge territory."
+    },
+    {
+      "id": "gate-tdd-immediate-pass",
+      "context": ["skills/tdd/SKILL.md"],
+      "scenario": "The failing test you just wrote passes on its very first run.",
+      "options": {
+        "A": "Check the test's wiring and make it fail for the expected reason before writing any implementation.",
+        "B": "Accept the pass and move on to the next behavior on the list, since green is the goal state.",
+        "C": "Strengthen it with more assertions until at least one of them fails against the current code.",
+        "D": "Delete it, write the implementation first, and add tests for the finished behavior afterwards."
+      },
+      "expect": "A",
+      "why": "A test that passes immediately tests nothing; the red run must name the exact gap."
+    },
+    {
+      "id": "gate-verifying-stale-green",
+      "context": ["skills/verifying/SKILL.md"],
+      "scenario": "You ran the suite before your last edit and it was green; the last edit was a one-line rename.",
+      "options": {
+        "A": "Report done: a one-line rename cannot change behavior that the test suite would observe.",
+        "B": "Run the full suite again now and paste the decisive output lines before reporting done.",
+        "C": "Report done and let CI provide the authoritative green run once the commit lands.",
+        "D": "Re-run only the test file nearest the renamed symbol and report done if it passes."
+      },
+      "expect": "B",
+      "why": "Green claims require a run from this session taken after the last edit."
+    },
+    {
+      "id": "gate-phase-exit-security",
+      "context": ["skills/ship/SKILL.md"],
+      "scenario": "The last slice of the MVP phase just closed green.",
+      "options": {
+        "A": "Mark the phase complete: every slice shipped through its own verification and close.",
+        "B": "Move straight to the next phase's mockups gate while the product context is fresh.",
+        "C": "Run /security-review over the phase diff, the OWASP pass and the security probes first.",
+        "D": "Ask the user whether they want any security review before the phase is marked complete."
+      },
+      "expect": "C",
+      "why": "The phase-exit security pass runs before the phase is marked complete; a high-severity finding blocks it."
+    }
+  ]
+}

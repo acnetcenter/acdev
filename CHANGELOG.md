@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-07-17
+
+### Added
+- Routing and gate evals (`evals/`, `scripts/run-evals.mjs`, `npm run evals`): the plugin's semantic surface — does a prompt activate the right skill, does a hard gate produce the required decision — now has an on-demand behavioral suite. Routing cases (English and Spanish prompts) are judged over the session-start activation surface — gateway plus model-invocable descriptions; the in-project per-prompt stage line is not simulated — including `RECOMMEND` for user-run entry points, `OFFER` for genuine ambiguity and `NONE`; gate cases are multiple-choice scenarios against the governing skill body, with the correct option written as a bare action so the rule must come from the injected text, not the option itself. One model call per case (default haiku, one retry absorbing judge noise), never in CI; the runner's pipeline is tested judge-free via `ACDEV_EVAL_CMD`. Implements the spec's section 14.4 "automated routing evals" v2 candidate.
+- Jurisdiction-aware compliance: the VISION interview's complementary questions now ask which jurisdictions the product operates and holds data in; `blueprint` records the answer as a compliance ADR — regimes, residency, retention and deletion obligations, or explicitly none — as a user-challenge decision (asked, never assumed from the domain). `layer-data` verifies retention/deletion is enforced rather than declared, `layer-security` verifies data residency against that ADR, and jurisdiction/compliance joins the user-challenge examples in `decision-classification.md`.
+- Adversarial design review, optional at the blueprint gate: offered when presenting the package, before approval — two independent panels via the native Agent tool with opposing lenses (excess: what is over-designed; defect: what is missing or will not scale), findings contrasted (agreements first, contradictions presented as contested), design changes routed as user-challenge decisions, and a high-severity finding resolved or explicitly accepted before the gate closes. The blueprint is the highest-leverage review point: a design error caught here costs a conversation, mid-build it costs slices.
+- `layer-delivery` observability beyond the minimum bar: an error-rate alert that fires even while the health check stays green (degradation, not only downtime), production p95 latency measured per route so the phase-exit budget comparison in `layer-performance` reads real data, and a deliberate log-retention window instead of the platform default.
+
 ## [0.1.7] - 2026-07-17
 
 ### Added

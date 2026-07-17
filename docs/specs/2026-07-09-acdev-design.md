@@ -292,3 +292,10 @@ All open questions were resolved during the design conversation with the user:
   `.acdev/state.md`. The implementation plan
   (`docs/plans/2026-07-09-acdev-implementation.md`) predates this amendment
   and snapshots the old wording.
+- 2026-07-17 (v0.1.8): section 14.4's "automated routing evals (a v2
+  candidate)" is implemented: `evals/*.cases.json` plus
+  `scripts/run-evals.mjs`, run on demand (`npm run evals`), one model call
+  per case, outside CI. Routing cases cover activation, RECOMMEND for the
+  user-run entry points, OFFER for genuine ambiguity and NONE; gate cases
+  probe the hard rules as multiple-choice decisions against the governing
+  skill body. See the README "Evals" section.

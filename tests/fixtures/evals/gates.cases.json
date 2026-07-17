@@ -1,0 +1,18 @@
+{
+  "about": "Tiny gates fixture for run-evals tests.",
+  "cases": [
+    {
+      "id": "fx-gate",
+      "context": ["skills/tdd/SKILL.md"],
+      "scenario": "The new test passes immediately on its first run.",
+      "options": {
+        "A": "Move on to the next test.",
+        "B": "Treat the test as suspect and make it fail for the expected reason first.",
+        "C": "Delete the test.",
+        "D": "Ship the feature."
+      },
+      "expect": "B",
+      "why": "fixture"
+    }
+  ]
+}

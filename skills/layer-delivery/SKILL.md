@@ -41,6 +41,17 @@ repos).
   and tenant ids, error tracking wired up, and one uptime alert reaching a
   human channel — verify: a forced test error appears in the error
   tracker and triggers the alert.
+- Alerting must cover degradation, not only downtime: an error-rate spike
+  reaches a human even while the health check stays green — verify: a
+  burst of forced errors short of a total outage triggers the alert.
+- Production latency must be measured, not assumed: p95 per route or per
+  critical flow is visible in the platform or derivable from the logs —
+  verify: the p95 the phase exit compares against its budget (see
+  layer-performance) is read from production data, not estimated.
+- Log retention must be deliberate: a stated window long enough to debug
+  an incident days after it happened, bounded so storage does not grow
+  forever — verify: the retention window is configured and recorded, not
+  silently left at the platform default.
 - The walking-skeleton rule applies: a deploy pipeline must exist from
   slice 1, not be added "at the end" — verify: the first shipped slice
   already deploys through the pipeline to at least one environment, not

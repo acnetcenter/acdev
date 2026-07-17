@@ -1,6 +1,6 @@
 {
   "name": "acdev",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "private": true,
   "type": "module",
   "engines": {
@@ -8,6 +8,7 @@
   },
   "scripts": {
     "test": "node --test",
-    "lint": "node scripts/lint-budgets.mjs"
+    "lint": "node scripts/lint-budgets.mjs",
+    "evals": "node scripts/run-evals.mjs"
   }
 }

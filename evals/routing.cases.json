@@ -1,0 +1,298 @@
+{
+  "about": "Routing eval cases: realistic user prompts and the acdev skill expected to activate first, judged over the session-start activation surface (gateway body + model-invocable descriptions; the per-prompt stage line prompt-context.mjs injects inside a project is not simulated). expect/accept values: a skill name, RECOMMEND:<name>, OFFER, or NONE. Prompts mix English and Spanish because real users do.",
+  "cases": [
+    {
+      "id": "route-mockups-after-mvp",
+      "prompt": "MVP.md is approved — let's create the screens for every MVP flow now.",
+      "expect": "mockups",
+      "why": "Post-MVP-approval screen work is the mockups stage."
+    },
+    {
+      "id": "route-mockups-revision-es",
+      "prompt": "Las maquetas necesitan otra ronda: el menú lateral no convence y falta el estado vacío de la lista.",
+      "expect": "mockups",
+      "why": "Mockup revision rounds belong to the mockups skill."
+    },
+    {
+      "id": "route-blueprint-after-mockups",
+      "prompt": "Mockups are approved. Time to decide the stack, write the ADRs and the normative docs.",
+      "expect": "blueprint",
+      "why": "Stack decision, ADRs and normative docs are blueprint's scope."
+    },
+    {
+      "id": "route-blueprint-ai-context-es",
+      "prompt": "Genera el CLAUDE.md router y el paquete de documentación normativa del proyecto.",
+      "expect": "blueprint",
+      "why": "The AI context system is produced at blueprint."
+    },
+    {
+      "id": "route-build-start",
+      "prompt": "Blueprint approved — start building: plan and construct slice 1, the walking skeleton.",
+      "expect": "build",
+      "why": "Explicit construction order on an approved project is build."
+    },
+    {
+      "id": "route-build-next-slice-es",
+      "prompt": "Sigue con el siguiente slice del roadmap del MVP.",
+      "expect": "build",
+      "why": "Continuing slices of an approved project is build; without session context the prompt also reads as resuming, which the gateway routes through status first.",
+      "accept": ["status"]
+    },
+    {
+      "id": "route-ship-close",
+      "prompt": "Slice 3 is finished; verify everything, write the checkpoint and commit the slice.",
+      "expect": "ship",
+      "why": "Closing a slice — verification, checkpoint, commit — is ship."
+    },
+    {
+      "id": "route-ship-close-es",
+      "prompt": "Cierra este slice: verificación, checkpoint y commit.",
+      "expect": "ship",
+      "why": "Slice close is ship."
+    },
+    {
+      "id": "route-status-resume",
+      "prompt": "Where does this project stand? Let's pick up where we left off.",
+      "expect": "status",
+      "why": "Resuming work starts with status per the gateway rule."
+    },
+    {
+      "id": "route-status-resume-es",
+      "prompt": "¿En qué punto está el proyecto? Retomemos el trabajo.",
+      "expect": "status",
+      "why": "Resume question routes to status; the gateway's literal phrasing 'Run /acdev:status first' also supports recommending the command.",
+      "accept": ["RECOMMEND:status"]
+    },
+    {
+      "id": "route-designing-standalone",
+      "prompt": "Let's think through the design of a new CSV-export command for this existing repo before writing any code.",
+      "expect": "designing",
+      "why": "Feature work in an existing non-pipeline repo starts at designing; phrased in-repo so it cannot read as starting a project from zero."
+    },
+    {
+      "id": "route-designing-feature-es",
+      "prompt": "Quiero añadir una utilidad suelta a este repo; primero hablemos de cómo enfocarla.",
+      "expect": "designing",
+      "why": "Pre-implementation design conversation is designing."
+    },
+    {
+      "id": "route-planning-steps",
+      "prompt": "Lay out the migration to the new payments provider as concrete steps with verifiable completion criteria.",
+      "expect": "planning",
+      "why": "Multi-step plan with verifiable criteria is planning's trigger."
+    },
+    {
+      "id": "route-planning-spec-es",
+      "prompt": "Prepara un plan paso a paso, con criterios de verificación, para la migración de la base de datos.",
+      "expect": "planning",
+      "why": "Step plan with verification criteria is planning.",
+      "accept": ["layer-data"]
+    },
+    {
+      "id": "route-tdd-implement",
+      "prompt": "Implement the email validation helper — and remember I want it properly tested.",
+      "expect": "tdd",
+      "why": "Implementing a feature triggers the TDD loop."
+    },
+    {
+      "id": "route-tdd-function-es",
+      "prompt": "Añade una función de cálculo de descuentos al módulo de precios.",
+      "expect": "tdd",
+      "why": "Implementing new behavior means test first; a feature-request phrasing can also legitimately start at designing, at build inside a pipeline project, or fall back to the sanctioned in-doubt offer.",
+      "accept": ["build", "designing", "OFFER"]
+    },
+    {
+      "id": "route-debugging-ci",
+      "prompt": "The login test started failing on CI and I don't understand why.",
+      "expect": "debugging",
+      "why": "A failing test routes to debugging before any fix."
+    },
+    {
+      "id": "route-debugging-500-es",
+      "prompt": "El endpoint de facturas devuelve 500 de forma intermitente; averigua qué pasa.",
+      "expect": "debugging",
+      "why": "Unexpected behavior routes to debugging."
+    },
+    {
+      "id": "route-verifying-done",
+      "prompt": "Before we call this feature finished, confirm everything actually passes and show me the proof.",
+      "expect": "verifying",
+      "why": "Claiming done requires the verifying skill's evidence."
+    },
+    {
+      "id": "route-verifying-es",
+      "prompt": "¿Seguro que está arreglado? Demuéstralo con la salida de los comandos.",
+      "expect": "verifying",
+      "why": "Proof-before-claim is verifying."
+    },
+    {
+      "id": "route-layer-frontend-a11y",
+      "prompt": "Make the invoices table keyboard-accessible and fix its responsive layout.",
+      "expect": "layer-frontend",
+      "why": "UI accessibility and layout is the frontend layer.",
+      "accept": ["tdd"]
+    },
+    {
+      "id": "route-layer-frontend-tokens-es",
+      "prompt": "Aplica los design tokens de los mockups aprobados a la pantalla de ajustes.",
+      "expect": "layer-frontend",
+      "why": "Design tokens from approved mockups is the frontend layer."
+    },
+    {
+      "id": "route-layer-api-pagination",
+      "prompt": "Add pagination and a consistent error envelope to the GET /invoices endpoint.",
+      "expect": "layer-api",
+      "why": "Endpoint contracts, pagination and errors are the api layer.",
+      "accept": ["tdd"]
+    },
+    {
+      "id": "route-layer-api-idempotency-es",
+      "prompt": "El webhook de pagos puede llegar duplicado; haz la mutación idempotente.",
+      "expect": "layer-api",
+      "why": "Idempotency of mutations is the api layer.",
+      "accept": ["layer-security"]
+    },
+    {
+      "id": "route-layer-data-migration",
+      "prompt": "Write the migration for the new invoices table, with indexes for the hot queries.",
+      "expect": "layer-data",
+      "why": "Migrations and indexes are the data layer.",
+      "accept": ["tdd"]
+    },
+    {
+      "id": "route-layer-data-backup-es",
+      "prompt": "Configura backups automáticos y comprueba que la restauración funciona.",
+      "expect": "layer-data",
+      "why": "Backups and restore drills are the data layer.",
+      "accept": ["layer-delivery"]
+    },
+    {
+      "id": "route-layer-auth-rbac",
+      "prompt": "Add role-based access so accountants can view invoices but never touch settings.",
+      "expect": "layer-auth",
+      "why": "RBAC and the permission matrix are the auth layer; a feature-request phrasing can also start at designing, and auth/security overlap makes the sanctioned in-doubt offer defensible.",
+      "accept": ["layer-security", "designing", "OFFER"]
+    },
+    {
+      "id": "route-layer-auth-sessions-es",
+      "prompt": "Cambia el manejo de sesiones a JWT de vida corta con rotación de refresh tokens.",
+      "expect": "layer-auth",
+      "why": "Sessions and JWT are the auth layer; auth and security genuinely overlap here, so the sanctioned in-doubt fallback (offer the commands) also passes.",
+      "accept": ["layer-security", "OFFER"]
+    },
+    {
+      "id": "route-layer-security-upload",
+      "prompt": "Harden the file upload endpoint: validate input and lock down what gets stored.",
+      "expect": "layer-security",
+      "why": "Hardening and input validation are the security layer; security and api genuinely overlap on an endpoint, so the sanctioned in-doubt fallback also passes.",
+      "accept": ["layer-api", "OFFER"]
+    },
+    {
+      "id": "route-layer-security-rls-es",
+      "prompt": "Asegura el aislamiento por tenant: ninguna consulta debe poder leer filas de otra empresa.",
+      "expect": "layer-security",
+      "why": "Row-level tenant isolation is the security layer.",
+      "accept": ["layer-data", "layer-auth"]
+    },
+    {
+      "id": "route-layer-performance-cache",
+      "prompt": "The dashboard summary is slow; cache those queries with proper invalidation.",
+      "expect": "layer-performance",
+      "why": "Caching with invalidation is the performance layer."
+    },
+    {
+      "id": "route-layer-performance-cdn-es",
+      "prompt": "Sirve los assets estáticos por CDN con cache-control inmutable.",
+      "expect": "layer-performance",
+      "why": "CDN and cache-control are the performance layer.",
+      "accept": ["layer-delivery"]
+    },
+    {
+      "id": "route-layer-delivery-staging",
+      "prompt": "Set up the staging environment and a deploy pipeline with tested rollback.",
+      "expect": "layer-delivery",
+      "why": "Environments, deploy and rollback are the delivery layer.",
+      "accept": ["layer-cicd"]
+    },
+    {
+      "id": "route-layer-delivery-health-es",
+      "prompt": "Configura el health check del despliegue para que la plataforma no enrute tráfico a una instancia caída.",
+      "expect": "layer-delivery",
+      "why": "Health checks gating deploy traffic are the delivery layer; phrased with deploy/platform vocabulary."
+    },
+    {
+      "id": "route-layer-cicd-pipeline",
+      "prompt": "Add lint, typecheck and the test suite to the GitHub Actions workflow.",
+      "expect": "layer-cicd",
+      "why": "The CI pipeline is the cicd layer."
+    },
+    {
+      "id": "route-layer-cicd-branch-es",
+      "prompt": "Configura conventional commits y protección de la rama main.",
+      "expect": "layer-cicd",
+      "why": "Repo workflow, branch protection and commit convention are cicd."
+    },
+    {
+      "id": "route-recommend-new-project",
+      "prompt": "I have an idea for an invoicing SaaS for small gyms — let's start it from zero.",
+      "expect": "RECOMMEND:new-project",
+      "why": "Starting from zero is the user-run new-project entry point; the model recommends the command."
+    },
+    {
+      "id": "route-recommend-new-project-es",
+      "prompt": "Quiero arrancar un proyecto nuevo desde cero con esta idea.",
+      "expect": "RECOMMEND:new-project",
+      "why": "New project from zero: recommend /acdev:new-project."
+    },
+    {
+      "id": "route-recommend-onboard",
+      "prompt": "Adopt this existing repo into the acdev pipeline.",
+      "expect": "RECOMMEND:onboard",
+      "why": "Adopting an existing repo is the user-run onboard entry point."
+    },
+    {
+      "id": "route-recommend-onboard-es",
+      "prompt": "Este repo ya existe y quiero meterlo en el pipeline de acdev.",
+      "expect": "RECOMMEND:onboard",
+      "why": "Existing repo adoption: recommend /acdev:onboard."
+    },
+    {
+      "id": "route-none-js-question",
+      "prompt": "What is the difference between let and const in JavaScript?",
+      "expect": "NONE",
+      "why": "A language question activates nothing."
+    },
+    {
+      "id": "route-none-regex-es",
+      "prompt": "Explícame qué hace esta expresión regular.",
+      "expect": "NONE",
+      "why": "An explanation request activates nothing."
+    },
+    {
+      "id": "route-none-convert",
+      "prompt": "Convert this JSON snippet to YAML for me.",
+      "expect": "NONE",
+      "why": "A mechanical text transform activates nothing."
+    },
+    {
+      "id": "route-none-http",
+      "prompt": "Why would a server return HTTP 429?",
+      "expect": "NONE",
+      "why": "A concept question activates nothing."
+    },
+    {
+      "id": "route-offer-screens",
+      "prompt": "Let's work on the screens.",
+      "expect": "OFFER",
+      "why": "Could be mockups (drawing them) or layer-frontend (building them); the disambiguation rule says offer the commands, and both direct readings are accepted.",
+      "accept": ["mockups", "layer-frontend"]
+    },
+    {
+      "id": "route-offer-docs-es",
+      "prompt": "Hay que ponerse con la documentación del proyecto.",
+      "expect": "OFFER",
+      "why": "Could be blueprint (normative docs) or a drift fix at ship; ambiguous, so offer.",
+      "accept": ["blueprint"]
+    }
+  ]
+}

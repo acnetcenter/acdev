@@ -34,6 +34,10 @@ repos).
 - Secrets must live only in env vars or a secret manager, never in the
   repo — verify: a repo-history scan finds no secrets, and `.env.example`
   lists variable names only, with no real values.
+- Data residency must match the compliance ADR — verify: the regions of
+  the database, file storage and backups are listed and each is allowed
+  by the ADR's jurisdiction constraints, or the ADR explicitly records
+  that residency is unconstrained.
 - Security headers must be present on the deployed app — verify: the
   response includes Content-Security-Policy, Strict-Transport-Security,
   X-Content-Type-Options, and frame-ancestors (or X-Frame-Options).

@@ -51,6 +51,14 @@ of re-deriving: the layer skills (frontend, api, data, auth, security,
 performance, delivery, cicd) open `docs/adr/` before advising and treat the
 stack as already settled, never re-litigating it.
 
+Compliance is decided here too. From the jurisdictions named during the
+VISION interview's complementary questions, write one ADR recording which
+regulatory regimes apply, where data must reside, and what retention and
+deletion obligations follow — or recording, explicitly, that none apply.
+Jurisdiction and compliance posture are user-challenge decisions: asked,
+never assumed from the product's domain. The data and security layer
+checklists verify against this ADR during build.
+
 While drafting an ADR, flag any decision that depends on something
 unproven — a third-party API, a critical integration, a doubtful
 performance requirement — and run `references/spike-protocol.md` before
@@ -101,6 +109,38 @@ Produce the mechanical scaffolding the project needs before build starts:
   (mechanical scan for transition: all, lone ease-in, scale(0), gradient
   text, over-budget durations, raw hex outside the token file); copy it
   in and adjust its targets.
+
+## Adversarial design review (optional)
+
+When presenting the package for review, offer one optional pass before
+approval: an adversarial design review. It is the user's call — it costs
+real tokens, and a small blueprint on a well-trodden stack may not need
+it. But this is the highest-leverage review in the pipeline: a design
+error caught here costs a conversation; the same error caught mid-build
+costs slices.
+
+If accepted, run two independent panels via the native Agent tool (it
+already knows how to run subagents). Each panel receives the full package
+— normative docs, ADRs, spike results, the mockups contract — and no
+knowledge of the other panel:
+
+- **The excess panel** attacks what is there: over-design, speculative
+  structure, complexity the MVP does not pay for, dependencies that could
+  be dropped, scope VISION never asked for.
+- **The defect panel** attacks what is missing: unhandled failure modes,
+  scale and tenancy traps, unproven dependencies with no spike, security
+  or compliance gaps, exit criteria that cannot actually be verified.
+
+When the user wants extra diversity, run the panels on different models;
+opposing lenses find more than a second copy of the same reviewer.
+
+Contrast the findings before presenting them: what both panels flag comes
+first; a finding one panel raises and the other contradicts is presented
+as contested, with both views. A resulting design change is a
+user-challenge decision — presented, never auto-applied; a plain
+document-clarity fix is applied directly. A high-severity finding is
+resolved or explicitly accepted by the user before the gate below can
+close — like `ship`'s security pass, acceptance is never automatic.
 
 ## Gate
 
