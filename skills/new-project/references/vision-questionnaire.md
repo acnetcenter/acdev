@@ -87,15 +87,15 @@ Ask these at the end of the conversation, making clear where the answers go:
 - External integrations (APIs, AI, payments, email) and their third-party
   lead times / approval procedures -> INTEGRATIONS.md and ROADMAP.md (lead
   times can block phases).
-- Jurisdictions and compliance: in which countries or regions will the
-  product operate and hold user data, and which regulatory regimes does
-  that activate (GDPR and its local kin, sector rules)? Include
-  data-residency constraints -> the compliance ADR written at blueprint;
-  operational detail lands in SECURITY.md. This is a user-challenge
-  decision: asked, never assumed from the domain.
-- Legal/privacy constraints (PII, GDPR...) and security constraints (roles,
-  who sees what) -> SECURITY.md. These only rise into VISION if they are part
-  of the product's identity.
+- Jurisdictions, compliance and privacy: in which countries or regions
+  will the product operate and hold user data, and which regulatory
+  regimes does that activate (GDPR and its local kin, sector rules, PII
+  handling)? Include data-residency constraints -> the compliance ADR
+  written at blueprint; operational detail lands in SECURITY.md. This is
+  a user-challenge decision: asked, never assumed from the product's
+  domain.
+- Security constraints (roles, who sees what) -> SECURITY.md. These only
+  rise into VISION if they are part of the product's identity.
 - Decisions still open, and who owns deciding them -> a list in ROADMAP.md or
   a "pending" ADR with an owner.
 

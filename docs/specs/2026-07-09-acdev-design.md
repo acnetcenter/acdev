@@ -262,7 +262,7 @@ acdev/
 1. `scripts/lint-budgets.mjs` — structural lint: valid frontmatter in all 21 skills, description ≤ 100 tokens, body < 500 lines, no emojis, required sections present. Runs in CI.
 2. `plugin.json` validation against the current Claude Code plugin schema.
 3. Manual acceptance, before first release: install locally → run `/acdev:new-project` on a toy project through stage 4 → run `/acdev:onboard` on a real existing repo → verify `/acdev:status` costs <2k tokens → verify the SessionStart hook injects the gateway on Windows.
-4. Description routing review: each skill description names the trigger words a user would actually say (manual review in v1; automated routing evals are a v2 candidate).
+4. Description routing review: each skill description names the trigger words a user would actually say (manual review in v1; automated routing evals are a v2 candidate — implemented in v0.1.8, see the 2026-07-17 amendment).
 
 ## 15. Resolved decisions log
 
@@ -298,4 +298,10 @@ All open questions were resolved during the design conversation with the user:
   per case, outside CI. Routing cases cover activation, RECOMMEND for the
   user-run entry points, OFFER for genuine ambiguity and NONE; gate cases
   probe the hard rules as multiple-choice decisions against the governing
-  skill body. See the README "Evals" section.
+  skill body. See the README "Evals" section. Why the v2 deferral fell:
+  it protected against the fixed costs section 3 refuses (per-session
+  context, CI time, dependencies), and this implementation pays none of
+  them — on demand, outside CI, zero context footprint. By v0.1.8 the
+  releases had become mostly wording changes to descriptions and gates,
+  exactly the surface these suites verify: the value stopped being
+  speculative.
