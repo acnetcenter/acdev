@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Changed
+- Pre-push committee review (two panels — critics vs solvers — 12 findings, all implemented): release history split into one commit per version with honest messages; the adversarial design review protocol moved to `skills/blueprint/references/adversarial-review.md` (the body keeps the offer, the cost argument and the high-severity gate rule; ~290 tokens saved per activation); jurisdiction bullets deduped in the vision questionnaire; the spec records why the evals v2 deferral fell.
+
+### Fixed
+- `run-evals.mjs` correctness: `parseRouting` scans top-down and validates bare words against real skill names (closes a false-FAIL and a false-PASS pair reproduced byte for byte); the judge timeout is injectable via `ACDEV_EVAL_TIMEOUT_MS` and covered by a real hung-judge test, with nonzero-exit and unspawnable-judge paths tested; an empty selection (typoed `--filter`, empty cases file) exits 1 instead of passing over zero cases; the test suite survives checkouts under paths with spaces.
+- Eval suite hardening: gates options de-leaked (correct answers no longer quote distinctive strings from the governing text; `npm run evals -- --ablate` measures how many cases a judge answers with no context at all); `OFFER` expected strictly and banned from `accept` lists, which are capped at two and enforced by a deterministic guard test; passes via `accept` and via retry are reported in the summary and persisted per run to gitignored `evals/history.jsonl` so chronic flakes become visible across runs.
+
+### Added
+- Four gate cases covering the v0.1.6-v0.1.8 hard-rule delta — compliance asked-not-assumed, adversarial-finding routing, spike-never-merges, mockups scope drift — plus the authoring contract in the cases file and README: a commit that adds or rewords a hard rule adds or updates its gate case in the same commit; one case per hard rule, not one per skill.
+
 ## [0.1.8] - 2026-07-17
 
 ### Added

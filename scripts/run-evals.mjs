@@ -12,7 +12,7 @@
 // custom command (split on spaces; the prompt always arrives on stdin) so
 // the pipeline is testable without a model call. ACDEV_EVAL_TIMEOUT_MS
 // overrides the per-call judge timeout (test-only injection).
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, appendFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -34,7 +34,8 @@ try {
       filter: { type: 'string' },
       'cases-dir': { type: 'string', default: join(ROOT, 'evals') },
       concurrency: { type: 'string', default: '4' },
-      retries: { type: 'string', default: '1' }
+      retries: { type: 'string', default: '1' },
+      ablate: { type: 'boolean', default: false }
     }
   }));
 } catch (err) {
@@ -95,13 +96,17 @@ function routingPrompt(surface, userPrompt) {
   ].join('\n');
 }
 
-function gatePrompt(c) {
-  const ctx = c.context
-    .map((p) => {
-      const raw = norm(readFileSync(join(ROOT, p), 'utf8'));
-      return `--- ${p} ---\n${raw.replace(FRONTMATTER, '').trim()}`;
-    })
-    .join('\n\n');
+function gatePrompt(c, ablate = false) {
+  // ablate: drop the governing text entirely — a case a judge still
+  // answers correctly is non-discriminative (answerable from priors).
+  const ctx = ablate
+    ? '(no governing text provided)'
+    : c.context
+        .map((p) => {
+          const raw = norm(readFileSync(join(ROOT, p), 'utf8'));
+          return `--- ${p} ---\n${raw.replace(FRONTMATTER, '').trim()}`;
+        })
+        .join('\n\n');
   return [
     'You are Claude Code running the acdev plugin. The governing acdev text for this situation:',
     '',
@@ -245,9 +250,35 @@ async function runPool(items, worker, limit) {
 
 const surface = skillSurface();
 const skillNames = new Set(surface.map((s) => s.name));
+
+// Diagnostic mode: how many gate cases can a judge answer with NO context?
+// Those cases measure priors, not the governing text — they need sharper
+// distractors. Always exits 0: this measures the suite, it does not gate.
+if (args.ablate) {
+  const cases = loadCases('gates');
+  const prompts = cases.map((c) => gatePrompt(c, true));
+  if (args['dry-run']) {
+    cases.forEach((c, i) => console.log(`=== case ${c.id} (ablated) ===\n${prompts[i]}\n`));
+    console.log(`gates ablation: ${cases.length} case(s), dry run only`);
+    process.exit(0);
+  }
+  const answers = await runPool(prompts, callJudge, Number(args.concurrency) || 4);
+  let hits = 0;
+  cases.forEach((c, i) => {
+    const got = answers[i].ok ? parseGate(answers[i].out) : null;
+    if (got === c.expect) {
+      hits++;
+      console.log(`  ablate ${c.id}: answerable without context`);
+    }
+  });
+  console.log(`gates ablation: ${hits}/${cases.length} answerable without context (non-discriminative)`);
+  process.exit(0);
+}
+
 const suites = args.suite === 'all' ? ['routing', 'gates'] : [args.suite];
 let failures = 0;
 let total = 0;
+const suiteStats = [];
 for (const suite of suites) {
   const cases = loadCases(suite);
   const prompts = cases.map((c) => (suite === 'routing' ? routingPrompt(surface, c.prompt) : gatePrompt(c)));
@@ -277,18 +308,33 @@ for (const suite of suites) {
     Number(args.concurrency) || 4
   );
   let passed = 0;
+  const onRetry = [];
+  const viaAccept = [];
+  const failed = [];
   cases.forEach((c, i) => {
     const r = results[i];
     if (r.pass) {
       passed++;
-      if (r.attempt > 0) console.log(`  retry ${c.id}: passed on attempt ${r.attempt + 1}`);
+      if (r.attempt > 0) {
+        onRetry.push(c.id);
+        console.log(`  retry ${c.id}: passed on attempt ${r.attempt + 1}`);
+      }
+      if (r.got !== c.expect) {
+        viaAccept.push(c.id);
+        console.log(`  accept ${c.id}: passed via ${r.got}`);
+      }
     } else {
+      failed.push(c.id);
       const accept = c.accept?.length ? ` (accept: ${c.accept.join(', ')})` : '';
       console.log(`  FAIL ${c.id}: expected ${c.expect}${accept}, got ${r.got ?? `unparseable: ${r.raw.out.trim().slice(0, 120)}`}`);
     }
   });
-  console.log(`${suite}: ${passed}/${cases.length} passed`);
+  const notes = [];
+  if (onRetry.length) notes.push(`${onRetry.length} on retry: ${onRetry.join(', ')}`);
+  if (viaAccept.length) notes.push(`${viaAccept.length} via accept: ${viaAccept.join(', ')}`);
+  console.log(`${suite}: ${passed}/${cases.length} passed${notes.length ? ` (${notes.join('; ')})` : ''}`);
   failures += cases.length - passed;
+  suiteStats.push({ suite, passed, total: cases.length, onRetry, viaAccept, failed });
 }
 // An empty selection is an error, not a green run: a typoed --filter or
 // an empty cases file must not report success over zero cases.
@@ -297,10 +343,27 @@ if (total === 0) {
   process.exit(1);
 }
 if (!args['dry-run']) {
+  const allRetry = suiteStats.flatMap((s) => s.onRetry);
+  const suffix = allRetry.length ? ` (${allRetry.length} on retry: ${allRetry.join(', ')})` : '';
   console.log(
     failures
-      ? `evals: ${total - failures}/${total} passed — a failing case means the description, the gate text or the case itself needs fixing`
-      : `evals: ${total}/${total} passed`
+      ? `evals: ${total - failures}/${total} passed${suffix} — a failing case means the description, the gate text or the case itself needs fixing`
+      : `evals: ${total}/${total} passed${suffix}`
   );
+  // The only memory between runs: a chronic retry-passer is a finding,
+  // not noise, and a single run cannot see chronic. Written only for the
+  // real case set (never for test fixtures), gitignored.
+  if (args['cases-dir'] === join(ROOT, 'evals')) {
+    const entry = {
+      date: new Date().toISOString(),
+      model: process.env.ACDEV_EVAL_CMD ? 'custom-judge' : args.model,
+      suites: suiteStats.map(({ suite, passed, total: t, onRetry, viaAccept, failed }) => ({ suite, passed, total: t, onRetry, viaAccept, failed }))
+    };
+    try {
+      appendFileSync(join(ROOT, 'evals', 'history.jsonl'), JSON.stringify(entry) + '\n');
+    } catch {
+      // History is best-effort; a read-only checkout must not fail the run.
+    }
+  }
 }
 process.exit(failures ? 1 : 0);

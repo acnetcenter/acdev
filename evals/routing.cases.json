@@ -96,10 +96,10 @@
     },
     {
       "id": "route-tdd-function-es",
-      "prompt": "Añade una función de cálculo de descuentos al módulo de precios.",
+      "prompt": "Añade una función de cálculo de descuentos al módulo de precios — y quiero sus tests primero.",
       "expect": "tdd",
-      "why": "Implementing new behavior means test first; a feature-request phrasing can also legitimately start at designing, at build inside a pipeline project, or fall back to the sanctioned in-doubt offer.",
-      "accept": ["build", "designing", "OFFER"]
+      "why": "The explicit tests-first ask anchors the tdd trigger; designing also passes because feature work can legitimately start at the design conversation.",
+      "accept": ["designing"]
     },
     {
       "id": "route-debugging-ci",
@@ -147,9 +147,9 @@
     },
     {
       "id": "route-layer-api-idempotency-es",
-      "prompt": "El webhook de pagos puede llegar duplicado; haz la mutación idempotente.",
+      "prompt": "El endpoint de creación de pagos puede recibir la misma petición dos veces; haz la mutación idempotente con una idempotency key.",
       "expect": "layer-api",
-      "why": "Idempotency of mutations is the api layer.",
+      "why": "Idempotency of endpoint mutations is the api layer; phrased in pure api vocabulary (an earlier webhook phrasing pulled the security reading).",
       "accept": ["layer-security"]
     },
     {
@@ -170,22 +170,22 @@
       "id": "route-layer-auth-rbac",
       "prompt": "Add role-based access so accountants can view invoices but never touch settings.",
       "expect": "layer-auth",
-      "why": "RBAC and the permission matrix are the auth layer; a feature-request phrasing can also start at designing, and auth/security overlap makes the sanctioned in-doubt offer defensible.",
-      "accept": ["layer-security", "designing", "OFFER"]
+      "why": "RBAC and the permission matrix are the auth layer; layer-security also passes on the auth/security border, and designing because a feature request can start at the design conversation.",
+      "accept": ["layer-security", "designing"]
     },
     {
       "id": "route-layer-auth-sessions-es",
-      "prompt": "Cambia el manejo de sesiones a JWT de vida corta con rotación de refresh tokens.",
+      "prompt": "Hay que endurecer la autenticación de sesiones: JWT de vida corta con rotación de refresh tokens.",
       "expect": "layer-auth",
-      "why": "Sessions and JWT are the auth layer; auth and security genuinely overlap here, so the sanctioned in-doubt fallback (offer the commands) also passes.",
-      "accept": ["layer-security", "OFFER"]
+      "why": "Session authentication with JWT is the auth layer's trigger vocabulary; layer-security also passes because hardening sits on the auth/security border (earlier task-shaped phrasings kept pulling a planning reading).",
+      "accept": ["layer-security"]
     },
     {
       "id": "route-layer-security-upload",
       "prompt": "Harden the file upload endpoint: validate input and lock down what gets stored.",
       "expect": "layer-security",
-      "why": "Hardening and input validation are the security layer; security and api genuinely overlap on an endpoint, so the sanctioned in-doubt fallback also passes.",
-      "accept": ["layer-api", "OFFER"]
+      "why": "Hardening and input validation are the security layer; layer-api also passes because the work lands on an endpoint contract.",
+      "accept": ["layer-api"]
     },
     {
       "id": "route-layer-security-rls-es",
@@ -288,11 +288,10 @@
       "accept": ["mockups", "layer-frontend"]
     },
     {
-      "id": "route-offer-docs-es",
-      "prompt": "Hay que ponerse con la documentación del proyecto.",
+      "id": "route-offer-feature-es",
+      "prompt": "No sé si esto es cosa de diseñarlo primero o de ponerse a construirlo ya: añade la función de cálculo de descuentos al módulo de precios.",
       "expect": "OFFER",
-      "why": "Could be blueprint (normative docs) or a drift fix at ship; ambiguous, so offer.",
-      "accept": ["blueprint"]
+      "why": "The user states the doubt themselves between two skill domains (designing vs build/tdd) — the gateway's in-doubt rule demands offering the commands. Strict: no accept. Instability here is a finding about the offer rule's weight in the gateway, not case noise."
     }
   ]
 }

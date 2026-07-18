@@ -2,6 +2,7 @@
   "about": "Tiny routing fixture for run-evals tests.",
   "cases": [
     { "id": "fx-none", "prompt": "What is 2 + 2?", "expect": "NONE", "why": "fixture" },
-    { "id": "fx-tdd", "prompt": "Implement the discount calculator.", "expect": "tdd", "why": "fixture" }
+    { "id": "fx-tdd", "prompt": "Implement the discount calculator.", "expect": "tdd", "why": "fixture" },
+    { "id": "fx-accept", "prompt": "Add the pricing feature.", "expect": "tdd", "accept": ["designing"], "why": "fixture" }
   ]
 }

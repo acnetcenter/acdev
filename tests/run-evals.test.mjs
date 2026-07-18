@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -52,8 +52,46 @@ test('scoring: wrong answers fail with expected vs got, right answers pass', () 
     ACDEV_FAKE_ANSWER: 'NONE'
   });
   assert.equal(r.status, 1);
-  assert.match(r.stdout, /routing: 1\/2 passed/);
+  assert.match(r.stdout, /routing: 1\/3 passed/);
   assert.match(r.stdout, /FAIL fx-tdd: expected tdd, got NONE/);
+});
+
+test('a pass through the accept list is reported as such', () => {
+  const r = run(['--suite', 'routing', '--cases-dir', fixtureCases, '--filter', 'fx-accept'], {
+    ACDEV_EVAL_CMD: fakeJudge,
+    ACDEV_FAKE_ANSWER: 'designing'
+  });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /accept fx-accept: passed via designing/);
+  assert.match(r.stdout, /routing: 1\/1 passed \(1 via accept: fx-accept\)/);
+});
+
+test('--ablate strips the governing text and only measures, never gates', () => {
+  const dry = run(['--ablate', '--dry-run', '--cases-dir', fixtureCases]);
+  assert.equal(dry.status, 0, dry.stderr);
+  assert.match(dry.stdout, /\(ablated\)/);
+  assert.match(dry.stdout, /no governing text provided/);
+  assert.ok(!dry.stdout.includes('--- skills/'));
+  const r = run(['--ablate', '--cases-dir', fixtureCases], {
+    ACDEV_EVAL_CMD: fakeJudge,
+    ACDEV_FAKE_ANSWER: 'B'
+  });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /gates ablation: 1\/1 answerable without context/);
+});
+
+test('accept discipline holds across the real routing cases', () => {
+  const { cases } = JSON.parse(readFileSync(join(here, '..', 'evals', 'routing.cases.json'), 'utf8'));
+  for (const c of cases) {
+    const accept = c.accept ?? [];
+    assert.ok(accept.length <= 2, `${c.id}: accept has ${accept.length} entries (cap is 2)`);
+    assert.ok(!accept.includes('OFFER'), `${c.id}: OFFER must be expected strictly, never an accept escape`);
+    assert.ok(!accept.includes(c.expect), `${c.id}: accept repeats its own expect`);
+  }
+  const strict = (pred) => cases.some((c) => pred(c) && !(c.accept ?? []).length);
+  assert.ok(strict((c) => c.expect === 'OFFER'), 'no strict OFFER case: the in-doubt rule is unenforced');
+  assert.ok(strict((c) => c.expect === 'NONE'), 'no strict NONE case');
+  assert.ok(strict((c) => c.expect.startsWith('RECOMMEND:')), 'no strict RECOMMEND case');
 });
 
 test('a fully correct gates run exits green', () => {
@@ -102,7 +140,7 @@ test('a wrong answer is retried and the retry pass is reported', () => {
   });
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /retry fx-tdd: passed on attempt 2/);
-  assert.match(r.stdout, /routing: 1\/1 passed/);
+  assert.match(r.stdout, /routing: 1\/1 passed \(1 on retry: fx-tdd\)/);
 });
 
 test('--retries 0 fails fast without a second attempt', () => {

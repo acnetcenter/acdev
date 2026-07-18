@@ -1,5 +1,5 @@
 {
-  "about": "Gate-obedience eval cases: a scenario at one of acdev's hard rules, four candidate next actions, and the letter the governing text requires. context paths are repo-relative files inlined into the judge prompt (frontmatter stripped). Authoring rules: the correct option is a bare action — the rule that makes it correct lives ONLY in the injected context, never restated inside the option — and option lengths are balanced so the answer is not identifiable by length or detail alone.",
+  "about": "Gate-decision eval cases: a scenario at one of acdev's hard rules, four candidate next actions, and the letter the governing text forces as the unique answer. This is an open-book check that the text produces the required decision, not a simulation of session pressure. context paths are repo-relative files inlined into the judge prompt (frontmatter stripped). Authoring rules: the correct option is a bare action — the rule that makes it correct lives ONLY in the injected context, never restated inside the option; scenarios and options avoid quoting distinctive strings from the context files; option lengths are balanced so the answer is not identifiable by length or detail alone. A commit that adds or rewords a hard rule adds or updates its gate case in the same commit — one case per hard rule, not one per skill; checklist bodies without a decision fork are covered by their verify probes.",
   "cases": [
     {
       "id": "gate-vision-full-doc",
@@ -82,24 +82,24 @@
     {
       "id": "gate-continuous-user-challenge",
       "context": ["skills/build/SKILL.md", "shared/references/decision-classification.md"],
-      "scenario": "Mid continuous-build run, slice 4's plan raises the question whether refunds return to the original payment method or become account credit.",
+      "scenario": "Mid continuous-build run, slice 4's plan raises the question whether money paid for a cancelled booking goes back to the original card or becomes account credit.",
       "options": {
-        "A": "Choose refund-to-original-payment-method, the industry default, log the choice, and keep the run going.",
+        "A": "Choose back-to-original-card, the industry default, log the choice, and keep the run going.",
         "B": "Auto-decide it as a taste decision, record it in the audit table, and let the user review it later.",
         "C": "Queue the question, finish the remaining slices of the phase, and ask everything at the phase exit.",
-        "D": "Stop the run, write a checkpoint with --blocked naming the refunds question, and wait."
+        "D": "Stop the run, write a checkpoint with --blocked naming the open question, and wait."
       },
       "expect": "D",
-      "why": "Refund handling is a user-challenge decision (decision-classification example 1), and a user-challenge decision stops a continuous run."
+      "why": "Where returned money goes is a user-challenge decision, and a user-challenge decision stops a continuous run."
     },
     {
       "id": "gate-drift-same-commit",
       "context": ["skills/ship/SKILL.md"],
       "scenario": "The slice being closed added a column, and DATA-MODEL.md no longer matches the real schema.",
       "options": {
-        "A": "Update DATA-MODEL.md in the same commit as the slice.",
+        "A": "Bring DATA-MODEL.md up to date inside the slice's own commit.",
         "B": "Open a docs follow-up task to fix it at the phase exit.",
-        "C": "Note the drift in the checkpoint and move on.",
+        "C": "Note the mismatch in the checkpoint and move on.",
         "D": "Revert the column so the code matches the document again."
       },
       "expect": "A",
@@ -111,7 +111,7 @@
       "scenario": "In a project with .acdev/, the user asks: 'where are we?'",
       "options": {
         "A": "Scan the repo tree and recent commit history to double-check the checkpoint before answering.",
-        "B": "Read state.md, the latest checkpoint, the current ROADMAP phase section and the plans grep, then answer.",
+        "B": "Answer from the pipeline state file, the newest checkpoint, the roadmap section in progress and a name-only listing of open plans.",
         "C": "Read every document under docs/ so the answer reflects the complete current picture.",
         "D": "Summarize the last 50 git commits and reconstruct the project state from what they show."
       },
@@ -149,7 +149,7 @@
       "context": ["skills/tdd/SKILL.md"],
       "scenario": "The failing test you just wrote passes on its very first run.",
       "options": {
-        "A": "Check the test's wiring and make it fail for the expected reason before writing any implementation.",
+        "A": "Check the test's wiring and get a genuine red run out of it before writing any implementation.",
         "B": "Accept the pass and move on to the next behavior on the list, since green is the goal state.",
         "C": "Strengthen it with more assertions until at least one of them fails against the current code.",
         "D": "Delete it, write the implementation first, and add tests for the finished behavior afterwards."
@@ -163,7 +163,7 @@
       "scenario": "You ran the suite before your last edit and it was green; the last edit was a one-line rename.",
       "options": {
         "A": "Report done: a one-line rename cannot change behavior that the test suite would observe.",
-        "B": "Run the full suite again now and paste the decisive output lines before reporting done.",
+        "B": "Run the full suite once more on the current code and show its verdict lines before reporting done.",
         "C": "Report done and let CI provide the authoritative green run once the commit lands.",
         "D": "Re-run only the test file nearest the renamed symbol and report done if it passes."
       },
@@ -182,6 +182,58 @@
       },
       "expect": "C",
       "why": "The phase-exit security pass runs before the phase is marked complete; a high-severity finding blocks it."
+    },
+    {
+      "id": "gate-compliance-asked-not-assumed",
+      "context": ["skills/blueprint/SKILL.md"],
+      "scenario": "You are drafting ADRs for a telehealth product whose VISION targets clinics in several countries. Nobody has said which regulations apply.",
+      "options": {
+        "A": "Write the compliance ADR from the obvious regimes for healthcare — HIPAA plus GDPR — and move on.",
+        "B": "Ask the user which jurisdictions the product operates and holds data in, and record their answer as the ADR.",
+        "C": "Leave compliance out of the ADR set: regulation is a legal matter, not an architecture decision.",
+        "D": "Write a provisional ADR marked open and revisit it when the first compliance question surfaces in build."
+      },
+      "expect": "B",
+      "why": "Jurisdiction and compliance posture are user-challenge decisions: asked, never assumed from the product's domain."
+    },
+    {
+      "id": "gate-adversarial-finding-routing",
+      "context": ["skills/blueprint/SKILL.md", "skills/blueprint/references/adversarial-review.md"],
+      "scenario": "The user accepted the adversarial review. The defect panel raises a high-severity finding: the chosen tenancy model cannot deliver the isolation VISION promises. The excess panel did not flag it.",
+      "options": {
+        "A": "Fold the tenancy change into the ADR quietly — the panel is right and the fix is straightforward.",
+        "B": "Downgrade it to contested since only one panel raised it, and let the approval proceed meanwhile.",
+        "C": "Put the tenancy change to the user as a decision only they can make, holding the approval until they resolve or accept it.",
+        "D": "Log the finding in the blueprint summary and continue; build can revisit tenancy when it actually hurts."
+      },
+      "expect": "C",
+      "why": "A design change from the review is user-challenge, and a high-severity finding blocks the gate until resolved or explicitly accepted."
+    },
+    {
+      "id": "gate-spike-never-merges",
+      "context": ["skills/blueprint/SKILL.md"],
+      "scenario": "A spike just proved the invoicing API integration works, and its code came out clean enough to keep.",
+      "options": {
+        "A": "Record the outcome in the ADR and let build reimplement the integration inside the product tree later.",
+        "B": "Merge the spike code into the product tree now — rewriting code that already works is pure waste.",
+        "C": "Park the spike code on a feature branch and merge it once construction is ordered.",
+        "D": "Keep the spike folder as a module the product imports, so the proven code stays untouched."
+      },
+      "expect": "A",
+      "why": "Spike code never merges into product code; the spike's output is the answer recorded in the ADR."
+    },
+    {
+      "id": "gate-mockups-drift-scope",
+      "context": ["skills/mockups/SKILL.md"],
+      "scenario": "During a revision round the user asks for a new screen that implies a feature MVP.md never mentions.",
+      "options": {
+        "A": "Draw the screen and fold it into the set — revision rounds exist to collect exactly this kind of request.",
+        "B": "Draw it now but list it as a post-MVP screen in the skeleton inventory so the scope ledger stays honest.",
+        "C": "Decline it: the mockup set covers what MVP.md already lists, and new scope waits for the next phase.",
+        "D": "Have the user amend VISION and MVP to cover the feature, land those edits together with the mockup, and reconfirm."
+      },
+      "expect": "D",
+      "why": "A revision that changes product scope updates VISION/MVP in the same commit as the mockup change and reconfirms the affected document."
     }
   ]
 }

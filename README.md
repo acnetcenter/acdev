@@ -142,8 +142,11 @@ on-demand eval suites cover that:
   (gateway body + model-invocable descriptions; the per-prompt stage line
   `prompt-context.mjs` injects inside a project is not simulated).
   Includes `RECOMMEND` cases for the user-run entry points, `OFFER` cases
-  for genuine ambiguity, and `NONE` cases where acdev must stay out of
-  the way.
+  where the gateway's in-doubt rule is the expected answer (expected
+  strictly — `OFFER` is never used as an accept escape), and `NONE` cases
+  where acdev must stay out of the way. `accept` lists are capped at two
+  genuinely defensible alternatives, and passes via `accept` are reported
+  as such.
 - `evals/gates.cases.json` — multiple-choice scenarios probing the hard
   rules one at a time (full-document VISION approval, red-check-blocks-close,
   continuous-build stop on user-challenge, drift fixed in the same commit,
@@ -163,10 +166,19 @@ npm run evals -- --dry-run        # print the constructed prompts, no calls
 ```
 
 Run them before a release and after changing any skill description, the
-gateway, or the wording of a gate. A failing case is always a real
-finding: either the description, the gate text, or the case itself needs
-fixing. The runner's own pipeline is tested without model calls
-(`tests/run-evals.test.mjs` injects a fake judge via `ACDEV_EVAL_CMD`).
+gateway, or the wording of a gate. A case that fails twice in a row (the
+run plus its retry) is a real finding: the description, the gate text, or
+the case itself needs fixing — and a persistent failure is fixed by
+sharpening the surface or the case, never by widening `accept`. The gates
+suite is an open-book check — it proves the governing text forces the
+required decision, not that a session under pressure will obey it.
+`npm run evals -- --ablate` measures how many gate cases a judge answers
+with no context at all; those cases are non-discriminative and need
+sharper distractors. Every real run appends one line to
+`evals/history.jsonl` (gitignored): a case that shows up in the retry
+list across runs is a finding, not noise. The runner's own pipeline is
+tested without model calls (`tests/run-evals.test.mjs` injects a fake
+judge via `ACDEV_EVAL_CMD`).
 
 ## Development
 
