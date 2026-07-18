@@ -10,7 +10,8 @@
 //
 // ACDEV_EVAL_CMD replaces the default `claude -p --model M` judge with a
 // custom command (split on spaces; the prompt always arrives on stdin) so
-// the pipeline is testable without a model call.
+// the pipeline is testable without a model call. ACDEV_EVAL_TIMEOUT_MS
+// overrides the per-call judge timeout (test-only injection).
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,6 +21,7 @@ import { spawn, spawnSync } from 'node:child_process';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 const norm = (s) => s.replace(/\r\n/g, '\n');
+const TIMEOUT_MS = Number(process.env.ACDEV_EVAL_TIMEOUT_MS) || 120000;
 
 let args;
 try {
@@ -173,13 +175,13 @@ function callJudge(prompt) {
       // Settle directly: with shell:true (win32) the child is cmd.exe and
       // kill() would orphan the claude grandchild, whose open pipes keep
       // 'close' from ever firing — the one scenario a timeout exists for.
-      settle({ ok: false, out: 'judge timeout after 120s' });
+      settle({ ok: false, out: `judge timeout after ${TIMEOUT_MS}ms` });
       if (process.platform === 'win32') {
         spawnSync('taskkill', ['/pid', String(child.pid), '/t', '/f'], { stdio: 'ignore' });
       } else {
         child.kill();
       }
-    }, 120000);
+    }, TIMEOUT_MS);
     child.stdout.on('data', (c) => (out += c));
     child.stderr.on('data', (c) => (err += c));
     // A judge that dies without draining stdin must cost one FAIL, not
@@ -198,20 +200,23 @@ function callJudge(prompt) {
   });
 }
 
-function parseRouting(raw) {
-  // Bottom-up like parseGate: tolerates an answer followed by an
-  // explanation line. Whitespace after RECOMMEND's colon is accepted —
-  // the prompt's "RECOMMEND:<name>" template invites it.
+function parseRouting(raw, skillNames) {
+  // Top-down: the prompt demands the answer first, so the first line that
+  // parses wins ("tdd\nBecause..." reads tdd, "NONE\ntdd" reads NONE). A
+  // bare word only counts as an answer when it names a real skill, so a
+  // lone word opening an explanation ("Sure.") is skipped, not scored.
+  // Whitespace after RECOMMEND's colon is accepted — the prompt's
+  // "RECOMMEND:<name>" template invites it.
   const lines = norm(raw).trim().split('\n').map((l) => l.trim()).filter(Boolean);
-  for (let i = lines.length - 1; i >= 0; i--) {
-    const line = lines[i].replace(/^["'`*]+|["'`*.]+$/g, '');
+  for (const rawLine of lines) {
+    const line = rawLine.replace(/^["'`*]+|["'`*.]+$/g, '');
     const m = line.match(/^(NONE|OFFER|RECOMMEND:\s*[a-z][a-z0-9-]*|[a-z][a-z0-9-]*)$/i);
     if (!m) continue;
     const v = m[1];
     if (/^none$/i.test(v)) return 'NONE';
     if (/^offer$/i.test(v)) return 'OFFER';
     if (/^recommend:/i.test(v)) return `RECOMMEND:${v.slice(v.indexOf(':') + 1).trim().toLowerCase()}`;
-    return v.toLowerCase();
+    if (skillNames.has(v.toLowerCase())) return v.toLowerCase();
   }
   return null;
 }
@@ -239,6 +244,7 @@ async function runPool(items, worker, limit) {
 }
 
 const surface = skillSurface();
+const skillNames = new Set(surface.map((s) => s.name));
 const suites = args.suite === 'all' ? ['routing', 'gates'] : [args.suite];
 let failures = 0;
 let total = 0;
@@ -261,7 +267,7 @@ for (const suite of suites) {
       let last;
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         const a = await callJudge(prompt);
-        const got = a.ok ? (suite === 'routing' ? parseRouting(a.out) : parseGate(a.out)) : null;
+        const got = a.ok ? (suite === 'routing' ? parseRouting(a.out, skillNames) : parseGate(a.out)) : null;
         const pass = got !== null && (got === c.expect || (c.accept ?? []).includes(got));
         last = { pass, got, raw: a, attempt };
         if (pass) break;
@@ -283,6 +289,12 @@ for (const suite of suites) {
   });
   console.log(`${suite}: ${passed}/${cases.length} passed`);
   failures += cases.length - passed;
+}
+// An empty selection is an error, not a green run: a typoed --filter or
+// an empty cases file must not report success over zero cases.
+if (total === 0) {
+  console.error(args.filter ? `--filter "${args.filter}" matched no cases` : 'no cases found');
+  process.exit(1);
 }
 if (!args['dry-run']) {
   console.log(

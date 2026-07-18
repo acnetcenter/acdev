@@ -2,12 +2,23 @@
 // replies with ACDEV_FAKE_ANSWER (default NONE). With ACDEV_FAKE_SEQ (a
 // comma-separated answer list) and ACDEV_FAKE_STATE (a counter file path),
 // consecutive calls walk the sequence — this is how retry behavior is
-// tested. Lets run-evals.mjs be tested end to end without a model call.
+// tested. ACDEV_FAKE_HANG never answers (timeout path); ACDEV_FAKE_EXIT
+// exits nonzero (judge-failure path). Lets run-evals.mjs be tested end to
+// end without a model call.
 import { readFileSync, writeFileSync } from 'node:fs';
 
 let input = '';
 process.stdin.on('data', (c) => (input += c));
 process.stdin.on('end', () => {
+  if (process.env.ACDEV_FAKE_HANG) {
+    // Stay alive silently until the runner's timeout kills us.
+    setInterval(() => {}, 1000);
+    return;
+  }
+  if (process.env.ACDEV_FAKE_EXIT) {
+    console.error('fake judge failure');
+    process.exit(Number(process.env.ACDEV_FAKE_EXIT));
+  }
   const seq = process.env.ACDEV_FAKE_SEQ;
   const state = process.env.ACDEV_FAKE_STATE;
   if (seq && state) {

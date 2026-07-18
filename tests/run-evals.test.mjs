@@ -8,14 +8,17 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const script = join(here, '..', 'scripts', 'run-evals.mjs');
-// "node" resolves via PATH: process.execPath commonly contains spaces on
-// Windows and ACDEV_EVAL_CMD splits on them.
-const fakeJudge = `node ${join(here, 'fixtures', 'fake-judge.mjs')}`;
+// ACDEV_EVAL_CMD splits on spaces, so the judge command must contain
+// none: "node" resolves via PATH (process.execPath often has spaces on
+// Windows) and the fixture path is repo-relative, resolved against the
+// cwd that run() pins to the repo root below.
+const fakeJudge = 'node tests/fixtures/fake-judge.mjs';
 const fixtureCases = join(here, 'fixtures', 'evals');
 
 const run = (args, env = {}) =>
   spawnSync(process.execPath, [script, ...args], {
     encoding: 'utf8',
+    cwd: join(here, '..'),
     env: { ...process.env, ...env }
   });
 
@@ -111,6 +114,61 @@ test('--retries 0 fails fast without a second attempt', () => {
   });
   assert.equal(r.status, 1);
   assert.match(r.stdout, /FAIL fx-tdd: expected tdd, got OFFER/);
+});
+
+test('a NONE answer above a skill name is scored, not skipped', () => {
+  const r = run(['--suite', 'routing', '--cases-dir', fixtureCases, '--filter', 'fx-tdd', '--retries', '0'], {
+    ACDEV_EVAL_CMD: fakeJudge,
+    ACDEV_FAKE_ANSWER: 'NONE\ntdd'
+  });
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /FAIL fx-tdd: expected tdd, got NONE/);
+});
+
+test('a lone non-skill word is skipped until a real answer appears', () => {
+  const r = run(['--suite', 'routing', '--cases-dir', fixtureCases, '--filter', 'fx-tdd'], {
+    ACDEV_EVAL_CMD: fakeJudge,
+    ACDEV_FAKE_ANSWER: 'Sure.\ntdd'
+  });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /routing: 1\/1 passed/);
+});
+
+test('a hung judge hits the injectable timeout instead of wedging the run', () => {
+  const r = run(['--suite', 'gates', '--cases-dir', fixtureCases, '--retries', '0'], {
+    ACDEV_EVAL_CMD: fakeJudge,
+    ACDEV_FAKE_HANG: '1',
+    ACDEV_EVAL_TIMEOUT_MS: '1500'
+  });
+  assert.equal(r.status, 1, r.stdout + r.stderr);
+  assert.match(r.stdout, /judge timeout after 1500ms/);
+});
+
+test('a judge that exits nonzero is one per-case FAIL, not a crash', () => {
+  const r = run(['--suite', 'gates', '--cases-dir', fixtureCases, '--retries', '0'], {
+    ACDEV_EVAL_CMD: fakeJudge,
+    ACDEV_FAKE_EXIT: '3'
+  });
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /judge exit 3/);
+});
+
+test('an unspawnable judge is reported, not thrown', () => {
+  const r = run(['--suite', 'gates', '--cases-dir', fixtureCases, '--retries', '0'], {
+    ACDEV_EVAL_CMD: 'definitely-not-a-real-binary-acdev'
+  });
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /judge (spawn failed|exit)/);
+});
+
+test('a filter that matches nothing fails instead of passing over zero cases', () => {
+  const r = run(['--suite', 'routing', '--cases-dir', fixtureCases, '--filter', 'zzz-typo'], {
+    ACDEV_EVAL_CMD: fakeJudge
+  });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /matched no cases/);
+  const dry = run(['--suite', 'routing', '--cases-dir', fixtureCases, '--filter', 'zzz-typo', '--dry-run']);
+  assert.equal(dry.status, 1);
 });
 
 test('invalid --suite fails naming the valid set', () => {
