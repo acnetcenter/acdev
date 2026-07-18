@@ -1,6 +1,6 @@
 ---
 name: planning
-description: Use when a task needs a multi-step plan with verifiable completion criteria, including per-slice plans during build.
+description: Use when a task needs a multi-step plan with verifiable completion criteria, including per-slice plans during build and specs for user-requested changes.
 ---
 
 # Planning
@@ -56,6 +56,32 @@ silently resolved into a table row.
 Store the plan at `docs/plans/YYYY-MM-DD-<topic>.md`. A per-slice plan
 during `build` follows the same goal+verify format, scoped to that one
 slice, and lives in the same location.
+
+A user-requested change — a correction or an addition asked for outside
+the current phase's planned slices — gets a plan file here too, written
+before the work starts: first the request captured as a spec (what
+changes and why, in the user's own terms), then the goal+verify steps.
+Only a genuinely trivial fix — a typo, a one-line tweak with no behavior
+change — skips the file; its trace is the CHANGELOG line `ship` writes
+at close.
+
+## Plan lifecycle
+
+Every plan opens with frontmatter carrying its state:
+
+```
+---
+date: YYYY-MM-DD
+status: active
+---
+```
+
+`status` is `active` while the work is open; `ship` flips it to `shipped`
+in the same commit that closes the work; `abandoned` is set by hand, with
+a line in the plan saying why, when the work is dropped. Plans never move
+to an archive folder and are never deleted — the file stays where every
+link (checkpoint `plan:` field, CHANGELOG entry, ADR) can still reach it.
+"The archive" is a query over `status:`, not a location.
 
 ## Execution and done
 

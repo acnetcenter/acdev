@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Read/write acdev checkpoints and pipeline state in the current project.
-// write: checkpoint.mjs write --stage S --branch B --next TEXT [--slice T] [--files "a,b"] [--blocked T] [--notes T]
+// write: checkpoint.mjs write --stage S --branch B --next TEXT [--slice T] [--plan PATH] [--files "a,b"] [--blocked T] [--notes T]
 // read:  checkpoint.mjs read
 import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync, statSync } from 'node:fs';
 import { join, relative, dirname } from 'node:path';
@@ -41,6 +41,7 @@ if (cmd === 'write') {
         branch: { type: 'string' },
         next: { type: 'string' },
         slice: { type: 'string' },
+        plan: { type: 'string' },
         files: { type: 'string' },
         blocked: { type: 'string' },
         notes: { type: 'string' },
@@ -70,6 +71,7 @@ if (cmd === 'write') {
     `stage: ${a.stage}`,
     `branch: ${JSON.stringify(a.branch)}`,
     `slice: ${JSON.stringify(a.slice ?? '')}`,
+    `plan: ${a.plan ? JSON.stringify(a.plan) : 'null'}`,
     `files_modified: [${files.map((f) => JSON.stringify(f)).join(', ')}]`,
     `next_step: ${JSON.stringify(a.next)}`,
     `blocked_on: ${a.blocked ? JSON.stringify(a.blocked) : 'null'}`,

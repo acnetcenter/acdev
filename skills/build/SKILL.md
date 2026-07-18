@@ -102,6 +102,23 @@ Two situations can surface mid-slice and each has its own handling:
   commit as the code change (the drift rule) — the docs and the behavior
   they describe never diverge, even for one commit.
 
+## User-requested changes
+
+A correction or addition the user asks for outside the current phase's
+planned slices is a mini-slice, not a side edit: it gets its own plan
+file per the `planning` skill (the request captured as a spec, `status:
+active`), runs through the same TDD and verification loop, and closes
+through `ship` — one commit, checkpoint linked to the plan via `--plan`,
+CHANGELOG line. If the request changes what the product should do, the
+user-challenge gate and the VISION/MVP drift rule above apply first,
+unchanged. Only a genuinely trivial fix skips the plan file, per that
+skill's threshold.
+
+If a slice is in progress when the request arrives, park it first — stash
+or branch the slice's uncommitted work so the mini-slice's close verifies
+and commits only its own changes — restore it afterwards, and name the
+resumed slice in the mini-slice checkpoint's `--next`.
+
 ## Continuous build
 
 Only on the user's explicit approval, offered at the blueprint gate or
@@ -113,7 +130,7 @@ In continuous mode:
 - The loop and its quality gates DO NOT change: every slice still gets
   its just-in-time plan, the TDD loop, verification per the `verifying`
   skill, and a full `ship` close (green verification, drift check,
-  checkpoint, one commit) before the next slice starts. Continuous mode
+  CHANGELOG line, checkpoint, one commit) before the next slice starts. Continuous mode
   removes the pauses between slices, never the gates inside them.
 - Mechanical and taste decisions are auto-decided into the audit table,
   as always. A user-challenge decision STOPS the run: write the

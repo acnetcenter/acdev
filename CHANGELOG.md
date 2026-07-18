@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-07-17
+
+### Added
+- Change-request specs with linked history: every user-requested change beyond trivial gets a plan/spec at `docs/plans/YYYY-MM-DD-<topic>.md` before work starts (the request captured as a spec, then goal+verify steps), treated by `build` as a mini-slice closing through `ship`. Plans carry a `status:` lifecycle in frontmatter (`active` / `shipped` / `abandoned`) instead of moving between folders — links never break; "the archive" is a query, not a location.
+- `checkpoint.mjs --plan`: checkpoints now record the repo-relative path of the plan the work followed (`plan:` frontmatter field, `null` when absent), tying commit, checkpoint and spec together. `ship` supplies it at every close; `status` reports it.
+- Per-project `CHANGELOG.md` owned by `ship`: every close appends one line under `[Unreleased]` — what shipped, in the project's documentation language, linking its plan — and flips that plan's `status:` to `shipped` in the same commit. Created lazily on the first close if the project has none.
+- `status` lists open plans (file names of `docs/plans/*.md` with `status: active`, names only) as its third cheap source.
+
 ## [0.1.5] - 2026-07-11
 
 ### Added

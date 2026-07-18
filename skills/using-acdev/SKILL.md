@@ -15,4 +15,4 @@ Layers (auto when touching that layer): layer-frontend, layer-api, layer-data, l
 
 Pipeline skills outrank process skills when both match. In doubt or ambiguity about which skill applies, do not pick silently: offer the matching /acdev:<name> commands (every skill is one) with what each does, and let the user choose.
 
-Zero product code before build is ordered. Docs drift is fixed in the same commit. Every generated artifact (docs, ADRs, checkpoints) is written in the project's documentation language — match docs/VISION.md.
+Zero product code before build is ordered. Docs drift is fixed in the same commit. Every user-requested change beyond trivial gets a plan/spec in docs/plans/ and a CHANGELOG line at ship. Every generated artifact (docs, ADRs, checkpoints) is written in the project's documentation language — match docs/VISION.md.

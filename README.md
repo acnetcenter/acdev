@@ -62,14 +62,14 @@ Zero product code is written before stage 5.
 | `onboard` | Use when adopting an existing repo into acdev: build a truthful situation map of what exists and what is missing, with declared gaps, then propose adopting the pipeline. |
 | `build` | Use when constructing an approved project: vertical slices end to end, just-in-time spec and plan per slice, TDD loop, decision classification, narrow subagents per layer. |
 | `ship` | Use when closing a slice or phase: run full verification in green, check docs drift, write a checkpoint, commit or PR, and update the ROADMAP. |
-| `status` | Use when resuming work or asking where the project stands: read state, latest checkpoint and current ROADMAP phase for about 2k tokens; can also write a manual checkpoint. |
+| `status` | Use when resuming work or asking where the project stands: read state, latest checkpoint, current ROADMAP phase and open plans for about 2k tokens; can also write a manual checkpoint. |
 
 **Process** (auto-activated on matching work):
 
 | Skill | Description |
 |---|---|
 | `designing` | Use before any creative or feature work outside the pipeline stages: converse the design until an approved design doc exists. Inside the pipeline, defer to the VISION and MVP stages. |
-| `planning` | Use when a task needs a multi-step plan with verifiable completion criteria, including per-slice plans during build. |
+| `planning` | Use when a task needs a multi-step plan with verifiable completion criteria, including per-slice plans during build and specs for user-requested changes. |
 | `tdd` | Use when implementing any feature or bugfix: write the failing test first, watch it fail, make it pass minimally, refactor. No implementation before a red test. |
 | `debugging` | Use on any bug, failing test or unexpected behavior before proposing fixes: reproduce it, form hypotheses, find the root cause, fix with a test. |
 | `verifying` | Use before claiming anything is done, fixed or passing: run the verification and show the evidence. No green claim without command output. |
@@ -93,10 +93,10 @@ Every session pays a fixed cost, regardless of which skills get used: the 19 mod
 
 Measured directly from the repository, not estimated:
 
-- Sum of the 19 model-invocable `description:` values: **2,719 characters**.
-- `using-acdev` gateway body as injected by the hook (frontmatter stripped): **1,288 characters**, plus the one-line plugin-root path (varies with the install location).
-- Total fixed cost: **4,007 characters**.
-- Approximated at 4 characters/token (the same ratio `lint-budgets.mjs` uses): **~1,002 tokens/session**.
+- Sum of the 19 model-invocable `description:` values: **2,768 characters**.
+- `using-acdev` gateway body as injected by the hook (frontmatter stripped): **1,393 characters**, plus the one-line plugin-root path (varies with the install location).
+- Total fixed cost: **4,161 characters**.
+- Approximated at 4 characters/token (the same ratio `lint-budgets.mjs` uses): **~1,040 tokens/session**.
 
 Inside a project with `.acdev/state.md`, the `UserPromptSubmit` hook additionally injects one routing line per prompt (current stage, skill precedence, disambiguation rule — about 60 tokens); outside acdev projects it injects nothing.
 

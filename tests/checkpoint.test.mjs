@@ -26,6 +26,7 @@ test('write then read roundtrip', () => {
   assert.match(ckpt, /stage: build/);
   assert.match(ckpt, /branch: "feat\/slice-1"/);
   assert.match(ckpt, /files_modified: \["src\/a\.ts", "src\/b\.ts"\]/);
+  assert.match(ckpt, /plan: null/); // no --plan given
   assert.match(ckpt, /blocked_on: null/);
   const r = spawnSync(process.execPath, [script, 'read'], { cwd: proj, encoding: 'utf8' });
   assert.equal(r.status, 0);
@@ -61,6 +62,15 @@ test('yaml-hostile values are escaped in the checkpoint frontmatter', () => {
   const ckpt = readFileSync(join(proj, '.acdev', 'checkpoints', files[0]), 'utf8');
   assert.ok(ckpt.includes(`branch: ${JSON.stringify('release: "hot" fix')}`));
   assert.ok(ckpt.includes('files_modified: ["src/a b.ts", "src/#c.ts"]'));
+});
+
+test('plan path is recorded JSON-escaped when --plan is given', () => {
+  const proj = mkdtempSync(join(tmpdir(), 'acdev-plan-'));
+  const w = write(proj, ['--plan', 'docs/plans/2026-07-17-fix-invoice-total.md']);
+  assert.equal(w.status, 0, w.stderr);
+  const files = readdirSync(join(proj, '.acdev', 'checkpoints'));
+  const ckpt = readFileSync(join(proj, '.acdev', 'checkpoints', files[0]), 'utf8');
+  assert.ok(ckpt.includes('plan: "docs/plans/2026-07-17-fix-invoice-total.md"'));
 });
 
 test('language is set via --lang and sticky across later writes', () => {

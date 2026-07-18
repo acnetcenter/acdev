@@ -3,6 +3,7 @@ date: <YYYY-MM-DD HH:MM>
 stage: <pipeline stage, e.g. build>
 branch: "<branch name>"
 slice: "<n: slice name, or empty string if not mid-slice>"
+plan: "<docs/plans/... path this work followed, or null>"
 files_modified: ["<file a>", "<file b>"]
 next_step: "<concrete next action>"
 blocked_on: null

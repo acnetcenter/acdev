@@ -7,7 +7,7 @@ description: Use when closing a slice or phase: run full verification in green, 
 
 This skill is how `build` closes a slice. Every slice ends here — a slice
 that is coded but not shipped is not done, regardless of how complete it
-looks. The four gates below run in order: a slice cannot advance past a
+looks. The five gates below run in order: a slice cannot advance past a
 red gate to the next one.
 
 ## Verification gate
@@ -47,26 +47,52 @@ recorded — write it as an ADR using `shared/references/templates/adr.md`
 and commit it alongside the slice. A decision made without a paper trail
 is a decision the next person has to rediscover the hard way.
 
+## Changelog
+
+Every close appends one line to the project's root `CHANGELOG.md`, under
+`## [Unreleased]`: what shipped, written in the project's documentation
+language, linking the plan that motivated it — e.g. `- Create invoice
+happy path ([plan](docs/plans/2026-07-15-create-invoice.md))`. If the
+project has no `CHANGELOG.md` yet, create it with the `[Unreleased]`
+section on this first close; if one exists without an `[Unreleased]`
+section, add the section at the top — unless the project follows its own
+changelog convention (as found at onboard), which wins: append the line
+where that convention puts unreleased work. In the same commit, flip that
+plan's `status:` from `active` to `shipped` (see the `planning` skill's
+lifecycle). A trivial fix that legitimately has no plan file (per that
+skill's threshold) still gets its line — without a link; the line IS its
+trace. The checkpoint records machine state for resuming; this line is
+the human-readable history — both point at the same plan file.
+
 ## Checkpoint
 
-Once verification is green and drift is fixed, write the checkpoint:
+Once verification is green, drift is fixed and the CHANGELOG line is
+written, write the checkpoint:
 
 ```
-node "<plugin-root>/scripts/checkpoint.mjs" write --stage build --branch <branch> --slice "<n: name>" --files "<changed>" --next "<next slice or phase gate>"
+node "<plugin-root>/scripts/checkpoint.mjs" write --stage build --branch <branch> --slice "<n: name>" --files "<changed>" --plan "<docs/plans/....md>" --next "<next slice or phase gate>"
 ```
 
 `<plugin-root>` is the absolute path printed as `acdev plugin root:` in the
 session context at startup.
 
-- `--stage`, `--branch`, and `--next` are required; `--slice` and `--files`
-  are optional but always supply them here — they are what makes the
-  checkpoint useful for resuming this specific slice later. Use `--blocked`
-  instead of closing if the slice cannot actually finish (see Close).
+- `--stage`, `--branch`, and `--next` are required; `--slice`, `--files`
+  and `--plan` are optional but always supply them here — they are what
+  makes the checkpoint useful for resuming this specific slice later. Use
+  `--blocked` instead of closing if the slice cannot actually finish (see
+  Close).
 - `--slice` follows `"<n: name>"` — the slice number and its name, e.g.
-  `"3: user invites accept flow"`.
+  `"3: user invites accept flow"`. A user-requested change (build's
+  mini-slice) has no phase slice number: use `--slice "change: <topic>"`
+  with the plan's topic.
 - `--files` is the comma-separated list of files this slice changed.
-- `--next` names the concrete next slice, or the phase gate if this was the
-  phase's last slice.
+- `--plan` is the repo-relative path of the plan file this work followed
+  (`docs/plans/...`). It is the link that ties commit, checkpoint and
+  spec together; omit it only when the work legitimately had no plan file
+  (a trivial fix, per the `planning` skill's threshold).
+- `--next` names the concrete next slice, the interrupted slice being
+  resumed (after a mini-slice), or the phase gate if this was the phase's
+  last slice.
 
 `.acdev/` is committed with the slice — the checkpoint is part of the
 slice's history, not a side artifact left untracked.
@@ -77,7 +103,9 @@ One commit per slice, using a conventional commit message that names the
 slice (for example `feat: user invites accept flow (slice 3)`). Do not
 batch multiple slices into one commit and do not split one slice across
 several — the commit boundary and the slice boundary are the same
-boundary.
+boundary. A user-requested change closes the same way: one commit whose
+conventional message names the change (e.g. `fix: invoice total
+rounding (change)`).
 
 When the project uses PRs, open one with native `gh` (one line, e.g. `gh
 pr create --fill`) — this skill does not re-teach `gh` usage.
