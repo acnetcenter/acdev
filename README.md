@@ -94,9 +94,9 @@ Every session pays a fixed cost, regardless of which skills get used: the 19 mod
 Measured directly from the repository, not estimated:
 
 - Sum of the 19 model-invocable `description:` values: **2,768 characters**.
-- `using-acdev` gateway body as injected by the hook (frontmatter stripped): **1,393 characters**, plus the one-line plugin-root path (varies with the install location).
-- Total fixed cost: **4,161 characters**.
-- Approximated at 4 characters/token (the same ratio `lint-budgets.mjs` uses): **~1,040 tokens/session**.
+- `using-acdev` gateway body as injected by the hook (frontmatter stripped): **1,448 characters**, plus the one-line plugin-root path (varies with the install location).
+- Total fixed cost: **4,216 characters**.
+- Approximated at 4 characters/token (the same ratio `lint-budgets.mjs` uses): **~1,054 tokens/session**.
 
 Inside a project with `.acdev/state.md`, the `UserPromptSubmit` hook additionally injects one routing line per prompt (current stage, skill precedence, disambiguation rule — about 60 tokens); outside acdev projects it injects nothing.
 

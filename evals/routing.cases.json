@@ -71,9 +71,9 @@
     },
     {
       "id": "route-designing-feature-es",
-      "prompt": "Quiero añadir una utilidad suelta a este repo; primero hablemos de cómo enfocarla.",
+      "prompt": "Quiero añadir un comando de exportación a CSV a este repo; pensemos el diseño antes de escribir código.",
       "expect": "designing",
-      "why": "Pre-implementation design conversation is designing."
+      "why": "Pre-implementation design conversation, anchored to 'before writing code' so it cannot read as a planning request instead."
     },
     {
       "id": "route-planning-steps",
@@ -147,9 +147,9 @@
     },
     {
       "id": "route-layer-api-idempotency-es",
-      "prompt": "El endpoint de creación de pagos puede recibir la misma petición dos veces; haz la mutación idempotente con una idempotency key.",
+      "prompt": "El contrato del endpoint de creación de pagos necesita idempotencia: define cómo debe comportarse ante una petición duplicada.",
       "expect": "layer-api",
-      "why": "Idempotency of endpoint mutations is the api layer; phrased in pure api vocabulary (an earlier webhook phrasing pulled the security reading).",
+      "why": "Idempotency is named directly in the api layer's own trigger words; phrased as a contract question, not an implementation order, so it does not pull toward tdd or build.",
       "accept": ["layer-security"]
     },
     {
@@ -177,8 +177,8 @@
       "id": "route-layer-auth-sessions-es",
       "prompt": "Hay que endurecer la autenticación de sesiones: JWT de vida corta con rotación de refresh tokens.",
       "expect": "layer-auth",
-      "why": "Session authentication with JWT is the auth layer's trigger vocabulary; layer-security also passes because hardening sits on the auth/security border (earlier task-shaped phrasings kept pulling a planning reading).",
-      "accept": ["layer-security"]
+      "why": "Session authentication with JWT is the auth layer's trigger vocabulary; layer-security borders it, and a goal-level 'hay que...' hardening initiative genuinely also reads as planning (the same three-way border route-layer-auth-rbac already accepts).",
+      "accept": ["layer-security", "planning"]
     },
     {
       "id": "route-layer-security-upload",

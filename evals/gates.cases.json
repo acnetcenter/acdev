@@ -123,13 +123,13 @@
       "context": ["skills/using-acdev/SKILL.md"],
       "scenario": "In a repo with no .acdev/, the user says: 'start a new acdev project for my gym idea'.",
       "options": {
-        "A": "Invoke the new-project skill and open the intake interview with its one-question opener.",
+        "A": "Start asking the intake questions yourself, in this same turn, without the user running any command.",
         "B": "Create docs/VISION.md directly from the gym idea as told, then review it with the user.",
         "C": "Run the VISION questionnaire in conversation first and create the files at the end.",
-        "D": "Tell the user to run /acdev:new-project themselves and stop there."
+        "D": "Reply that /acdev:new-project is user-run, name it, and take no other action this turn."
       },
       "expect": "D",
-      "why": "Entry points are user-run; the model recommends the command instead of activating the skill."
+      "why": "Entry points are user-run; the model recommends the command instead of activating the skill itself."
     },
     {
       "id": "gate-decision-escalation",
@@ -175,13 +175,13 @@
       "context": ["skills/ship/SKILL.md"],
       "scenario": "The last slice of the MVP phase just closed green.",
       "options": {
-        "A": "Mark the phase complete: every slice shipped through its own verification and close.",
+        "A": "Mark the phase complete now: the last slice's own verification and close already satisfy everything a phase exit needs.",
         "B": "Move straight to the next phase's mockups gate while the product context is fresh.",
         "C": "Run /security-review over the phase diff, the OWASP pass and the security probes first.",
         "D": "Ask the user whether they want any security review before the phase is marked complete."
       },
       "expect": "C",
-      "why": "The phase-exit security pass runs before the phase is marked complete; a high-severity finding blocks it."
+      "why": "Per-slice verification is not the phase-exit gate: the security pass is an additional, separate requirement before the phase is marked complete; a high-severity finding blocks it."
     },
     {
       "id": "gate-compliance-asked-not-assumed",

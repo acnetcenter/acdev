@@ -5,7 +5,7 @@ description: How and when to use every acdev skill; loaded at session start.
 
 # Using acdev
 
-Rule: if an acdev skill matches the task, invoke it before responding; user-run skills are never model-invoked — recommend their /acdev command instead. Resuming work on a project? Run /acdev:status first.
+Rule: if an acdev skill matches the task, invoke it before responding. Exception: new-project and onboard are user-run — never invoke them yourself, not even to save a step; recommend their /acdev command and stop there. Resuming work? Run /acdev:status first.
 
 Pipeline: new-project (user-run; start from zero: VISION, MVP gates) | mockups (MVP screens + skeleton) | blueprint (docs, ADRs, spikes, AI context) | onboard (user-run; adopt existing repo) | build (vertical slices, TDD) | ship (verify, drift check, commit) | status (where are we; ~2k tokens).
 
