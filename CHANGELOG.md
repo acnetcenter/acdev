@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-07-18
+
 ### Changed
 - Pre-push committee review (two panels — critics vs solvers — 12 findings, all implemented): release history split into one commit per version with honest messages; the adversarial design review protocol moved to `skills/blueprint/references/adversarial-review.md` (the body keeps the offer, the cost argument and the high-severity gate rule; ~290 tokens saved per activation); jurisdiction bullets deduped in the vision questionnaire; the spec records why the evals v2 deferral fell.
 
