@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-07-17
+
+### Added
+- `docs/README.md` index, owned by `blueprint`: one line per singleton doc (what it is, when to read it) plus one line per series folder — series are never indexed file by file. Generated last from `shared/references/templates/docs-index.md` once the doc set is final; `ship`'s drift check updates it in the same commit whenever a slice adds, renames or removes a document, creating it if the project lacks one.
+- `docs/domain/` for central-domain docs (PRICING-MODEL, SCHEDULING-RULES, ...): the one singleton category that can multiply per project moves under its own folder. Applies to new projects; `ship`'s drift check now also covers central-domain docs.
+
 ## [0.1.6] - 2026-07-17
 
 ### Added

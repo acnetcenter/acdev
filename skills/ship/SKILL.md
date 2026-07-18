@@ -34,9 +34,21 @@ this skill does not re-teach that.
 Documentation and reality drift apart the moment code changes and docs
 don't. Before closing, diff what this slice actually built against every
 doc it touches: `docs/ROADMAP.md` phase state, `docs/ARCHITECTURE.md`,
-`docs/DATA-MODEL.md`, the permission matrix (in `docs/SECURITY.md`), and
-`docs/UI-DESIGN.md`. Check only the docs this slice's work bears on — not
-the whole documentation set on every close.
+`docs/DATA-MODEL.md`, the permission matrix (in `docs/SECURITY.md`),
+`docs/UI-DESIGN.md`, and any central-domain doc (`docs/domain/`). Check
+only the docs this slice's work bears on — not the whole documentation
+set on every close.
+
+When the slice added, renamed or removed a document, update
+`docs/README.md` (the index) in the same commit — create it from
+`shared/references/templates/docs-index.md` if the project has no docs
+index yet. If the project follows its own index convention (as found at
+onboard — including a `docs/README.md` that is something other than an
+index of `docs/`), that convention wins: update that index instead,
+wherever it lives. Series folders (`adr/`, `plans/`, `designs/`,
+`domain/`) are indexed as folders: the first file that creates one adds
+that folder's single line; further files inside it never touch the
+index.
 
 Fix any drift found in the **same commit** as the slice, not a follow-up.
 A doc that is wrong for even one commit is a doc nobody can trust.
@@ -57,8 +69,10 @@ project has no `CHANGELOG.md` yet, create it with the `[Unreleased]`
 section on this first close; if one exists without an `[Unreleased]`
 section, add the section at the top — unless the project follows its own
 changelog convention (as found at onboard), which wins: append the line
-where that convention puts unreleased work. In the same commit, flip that
-plan's `status:` from `active` to `shipped` (see the `planning` skill's
+where that convention puts unreleased work. The close that creates
+`CHANGELOG.md` also adds its `../CHANGELOG.md` line to `docs/README.md`,
+in the same commit. In the same commit, flip that plan's
+`status:` from `active` to `shipped` (see the `planning` skill's
 lifecycle). A trivial fix that legitimately has no plan file (per that
 skill's threshold) still gets its line — without a link; the line IS its
 trace. The checkpoint records machine state for resuming; this line is

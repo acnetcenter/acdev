@@ -12,6 +12,7 @@ reason stated to the user.
 
 | Doc | When |
 |---|---|
+| `docs/README.md` | Always. The index of `docs/`: one line per singleton doc (what it is, when to read it) plus one line per series folder (`adr/`, `plans/`, `designs/`, `domain/` when present) — series are never indexed file by file. Written last, once the doc set is final; kept current by `ship`'s drift check. |
 | `docs/ROADMAP.md` | Always. Phase 1 = the MVP from MVP.md, later phases from VISION §7, each phase with verifiable exit criteria and external lead times. |
 | `docs/ARCHITECTURE.md` | Any project beyond a trivial script or single-file tool: system shape, components, data flow, key technical decisions summarized (links to the ADRs that decided them). |
 | `docs/adr/NNNN-*.md` | Always, one per closed decision. This is where the stack and other lasting choices are recorded — see `SKILL.md`. |
@@ -27,7 +28,7 @@ proposing the list.
 | `docs/SECURITY.md` | The project has auth, is multi-tenant, handles PII, handles payments, or has role-based access. | Permission matrix (resource x role), tenant/data isolation approach, encryption and secrets handling, data retention policy, incident response contact and steps. |
 | `docs/UI-DESIGN.md` | The project has a relevant UI. | Design tokens and component inventory derived from the approved mockups' `styles.css` — not redecided here. |
 | `docs/INTEGRATIONS.md` | The project depends on third-party APIs. | Scope of each integration, rate limits, credential provisioning lead times, sandbox vs. production environment differences. |
-| A central-domain doc (e.g. `docs/PRICING-MODEL.md`, `docs/SCHEDULING-RULES.md`) | One domain concept is central enough to define the product (a pricing engine, a scheduling algorithm, a compliance ruleset). | The rules of that concept in enough depth that build does not have to reinvent them ad hoc. |
+| A central-domain doc (e.g. `docs/domain/PRICING-MODEL.md`, `docs/domain/SCHEDULING-RULES.md`) | One domain concept is central enough to define the product (a pricing engine, a scheduling algorithm, a compliance ruleset). | The rules of that concept in enough depth that build does not have to reinvent them ad hoc. Central-domain docs live under `docs/domain/` — the one singleton category that can multiply per project. |
 
 Do not produce a conditional doc "just in case." If the condition does not
 clearly hold against the approved VISION/MVP, leave it out and say why.

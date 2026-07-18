@@ -30,6 +30,13 @@ inventory from the approved mockups' `styles.css` — colors, spacing,
 typography, and component variants are read out of the frozen mockups, not
 redecided here.
 
+Close the document set by generating `docs/README.md` from
+`shared/references/templates/docs-index.md`: one line per document
+produced (what it is, when to read it) plus one line per series folder
+(`adr/`, `plans/`, `designs/`, `domain/` when present). It is written
+last, once the set is final — an index that precedes its documents is
+guesswork.
+
 ## ADRs and spikes
 
 Write one Architecture Decision Record per closed decision — stack,
