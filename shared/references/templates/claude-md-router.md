@@ -40,7 +40,18 @@ reasoning, link to the ADRs instead.> See [docs/adr/](docs/adr/).
 ## Verification
 
 Run the layer-specific checks in `scripts/verify/` before considering any
-slice done. See each script for the concrete command it runs.
+slice done. See each script for the concrete command it runs. The guard
+(`.claude/hooks/acdev-guard.mjs`) records the green run and denies a
+commit without it: run `node .claude/hooks/acdev-guard.mjs verify`
+before every close. A guard denial is a gate, not an obstacle; never
+route around it.
+
+## Lessons
+
+Rules earned from mistakes repeated in this repo, promoted by acdev's
+lessons script (`.acdev/lessons.md` holds the ledger). Never hand-edit
+this section. A lesson that can be checked mechanically also lives as a
+test or a `scripts/verify/` probe; the bullet names it.
 
 ## Drift rule
 

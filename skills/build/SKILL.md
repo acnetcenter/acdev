@@ -32,12 +32,15 @@ deploy — and ends in something a user can actually observe (a screen, a
 working flow, a deployed change), not an internal building block.
 
 Slice 1 of phase 1 is the **walking skeleton**: the thinnest possible
-end-to-end path through the stack, and it INCLUDES deploy. Its purpose is
-to validate the whole delivery pipeline — build, test, deploy, and every
-layer touched in between — while the codebase is still small enough that
-problems are cheap to fix. Do not defer deploy to a later slice to make
-slice 1 look simpler; a walking skeleton that does not reach production is
-not a walking skeleton.
+end-to-end path through the stack, and it INCLUDES deploy and the way
+back. Its purpose is to validate the whole delivery pipeline — build,
+test, deploy, rollback, and every layer touched in between — while the
+codebase is still small enough that problems are cheap to fix. Do not
+defer deploy to a later slice to make slice 1 look simpler; a walking
+skeleton that does not reach production is not a walking skeleton, and
+one that cannot be rolled back with the runbook's command has not proven
+the pipeline either. The skeleton's close runs `operate`'s release check
+and records the rollback drill in `docs/RUNBOOK.md`.
 
 Write the slice plan **just-in-time** — only for the slice about to be
 built, never for slices further out. A future slice's plan is written when
@@ -82,6 +85,20 @@ For each slice, once its plan is settled:
    finished once verification confirms it behaves as the slice spec and
    the mockups say it should.
 
+## The guard
+
+The project's hook (`.claude/hooks/acdev-guard.mjs`, installed by the
+pipeline) enforces the hard rules deterministically: it denies product
+code before the build stage, denies edits to frozen files, denies a
+`git commit` without a fresh green verification receipt, and asks before
+approved documents, secrets or destructive commands. **A guard denial is
+a gate, never an obstacle.** Do not route around it: not through Bash
+redirections or `tee`, not by writing the same content to another path,
+not by editing `.acdev/guard.json`, `.acdev/state.md` or the hook to
+make the denial go away. Either the state is behind reality (the pipeline
+advances it at its gate, with the user), or the action is wrong (stop and
+say so). An "ask" is answered by the user, not by rephrasing the command.
+
 ## Close
 
 Every slice ends by invoking the `ship` skill — one commit per slice, no
@@ -109,7 +126,9 @@ planned slices is a mini-slice, not a side edit: it gets its own plan
 file per the `planning` skill (the request captured as a spec, `status:
 active`), runs through the same TDD and verification loop, and closes
 through `ship` — one commit, checkpoint linked to the plan via `--plan`,
-CHANGELOG line. If the request changes what the product should do, the
+CHANGELOG line. A production incident is the same mini-slice with a
+different origin: its spec is the incident file `operate` writes, and it
+enters here once that spec exists, never before. If the request changes what the product should do, the
 user-challenge gate and the VISION/MVP drift rule above apply first,
 unchanged. Only a genuinely trivial fix skips the plan file, per that
 skill's threshold.

@@ -11,8 +11,9 @@ close that creates that file, not at blueprint time.>
 - [ROADMAP.md](ROADMAP.md) — phases with verifiable exit criteria; where the project is going
 - [ARCHITECTURE.md](ARCHITECTURE.md) — system shape, components, data flow
 - <...one line per remaining singleton doc actually produced (DATA-MODEL, SECURITY, UI-DESIGN, INTEGRATIONS, SITUATION...)>
+- [RUNBOOK.md](RUNBOOK.md) — how the service is deployed, rolled back and watched; read after every deploy and on every incident (only when the project deploys)
 - [adr/](adr/) — architecture decision records, one per closed decision
-- [plans/](plans/) — dated plans/specs, one per slice or user-requested change; `status:` frontmatter marks active/shipped/abandoned
+- [plans/](plans/) — dated plans/specs, one per slice, user-requested change or incident (`*-incident-*`); `status:` frontmatter marks active/shipped/abandoned
 - [designs/](designs/) — dated design documents
 - [domain/](domain/) — central-domain rule docs (only when the project has one)
 - [../CHANGELOG.md](../CHANGELOG.md) — summarized history of every shipped change, each line linking its plan when one exists

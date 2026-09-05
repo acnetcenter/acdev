@@ -30,10 +30,24 @@ in order, never skipped under time pressure.
    going.
 6. **Add the regression test and verify green.** Follow the `tdd` skill:
    the reproducing case becomes a permanent test, red before the fix,
-   green after.
-7. **One line: what was learned.** If the bug exposed a project-wide trap —
-   a wrong assumption baked into an ADR, a layer behaving unexpectedly —
-   record it (a new ADR or a layer project note) so the next person does
+   green after. In a project with the guard, freeze the test before
+   touching the code under it:
+
+   ```
+   node .claude/hooks/acdev-guard.mjs freeze <test file or glob> --reason "<bug>"
+   ```
+
+   The failing test is the spec of the fix. A fix that needs the test
+   changed is a spec change, which is the user's decision, not a fix;
+   the freeze makes that a denial instead of a temptation. `ship` clears
+   it at the close.
+7. **One line: what was learned.** Record it with the lessons script
+   (`node "<plugin-root>/scripts/lessons.mjs" list`, then `add --id N` if
+   a candidate already matches the root cause, else `add "<lesson>"`;
+   `<plugin-root>` is the path printed as `acdev plugin root:` at session
+   start). Its second occurrence promotes it into `CLAUDE.md`. If the bug
+   exposed a lasting trap — a wrong assumption baked into an ADR, a layer
+   behaving unexpectedly — write the ADR as well, so the next person does
    not rediscover it the hard way.
 
 ## Red flags

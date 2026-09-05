@@ -25,7 +25,17 @@ repos).
   possible or not permitted.
 - Rollback must exist and be TESTED, not assumed — verify: a rollback
   drill was run where deploying version N-1 over a broken N restores
-  service, and the drill is recorded.
+  service, and the drill is recorded in `docs/RUNBOOK.md` with its date,
+  the exact command and the time to restore.
+- Every deploy must be followed by a release check, not by silence —
+  verify: `scripts/verify/canary.mjs` (health, smoke paths, p95 against
+  the runbook band) runs after the deploy lands and its green output is
+  in the close; a red canary is followed by the rollback command, not by
+  a fix on top.
+- The runbook's control bands must be numeric and derived from measured
+  budgets — verify: every Degraded and Down threshold in
+  `docs/RUNBOOK.md` is a number with a window, and the alert that fires
+  on it reaches a human channel.
 - A health endpoint must be checked by the platform before routing traffic
   — verify: a deploy with a deliberately failing health check is blocked
   from receiving traffic, and the previous version keeps serving.
@@ -62,6 +72,9 @@ repos).
 - Config drift: a value edited directly in the hosting dashboard and never
   recorded — the next deploy from CI silently reverts it, or nobody knows
   it exists; record every config value as an ADR or in versioned env docs.
+- A deploy declared done when the command returned — the canary is what
+  says a release is live; without it a broken release is discovered by
+  users, and the fix lands on top of it instead of after a rollback.
 - Migrations set to auto-run on boot of every instance — concurrent
   instances race to apply the same migration; run migrations as a single
   explicit deploy step instead.

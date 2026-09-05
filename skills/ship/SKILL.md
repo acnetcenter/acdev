@@ -7,7 +7,7 @@ description: Use when closing a slice or phase: run full verification in green, 
 
 This skill is how `build` closes a slice. Every slice ends here — a slice
 that is coded but not shipped is not done, regardless of how complete it
-looks. The five gates below run in order: a slice cannot advance past a
+looks. The six gates below run in order: a slice cannot advance past a
 red gate to the next one.
 
 ## Verification gate
@@ -16,6 +16,21 @@ Run the project's full verification — `scripts/verify/` plus the test
 suite — per the `verifying` skill, and show the evidence: the actual
 command output, not a summary of it. The person reading the close needs to
 see the green run, not take your word for it.
+
+In a project with the guard installed, the run is:
+
+```
+node .claude/hooks/acdev-guard.mjs verify
+```
+
+It executes the commands `.acdev/guard.json` lists, in order, streaming
+their output (that output is the evidence), and records a receipt bound
+to the current code tree. The hook denies `git commit` while the receipt
+is missing, red, or stale because code changed after the run; docs,
+CHANGELOG and `.acdev/` bookkeeping written later in this close never
+stale it. If a freeze from `debugging` is still active, clear it now
+(`node .claude/hooks/acdev-guard.mjs unfreeze`); a slice never closes
+with a frozen test.
 
 **A red check blocks the close. No exceptions.** A failing test, a failing
 lint, a failing type check — any of these means the slice is not finished
@@ -78,10 +93,41 @@ skill's threshold) still gets its line — without a link; the line IS its
 trace. The checkpoint records machine state for resuming; this line is
 the human-readable history — both point at the same plan file.
 
+## Lessons
+
+The ratchet: a mistake made twice in this repo becomes a rule in its
+`CLAUDE.md`, so the next session inherits it instead of rediscovering it.
+Before the checkpoint, review what this slice cost that it should not
+have: a correction the user had to make again, a verification failure
+whose cause was already seen in an earlier slice, a trap already noted in
+a checkpoint, an ADR or the ledger. Then:
+
+```
+node "<plugin-root>/scripts/lessons.mjs" list
+node "<plugin-root>/scripts/lessons.mjs" add --id <N> --source "<docs/plans/... or slice>"
+node "<plugin-root>/scripts/lessons.mjs" add "<one-line lesson>" --source "<...>"
+```
+
+`list` shows the candidates already recorded. A repeat matches one of
+them: `add --id N` bumps it, and on the second occurrence the script
+promotes it into the `## Lessons` section of `CLAUDE.md` (and
+`AGENTS.md` when the project keeps the mirror), in this commit. A first
+occurrence is recorded as a candidate with `add "<lesson>"`. **Never
+hand-edit the Lessons section**; the script owns it and keeps the mirror
+identical.
+
+A promoted lesson that can be checked mechanically becomes a check in the
+same commit: a test, a `scripts/verify/` probe, a lint rule, a canary
+smoke path. The CLAUDE.md line then names the check. A lesson that only
+exists as a sentence will be forgotten a third time; one that fails a
+command cannot be. The script warns past twelve promoted lessons:
+consolidate the section with the user (merge, or move detail into an
+ADR) rather than let the router grow past one page.
+
 ## Checkpoint
 
-Once verification is green, drift is fixed and the CHANGELOG line is
-written, write the checkpoint:
+Once verification is green, drift is fixed, the CHANGELOG line is written
+and lessons are recorded, write the checkpoint:
 
 ```
 node "<plugin-root>/scripts/checkpoint.mjs" write --stage build --branch <branch> --slice "<n: name>" --files "<changed>" --plan "<docs/plans/....md>" --next "<next slice or phase gate>"
@@ -124,9 +170,20 @@ rounding (change)`).
 When the project uses PRs, open one with native `gh` (one line, e.g. `gh
 pr create --fill`) — this skill does not re-teach `gh` usage.
 
+**Release check.** When this close reaches an environment users touch
+(CI deploys the branch on merge, or the slice deployed by hand), the
+slice is not finished when the deploy command returns: once the deploy
+lands, run the `operate` skill's release check (the canary against
+`docs/RUNBOOK.md`). A red canary rolls back per the runbook and the
+follow-up is an incident spec through `operate`, never a hotfix pushed on
+top of a broken release.
+
 **Phase exit.** When the slice just closed was the last one in its phase,
 verify the phase's exit criteria in `docs/ROADMAP.md` against what was
-actually built and verified — not against intent.
+actually built and verified — not against intent. For phase 1 of a
+project that deploys, that includes the rehearsed rollback the roadmap
+requires: a drill recorded in the runbook, with its date and outcome,
+or the phase does not exit.
 
 The phase-exit security pass runs before the phase can be marked
 complete. If build ran on a cheaper model, this is the moment to switch

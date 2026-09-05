@@ -22,9 +22,9 @@ to GitHub):
 Requirements:
 
 - Claude Code with plugins enabled.
-- Node.js >= 20 on `PATH`, used by the SessionStart and UserPromptSubmit hooks and by `scripts/checkpoint.mjs` / `scripts/lint-budgets.mjs`.
+- Node.js >= 20 on `PATH`, used by the SessionStart and UserPromptSubmit hooks, by `scripts/checkpoint.mjs`, `scripts/lessons.mjs` and `scripts/lint-budgets.mjs`, and by the guard hook acdev installs inside each project.
 
-Node is not strictly required: without it both hooks fail silently and acdev still works, but skills activate from their descriptions alone (degraded auto-activation) instead of from the gateway skill map injected at session start and the per-prompt routing line.
+Node is not strictly required: without it both hooks fail silently and acdev still works, but skills activate from their descriptions alone (degraded auto-activation) instead of from the gateway skill map injected at session start and the per-prompt routing line, and the project guard fails open.
 
 ## Quickstart
 
@@ -32,19 +32,20 @@ Node is not strictly required: without it both hooks fail silently and acdev sti
 - Existing repo, adopting acdev on top of it: `/acdev:onboard`
 - Resuming work on any acdev project: `/acdev:status`
 
-Pipeline map (five stages, each gated before the next starts):
+Pipeline map (five stages to production, each gated before the next starts, plus the operate loop that runs after every deploy):
 
 | Stage | Artifact | Gate |
 |---|---|---|
 | 1. VISION | `docs/VISION.md`, conversed section by section | HARD: explicit user approval of the full document |
 | 2. MVP | `docs/MVP.md` — what is in, what is out, verifiable success criteria | HARD: explicit user approval |
 | 3. Mockups | Every MVP screen (including empty/error/loading states) + post-MVP skeleton inventory | Approved mockups freeze the visual contract |
-| 4. Blueprint | Normative docs, ADRs, spikes for unproven dependencies, AI context system, repo mechanics | User reviews the full documentation package |
-| 5. Build | The MVP by vertical slices; post-MVP phases get mockups + spec just-in-time | Explicit order to start building; per-slice/per-phase gates |
+| 4. Blueprint | Normative docs, ADRs, spikes for unproven dependencies, AI context system, `docs/RUNBOOK.md`, repo mechanics, the guard configured | User reviews the full documentation package |
+| 5. Build | The MVP by vertical slices (slice 1 deploys and rolls back); post-MVP phases get mockups + spec just-in-time | Explicit order to start building; per-slice/per-phase gates; `git commit` needs a green verification receipt |
+| 6. Operate | Canary after each deploy against the runbook bands; incidents as specs in `docs/plans/` closing as mini-slices; repeated mistakes promoted into `CLAUDE.md` | Rollback before diagnosis on red; no fix without an incident spec |
 
-Zero product code is written before stage 5.
+Zero product code is written before stage 5. Inside a project that rule, the frozen documents, the frozen test under a fix and the red-check-blocks-close rule are enforced by a hook, not by memory (see Governance as code below).
 
-## The 21 skills
+## The 22 skills
 
 **Gateway** — printed in full into context by the SessionStart hook:
 
@@ -62,6 +63,7 @@ Zero product code is written before stage 5.
 | `onboard` | Use when adopting an existing repo into acdev: build a truthful situation map of what exists and what is missing, with declared gaps, then propose adopting the pipeline. |
 | `build` | Use when constructing an approved project: vertical slices end to end, just-in-time spec and plan per slice, TDD loop, decision classification, narrow subagents per layer. |
 | `ship` | Use when closing a slice or phase: run full verification in green, check docs drift, write a checkpoint, commit or PR, and update the ROADMAP. |
+| `operate` | Use after a deploy lands or on any production incident: run the release canary against the RUNBOOK bands, roll back on red before diagnosing, turn the incident into a spec that closes as a mini-slice, and rescan security after a release. |
 | `status` | Use when resuming work or asking where the project stands: read state, latest checkpoint, current ROADMAP phase and open plans for about 2k tokens; can also write a manual checkpoint. |
 
 **Process** (auto-activated on matching work):
@@ -87,16 +89,37 @@ Zero product code is written before stage 5.
 | `layer-delivery` | Use when working on hosting, deployment or environments: deploy with rollback, health checks, config and secrets per environment, minimal observability. |
 | `layer-cicd` | Use when setting up or changing CI/CD or repo workflow: lint, typecheck, test and build pipeline, branch protection, conventional commits, releases. |
 
+## Governance as code
+
+The playbooks and harnesses that shaped acdev's 2026 revision agree on one thing: a hard rule that lives only in prose is a suggestion. acdev keeps its rules short in the skills and enforces them with three deterministic pieces installed inside each project, versioned with it, and usable by any agent that runs there.
+
+**The guard** (`.claude/hooks/acdev-guard.mjs`, from `shared/references/templates/guard-hook.mjs`, wired as a `PreToolUse` hook in the project's `.claude/settings.json`; `new-project` installs it at intake, `onboard` proposes it, `blueprint` completes its configuration in `.acdev/guard.json`):
+
+| Rule | Decision | Enforced how |
+|---|---|---|
+| Zero product code before build | deny | Writes outside docs, mockups, spikes and repo mechanics are denied while `.acdev/state.md` is at a stage before `build`; the allowed set grows with the stage, and the pipeline advances the stage only at its gates |
+| Approved documents stay approved | ask | `docs/VISION.md`, `docs/MVP.md`, `mockups/` and `docs/adr/` ask before an edit once their gate has closed (the drift rule made explicit) |
+| The failing test is the spec of the fix | deny | `debugging` freezes the test (`freeze <glob> --reason`); edits to frozen paths are denied until `ship` clears the freeze |
+| A red check blocks the close | deny | In build, `git commit` is denied without a receipt from `node .claude/hooks/acdev-guard.mjs verify`: the configured checks ran green on the current code tree; docs and `.acdev/` bookkeeping never stale it, code edits do |
+| Secrets and destructive commands | ask | `.env*` (examples exempt), `*.pem`, `*.key`; force push, `reset --hard`, `clean -f`, discard-all checkouts, `rm -f`, `DROP`/`TRUNCATE` |
+| The guard itself | ask | The hook, its config and `.claude/settings.json` |
+
+Bash write targets (redirections, `tee`, `cp`, `mv`, `touch`, `sed -i`) go through the same path policy as Edit and Write. The hook fails open on any internal error and can be switched off with `"enabled": false` or `ACDEV_GUARD=off`; the model-side rule in the gateway closes what a parser cannot: a guard denial is a gate, never an obstacle to route around. `tests/guard-hook.test.mjs` exercises every rule.
+
+**The lessons ratchet** (`scripts/lessons.mjs`, ledger in `.acdev/lessons.md`): a mistake the agent makes once is a candidate; the second occurrence promotes it, by script, into the `## Lessons` section of the project's `CLAUDE.md` (mirrored to `AGENTS.md` when the project keeps one). `ship` runs it at every close, `debugging` and `operate` feed it, and a promoted lesson that can be checked mechanically becomes a test or a `scripts/verify/` probe in the same commit. Nobody hand-edits the section; past twelve promoted lessons the script asks for consolidation so the router stays under one page.
+
+**The operate loop** (`operate` skill, `docs/RUNBOOK.md`, `scripts/verify/canary.mjs`): after every deploy the canary checks health, smoke paths and p95 against the runbook's numeric bands; a red canary rolls back before anyone diagnoses; every incident becomes a spec in `docs/plans/` before any fix is coded, then closes as a mini-slice through `ship` with a lesson and a mechanical check; phase 1 of any deploying project does not exit until the rollback was rehearsed once.
+
 ## Token cost ledger
 
-Every session pays a fixed cost, regardless of which skills get used: the 19 model-invocable `description:` frontmatter lines (needed for auto-activation; `new-project` and `onboard` are user-run entry points whose descriptions never load) plus the `using-acdev` gateway body, which the SessionStart hook prints into context (frontmatter stripped) together with a one-line `acdev plugin root:` path.
+Every session pays a fixed cost, regardless of which skills get used: the 20 model-invocable `description:` frontmatter lines (needed for auto-activation; `new-project` and `onboard` are user-run entry points whose descriptions never load) plus the `using-acdev` gateway body, which the SessionStart hook prints into context (frontmatter stripped) together with a one-line `acdev plugin root:` path.
 
 Measured directly from the repository, not estimated:
 
-- Sum of the 19 model-invocable `description:` values: **2,768 characters**.
-- `using-acdev` gateway body as injected by the hook (frontmatter stripped): **1,448 characters**, plus the one-line plugin-root path (varies with the install location).
-- Total fixed cost: **4,216 characters**.
-- Approximated at 4 characters/token (the same ratio `lint-budgets.mjs` uses): **~1,054 tokens/session**.
+- Sum of the 20 model-invocable `description:` values: **3,005 characters**.
+- `using-acdev` gateway body as injected by the hook (frontmatter stripped): **1,487 characters**, plus the one-line plugin-root path (varies with the install location).
+- Total fixed cost: **4,492 characters**.
+- Approximated at 4 characters/token (the same ratio `lint-budgets.mjs` uses): **~1,123 tokens/session**.
 
 Inside a project with `.acdev/state.md`, the `UserPromptSubmit` hook additionally injects one routing line per prompt (current stage, skill precedence, disambiguation rule — about 60 tokens); outside acdev projects it injects nothing.
 
@@ -106,7 +129,7 @@ What is **not** loaded at session start, and only enters context on demand:
 
 - Skill bodies (the instructions under each `SKILL.md`'s frontmatter) — loaded only when that skill activates.
 - `references/` material inside any skill — loaded only when the skill body points to it.
-- `scripts/checkpoint.mjs` and `scripts/lint-budgets.mjs` — run as external processes, their source is never read into context.
+- `scripts/checkpoint.mjs`, `scripts/lessons.mjs`, `scripts/lint-budgets.mjs` and the project guard — run as external processes, their source is never read into context.
 
 Budgets enforced by `scripts/lint-budgets.mjs` (and checked in CI):
 
@@ -150,8 +173,9 @@ on-demand eval suites cover that:
 - `evals/gates.cases.json` — multiple-choice scenarios probing the hard
   rules one at a time (full-document VISION approval, red-check-blocks-close,
   continuous-build stop on user-challenge, drift fixed in the same commit,
-  the phase-exit security pass, ...), judged against the governing skill
-  body itself.
+  the phase-exit security pass, a guard denial never routed around,
+  rollback before root cause, incident spec before fix, ...), judged
+  against the governing skill body itself.
 
 Each case is one `claude -p` call (default model: haiku), so the suites
 cost real money and run on demand — never in CI. A single-sample judge is

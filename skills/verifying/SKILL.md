@@ -18,7 +18,12 @@ budget is on the noise, not on whether the evidence is shown.
 Every claim maps to evidence. "Tests pass" requires the passing run from
 **this session**, taken **after the last edit** — a green run from before
 the last change, or from memory, proves nothing about the code as it
-stands now.
+stands now. In a project with the guard, `node
+.claude/hooks/acdev-guard.mjs verify` is the run: it executes the
+configured checks, streams their output, and records a receipt bound to
+the code tree, so that a commit after a later edit is denied as stale by
+the hook rather than waved through by memory. The output it streams is
+the evidence to paste.
 
 ## Partial is partial
 

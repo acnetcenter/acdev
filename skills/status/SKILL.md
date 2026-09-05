@@ -39,7 +39,9 @@ From those sources, report:
 - **Next step** — from the latest checkpoint's `next_step` field.
 - **Blockers** — from `blocked_on`, if not `null`.
 - **Open plans** — the `status: active` file names from `docs/plans/`,
-  including user-requested changes not yet shipped.
+  including user-requested changes not yet shipped. Files named
+  `*-incident-*` are listed first: an open incident outranks any planned
+  slice, and the `operate` skill owns it.
 - **Phase progress** — which slices/exit criteria in the current ROADMAP
   phase are done versus outstanding, read from that phase section only.
 

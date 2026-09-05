@@ -103,6 +103,19 @@ Once confirmed, propose the adoption plan:
   pipeline stage the project should resume at (per the adoption plan just
   agreed) — one of `intake`, `vision`, `mvp`, `mockups`, `blueprint`,
   `build` — and `--next` to the concrete next action.
+- **The guard.** Install it per `shared/references/guard-install.md`,
+  with `verify` in `.acdev/guard.json` set to the checks the repo already
+  runs (its test command, lint, typecheck, per the situation map's Tests
+  and CI section). From then on a commit needs a green receipt, approved
+  docs ask before edits, and destructive commands ask. Show the user
+  what it will enforce before installing; an adopted repo may have
+  conventions (a generated directory, a vendored tree) that belong in
+  `allow_before_build` or `receipt_ignore`.
+- **`docs/RUNBOOK.md`, if the project deploys** and has no equivalent:
+  written from `shared/references/templates/runbook.md` with what the
+  situation map found (URLs, deploy path, whatever rollback exists) and
+  declared gaps for the rest. An existing runbook or ops doc is read
+  as-is and referenced, never rewritten.
 
 Hand off to whichever skill matches that resume stage — `blueprint` if
 VISION/MVP already exist or were just written and only the normative

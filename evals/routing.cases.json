@@ -292,6 +292,18 @@
       "prompt": "No sé si esto es cosa de diseñarlo primero o de ponerse a construirlo ya: añade la función de cálculo de descuentos al módulo de precios.",
       "expect": "OFFER",
       "why": "The user states the doubt themselves between two skill domains (designing vs build/tdd) — the gateway's in-doubt rule demands offering the commands. Strict: no accept. Instability here is a finding about the offer rule's weight in the gateway, not case noise."
+    },
+    {
+      "id": "route-operate-release-check",
+      "prompt": "The deploy just landed on production. Run the release check before we call it done.",
+      "expect": "operate",
+      "why": "The post-deploy canary is the operate skill."
+    },
+    {
+      "id": "route-operate-incident-es",
+      "prompt": "Producción está caída desde el despliegue de hace diez minutos; los usuarios no pueden entrar.",
+      "expect": "operate",
+      "why": "A production incident after a release routes to operate (rollback first), not to debugging or the delivery layer."
     }
   ]
 }

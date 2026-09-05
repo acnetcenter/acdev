@@ -305,3 +305,21 @@ All open questions were resolved during the design conversation with the user:
   releases had become mostly wording changes to descriptions and gates,
   exactly the surface these suites verify: the value stopped being
   speculative.
+- 2026-09-05 (governance-as-code pack, see
+  `docs/plans/2026-09-05-governance-lessons-operate.md`): three additions
+  after comparing acdev with Anthropic's AI-Native SDLC Playbook and the
+  2026 harness field. (1) The hard rules section 6 states in prose are
+  now also enforced by a PreToolUse guard installed inside each project
+  (`shared/references/templates/guard-hook.mjs`, configured by
+  `.acdev/guard.json`, stage read from `.acdev/state.md`, which every
+  pipeline stage now writes at its gate); section 8's principle
+  "deterministic work goes to scripts" applies to enforcement, not only
+  to bookkeeping. (2) A lessons ratchet (`scripts/lessons.mjs`) promotes
+  a mistake's second occurrence into the router's `## Lessons` section,
+  which the router template (section 7) now carries. (3) The pipeline
+  gains a post-deploy loop: skill 22, `operate`, plus `docs/RUNBOOK.md`
+  in the catalog, a canary probe and an incident spec that reuses the
+  mini-slice path; section 6's table ends at build, and the operate loop
+  is the stage after it. Section 3's fixed-cost refusal still holds: the
+  guard, the ledger and the canary run as external processes at zero
+  context cost; the only per-session addition is one description.

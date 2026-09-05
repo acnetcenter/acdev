@@ -93,6 +93,12 @@ animation and micro-interactions — is illustrative: `build` decides those
 as taste-class decisions recorded in its audit table, without reopening
 this gate. Reopening applies to normative changes only.
 
+On approval, advance the pipeline state (`node
+"<plugin-root>/scripts/checkpoint.mjs" write --stage blueprint --branch
+<branch> --next "blueprint: normative docs, ADRs, repo mechanics"`) and
+commit. The guard reads that state: from here it asks before any file
+under `mockups/` is edited, which is the freeze made deterministic.
+
 Post-MVP phases do not get mockups now. Each phase gets its mockups
 just-in-time during `build`, phase by phase, by returning to this same
 skill when that phase starts.

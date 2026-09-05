@@ -23,7 +23,19 @@ from `docs/MVP.md`; later phases come from VISION §7's phase sketch. Every
 phase, including phase 1, gets verifiable exit criteria (facts that can be
 checked, not wishes) and, where relevant, external lead times (API
 approvals, compliance reviews, hardware procurement) that affect
-scheduling regardless of engineering effort.
+scheduling regardless of engineering effort. For any project that
+deploys, phase 1's exit criteria always include one more fact: the
+rollback was rehearsed once (version N-1 deployed over a broken N,
+service restored, drill recorded in the runbook). A pipeline that has
+only ever gone forward is untested where it matters most.
+
+`docs/RUNBOOK.md`, for any project that deploys somewhere users reach,
+is written from `shared/references/templates/runbook.md`: service map,
+deploy path, the exact rollback command, numeric control bands derived
+from the phase budgets, the canary's inputs, alerts and escalation. It is
+what `operate` reads after every deploy and on every incident; a band
+left as prose ("acceptable latency") is a placeholder and fails the
+no-placeholder rule.
 
 `docs/UI-DESIGN.md`, when applicable, derives its tokens and component
 inventory from the approved mockups' `styles.css` — colors, spacing,
@@ -90,6 +102,12 @@ If multi-AI was chosen at intake (stage 0 of `new-project`), mirror the
 same content to `AGENTS.md`. Both files must stay in sync and both stay
 under one page — this is a router to context, not the context itself.
 
+The router's `## Lessons` section starts empty. It is owned by
+`scripts/lessons.mjs` from then on: `ship` and `operate` promote a
+mistake into a rule there on its second occurrence, mirrored to
+`AGENTS.md` automatically. Nobody hand-writes lessons into the router,
+at blueprint or later.
+
 ## Repo mechanics
 
 Produce the mechanical scaffolding the project needs before build starts:
@@ -109,6 +127,21 @@ Produce the mechanical scaffolding the project needs before build starts:
   (mechanical scan for transition: all, lone ease-in, scale(0), gradient
   text, over-budget durations, raw hex outside the token file); copy it
   in and adjust its targets.
+- `scripts/verify/canary.mjs` from
+  `shared/references/templates/canary-stub.mjs`, for any project that
+  deploys: the post-deploy release check `operate` runs (health, smoke
+  paths, p95 against the runbook band, error rate when the platform
+  exposes it). Adjust its checks to `docs/RUNBOOK.md`; the runbook's
+  Canary section documents the variables it reads.
+- The guard, completed. `new-project` installed it at intake (or install
+  it now per `shared/references/guard-install.md` if this project came
+  through `onboard` without one). Fill `verify` in `.acdev/guard.json`
+  with the commands a close must pass, in order: the `scripts/verify/`
+  runner and the test command (lint and typecheck when the stack has
+  them). From the first build slice, `git commit` is denied unless
+  `node .claude/hooks/acdev-guard.mjs verify` recorded a green run on the
+  current code tree; that is the red-check-blocks-close rule, enforced.
+  Paste `node .claude/hooks/acdev-guard.mjs status` as evidence.
 
 ## Adversarial design review (optional)
 
@@ -134,8 +167,15 @@ place. Once accepted, commit:
 docs: full project blueprint and ai context system
 ```
 
+Advance the pipeline state in the same close (`node
+"<plugin-root>/scripts/checkpoint.mjs" write --stage build --branch
+<branch> --next "await the user's order to start slice 1"`). Only this
+write unlocks product code in the guard; until it happens, any write
+outside docs, mockups, spikes and repo mechanics is denied by the hook.
+
 Next step: the `build` skill. It starts ONLY on the user's explicit order
-— finishing this gate is not itself the order to build.
+— finishing this gate is not itself the order to build; the state write
+above is not that order either.
 
 **Model switch point and continuous-build offer.** When closing this
 gate, advise the user: the thinking-heavy stages are done — everything
