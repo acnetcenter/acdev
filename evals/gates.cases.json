@@ -81,7 +81,7 @@
     },
     {
       "id": "gate-continuous-user-challenge",
-      "context": ["skills/build/SKILL.md", "shared/references/decision-classification.md"],
+      "context": ["skills/build/SKILL.md", "skills/build/references/continuous.md", "shared/references/decision-classification.md"],
       "scenario": "Mid continuous-build run, slice 4's plan raises the question whether money paid for a cancelled booking goes back to the original card or becomes account credit.",
       "options": {
         "A": "Choose back-to-original-card, the industry default, log the choice, and keep the run going.",
@@ -172,7 +172,7 @@
     },
     {
       "id": "gate-phase-exit-security",
-      "context": ["skills/ship/SKILL.md"],
+      "context": ["skills/ship/SKILL.md", "skills/ship/references/phase-exit.md"],
       "scenario": "The last slice of the MVP phase just closed green.",
       "options": {
         "A": "Mark the phase complete now: the last slice's own verification and close already satisfy everything a phase exit needs.",

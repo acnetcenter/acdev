@@ -323,3 +323,21 @@ All open questions were resolved during the design conversation with the user:
   is the stage after it. Section 3's fixed-cost refusal still holds: the
   guard, the ledger and the canary run as external processes at zero
   context cost; the only per-session addition is one description.
+- 2026-09-06 (cost-first pack, see `docs/plans/2026-09-06-cost-first.md`):
+  section 8's token economy was about the fixed cost per session; an
+  agent's bill is turns times context times model price plus output, so
+  the pipeline's procedures moved out of skill bodies into a command line
+  (`scripts/acdev.mjs`) and a step dispenser (`scripts/steps/*.md`, one
+  file per situation, printed by `next`). `build`, `ship` and `operate`
+  keep only their invariant rules; the slice close is two commands
+  (`close --check`, `close`) that verify first and refuse on red;
+  command output enters the context as verdict lines (`q`, the guard's
+  `verify`); subagents get a filtered context pack (`pack`, tags from
+  `.acdev/profile.json`) and return a report, with the model chosen by
+  who judges the result; the mockups freeze includes a per-screen spec
+  (`mockups/SPEC.md`) build reads instead of the pages; every normative
+  document has a reader and a cap, INTEGRATIONS folded into ADRs;
+  continuous build can run as one fresh headless session per slice
+  (`run`) with a cost ledger (`cost`) and a budget eval suite. Section 8's
+  budgets tightened (body 8,000 characters, step 1,500) and the
+  per-prompt hook line carries only the stage and the `next` command.

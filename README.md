@@ -2,7 +2,7 @@
 
 [![ci](https://github.com/acnetcenter/acdev/actions/workflows/ci.yml/badge.svg)](https://github.com/acnetcenter/acdev/actions/workflows/ci.yml)
 
-acdev is a Claude Code plugin that takes a software project from idea to production — or adopts an existing one — and keeps it running afterwards, through a gated, documentation-first, token-disciplined pipeline. It is built for one developer or a small team shipping a real product: the product is defined and approved before any code exists, every production layer is covered by a checklist parameterized by the project's own decisions, the hard rules are enforced by a hook inside the repo rather than by the model's memory, and the whole plugin costs about 1.1k tokens per session.
+acdev is a Claude Code plugin that takes a software project from idea to production — or adopts an existing one — and keeps it running afterwards, through a gated, documentation-first, token-disciplined pipeline. It is built for one developer or a small team shipping a real product: the product is defined and approved before any code exists, every production layer is covered by a checklist parameterized by the project's own decisions, the hard rules are enforced by a hook inside the repo rather than by the model's memory, the pipeline's procedures run as commands rather than prose (one prints the step that applies now, one packs the context a slice needs, one closes a slice), and the whole plugin costs about 1.1k tokens per session.
 
 ## Why acdev
 
@@ -11,7 +11,8 @@ acdev is a Claude Code plugin that takes a software project from idea to product
 - **Production knowledge per layer, not per technology.** Frontend, API, data, auth, security, performance, delivery and CI/CD each carry a stack-agnostic checklist in goal + verify form, with the project's own `scripts/verify/` probes as evidence. Narrow subagents receive only the layer they are building.
 - **Governance as code.** A PreToolUse guard installed in each project enforces the stage ladder, the frozen documents, the frozen test under a fix, secrets, destructive commands, and a `git commit` that needs a green verification receipt. Repeated mistakes are promoted into the project's `CLAUDE.md` by script, and every incident becomes a spec before a fix.
 - **Git is the memory.** Pipeline state, checkpoints, the lessons ledger and the guard config travel with the repo. Resuming a project costs about 2k tokens, never a re-scan.
-- **Token discipline that is measured, not hoped for.** Every fixed cost is recomputed from the tree by a lint that fails CI when this README goes stale; skill descriptions, bodies and the gateway have hard budgets, and overlapping trigger vocabularies between skills fail the lint before they collide in a session.
+- **Token discipline that is measured, not hoped for.** Every fixed cost is recomputed from the tree by a lint that fails CI when this README goes stale; skill descriptions, bodies, step files and the gateway have hard budgets, and overlapping trigger vocabularies between skills fail the lint before they collide in a session.
+- **Fewer turns, smaller contexts, cheaper models.** The pipeline's procedures are commands (`next`, `pack`, `q`, `close`, `run`): a slice close is two tool calls instead of ten, command output enters the context as verdict lines instead of logs, subagents receive a filtered context pack instead of documents, the model is chosen by who judges the result (a test or the guard: the cheapest tier; judgment: the capable one), and continuous build can run as one fresh headless session per slice with its cost recorded per slice and checked by a budget eval.
 - **The plugin verifies itself.** A unit suite covers the scripts and the guard, the lint covers structure and drift, and two on-demand eval suites check that prompts route to the right skill and that every hard rule forces the required decision.
 - **Only the delta over native Claude Code.** Plan mode, subagents, worktrees, `/code-review`, `/security-review` and `/rewind` are referenced where they belong and never re-taught.
 
@@ -54,9 +55,9 @@ Pipeline map (five stages to production, each gated before the next starts, plus
 |---|---|---|
 | 1. VISION | `docs/VISION.md`, conversed section by section | HARD: explicit user approval of the full document |
 | 2. MVP | `docs/MVP.md` — what is in, what is out, verifiable success criteria | HARD: explicit user approval |
-| 3. Mockups | Every MVP screen (including empty/error/loading states) + post-MVP skeleton inventory | Approved mockups freeze the visual contract |
-| 4. Blueprint | Normative docs, ADRs, spikes for unproven dependencies, AI context system, `docs/RUNBOOK.md`, repo mechanics, the guard configured | User reviews the full documentation package |
-| 5. Build | The MVP by vertical slices (slice 1 deploys and rolls back); post-MVP phases get mockups + spec just-in-time | Explicit order to start building; per-slice/per-phase gates; `git commit` needs a green verification receipt |
+| 3. Mockups | Every MVP screen (including empty/error/loading states) + `mockups/SPEC.md`, the per-screen spec build reads + post-MVP skeleton inventory | Approved mockups freeze the visual contract |
+| 4. Blueprint | Normative docs (each with a reader and a size cap), ADRs, spikes for unproven dependencies, `.acdev/profile.json`, AI context system, `docs/RUNBOOK.md`, repo mechanics, the guard configured | User reviews the full documentation package |
+| 5. Build | The MVP by vertical slices (slice 1 deploys and rolls back), one step at a time from `next`; post-MVP phases get mockups + spec just-in-time | Explicit order to start building; per-slice/per-phase gates; `close` verifies first and `git commit` needs a green verification receipt |
 | 6. Operate | Canary after each deploy against the runbook bands; incidents as specs in `docs/plans/` closing as mini-slices; repeated mistakes promoted into `CLAUDE.md` | Rollback before diagnosis on red; no fix without an incident spec |
 
 Zero product code is written before stage 5. Inside a project, that rule, the frozen documents, the frozen test under a fix and the red-check-blocks-close rule are enforced by a hook, not by memory (see Governance as code below).
@@ -77,12 +78,15 @@ project/
 │   ├── plans/                 # dated specs: slices, user-requested changes, incidents
 │   └── README.md              # the docs index, kept current by ship
 ├── mockups/                   # stage 3: the frozen visual contract
+│   └── SPEC.md                # per-screen spec extracted from the pages; build reads this
 ├── spikes/                    # disposable experiments, never merged into product code
 ├── scripts/verify/            # one runnable probe per layer, plus canary.mjs
 ├── .acdev/
 │   ├── state.md               # pipeline stage; the guard reads it
 │   ├── checkpoints/           # resume points written at every close
 │   ├── lessons.md             # the lessons ledger
+│   ├── profile.json           # what the project has; filters the layer checklists
+│   ├── cost.jsonl             # cost per headless slice (gitignored)
 │   └── guard.json             # what the guard enforces in this repo
 ├── .claude/hooks/acdev-guard.mjs   # the guard, wired in .claude/settings.json
 ├── CLAUDE.md                  # one-page router: golden rules, stack, lessons
@@ -156,10 +160,10 @@ Bash write targets (redirections, `tee`, `cp`, `mv`, `touch`, `sed -i`) go throu
 Day to day, the skills run four commands against it:
 
 ```
-node .claude/hooks/acdev-guard.mjs verify                       # run the configured checks, record the receipt (ship)
+node .claude/hooks/acdev-guard.mjs verify [--full]              # run the configured checks, print their verdict lines, record the receipt (close runs it)
 node .claude/hooks/acdev-guard.mjs status                       # stage, freeze, verify commands, receipt state
 node .claude/hooks/acdev-guard.mjs freeze tests/login.test.ts --reason "bug 42"   # debugging, before touching the code under a failing test
-node .claude/hooks/acdev-guard.mjs unfreeze                     # ship, at the close
+node .claude/hooks/acdev-guard.mjs unfreeze                     # cleared by close
 ```
 
 Per-repo policy lives in `.acdev/guard.json`: the `verify` commands, extra paths allowed before build (a generated directory, a vendored tree), extra protected documents, and paths the receipt ignores.
@@ -168,6 +172,27 @@ Per-repo policy lives in `.acdev/guard.json`: the `verify` commands, extra paths
 
 **The operate loop** (`operate` skill, `docs/RUNBOOK.md`, `scripts/verify/canary.mjs`): after every deploy the canary checks health, smoke paths and p95 against the runbook's numeric bands; a red canary rolls back before anyone diagnoses, unless the runbook's own unsafe-when clause applies and the user chooses the roll-forward path; every incident becomes a spec in `docs/plans/` before any fix is coded, then closes as a mini-slice through `ship` with a lesson and a mechanical check; each production release gets a security rescan; phase 1 of any deploying project does not exit until the rollback was rehearsed once.
 
+## The command line
+
+The pipeline's procedures are commands, so a procedure costs the model one or two tool calls instead of a chain read out of a skill body, and its output enters the context already condensed. All of them run from the project, with `<plugin-root>` the path the SessionStart hook prints:
+
+```
+node "<plugin-root>/scripts/acdev.mjs" next [--change "topic"]          # the one pipeline step that applies now (~300 tokens), from scripts/steps/
+node "<plugin-root>/scripts/acdev.mjs" pack --screens a.html --layers api,data   # ADR decision lines, current phase, checkpoint, spec entries, filtered checklists (~2k tokens)
+node "<plugin-root>/scripts/acdev.mjs" checklist --layers api [--pitfalls]      # a layer checklist filtered by .acdev/profile.json
+node "<plugin-root>/scripts/acdev.mjs" q -- npm test                              # any command: verdict lines on green, failure lines plus a tail on red
+node "<plugin-root>/scripts/acdev.mjs" drift                                      # docs that mention the files changed since HEAD
+node "<plugin-root>/scripts/acdev.mjs" close --check --plan <plan>                # what the close needs: drift, changelog, plan, index, freeze, lessons
+node "<plugin-root>/scripts/acdev.mjs" close --slice "3: name" --plan <plan> --next "..." --changelog "..."   # verify, changelog, plan flip, checkpoint, one commit; refuses on red
+node "<plugin-root>/scripts/acdev.mjs" mockup-spec --write                        # mockups/SPEC.md from the pages; intents written by hand at the freeze
+node "<plugin-root>/scripts/acdev.mjs" run --max-slices 10 [--model sonnet]       # continuous build: one fresh headless session per slice, cost per slice in .acdev/cost.jsonl
+node "<plugin-root>/scripts/acdev.mjs" cost                                       # the ledger, per run and per closed slice
+node "<plugin-root>/scripts/acdev.mjs" checkpoint read | write ...                # scripts/checkpoint.mjs
+node "<plugin-root>/scripts/acdev.mjs" lessons list | add ...                     # scripts/lessons.mjs
+```
+
+`next` reads `.acdev/state.md`, the latest checkpoint, the open plans and the working tree, and prints one of twelve step files (no project, a pre-build stage, plan a slice, construct and close, blocked, an open incident, the phase exit, a user-requested change). `build`, `ship` and `operate` keep only the rules that never change; the procedure lives in those step files, each under 1,500 characters and lint-checked. `tests/` covers every command against throwaway git projects and a fake `claude`.
+
 ## Token cost ledger
 
 Every session pays a fixed cost, regardless of which skills get used: the 20 model-invocable `description:` frontmatter lines (needed for auto-activation; `new-project` and `onboard` are user-run entry points whose descriptions never load) plus the `using-acdev` gateway body, which the SessionStart hook prints into context (frontmatter stripped) together with a one-line `acdev plugin root:` path.
@@ -175,26 +200,28 @@ Every session pays a fixed cost, regardless of which skills get used: the 20 mod
 Measured directly from the repository, not estimated:
 
 - Sum of the 20 model-invocable `description:` values: **3,005 characters**.
-- `using-acdev` gateway body as injected by the hook (frontmatter stripped): **1,487 characters**, plus the one-line plugin-root path (varies with the install location).
-- Total fixed cost: **4,492 characters**.
-- Approximated at 4 characters/token (the same ratio `lint-budgets.mjs` uses): **~1,123 tokens/session**.
+- `using-acdev` gateway body as injected by the hook (frontmatter stripped): **1,491 characters**, plus the one-line plugin-root path (varies with the install location).
+- Total fixed cost: **4,496 characters**.
+- Approximated at 4 characters/token (the same ratio `lint-budgets.mjs` uses): **~1,124 tokens/session**.
 
-Inside a project with `.acdev/state.md`, the `UserPromptSubmit` hook additionally injects one routing line per prompt (current stage, skill precedence, disambiguation rule — about 60 tokens); outside acdev projects it injects nothing.
+Inside a project with `.acdev/state.md`, the `UserPromptSubmit` hook additionally injects one line per prompt (the stage and the `next` command, about 25 tokens); every injected line stays in the transcript, which is why it carries no rules. Outside acdev projects it injects nothing.
 
-That is the honest, measured number — well under the plan's original ~2.3k-token estimate, because in practice the descriptions run far shorter than the 400-character (~100-token) budget. `lint-budgets.mjs` recomputes every number in this ledger from the tree and fails CI when the ledger goes stale.
+The fixed cost is the small part of an agent's bill. The large parts are the number of turns (every tool call resends the whole context), the size of that context, and output tokens; the command line above exists to cut those three: two calls per close, a step of about 300 tokens instead of a skill body of 2,500, a 2k pack instead of documents, verdict lines instead of logs, a fresh session per slice in the headless loop. `.acdev/cost.jsonl` and the budget eval suite measure it per slice, so the claims here can be checked against numbers. `lint-budgets.mjs` recomputes every number in this ledger from the tree and fails CI when the ledger goes stale.
 
 What is **not** loaded at session start, and only enters context on demand:
 
-- Skill bodies (the instructions under each `SKILL.md`'s frontmatter) — loaded only when that skill activates.
+- Skill bodies (the instructions under each `SKILL.md`'s frontmatter) — loaded only when that skill activates; `build`, `ship` and `operate` are under 1k tokens each.
 - `references/` material inside any skill — loaded only when the skill body points to it.
-- `scripts/checkpoint.mjs`, `scripts/lessons.mjs`, `scripts/lint-budgets.mjs` and the project guard — run as external processes, their source is never read into context.
+- `scripts/steps/*.md` — one file per situation, printed by `next`, never more than one at a time.
+- `scripts/acdev.mjs`, `scripts/checkpoint.mjs`, `scripts/lessons.mjs`, `scripts/lint-budgets.mjs` and the project guard — run as external processes, their source is never read into context.
 
 Budgets enforced by `scripts/lint-budgets.mjs` (and checked in CI):
 
 | Budget | Limit |
 |---|---|
 | Skill `description` | <= 400 characters (~100 tokens) |
-| Skill body | < 500 lines and < 20,000 characters (~5k tokens) |
+| Skill body | < 250 lines and < 8,000 characters (~2k tokens) |
+| Step file (`scripts/steps/*.md`) | <= 1,500 characters (~375 tokens), one per situation the dispenser selects, no orphans |
 | Gateway file (`using-acdev/SKILL.md`, whole file) | <= 1,600 characters (~400 tokens) |
 
 Beyond budgets, the lint also rejects emojis in every markdown file under `skills/` and `shared/`, fails when two model-invocable descriptions share enough trigger vocabulary to collide at activation time, fails when the block the eight layer skills repeat by design diverges between them, verifies that `plugin.json`, `marketplace.json` and `package.json` parse and agree on version and description, and checks the skill tables and token ledger in this README against the actual frontmatter — doc drift about the plugin fails its CI the same way doc drift about a project fails a slice.
@@ -234,16 +261,25 @@ on-demand eval suites cover that:
   the phase-exit security pass, a guard denial never routed around,
   rollback before root cause, incident spec before fix, ...), judged
   against the governing skill body itself.
+- `evals/budget.cases.json` — fixed scenarios run as whole headless
+  sessions inside `evals/fixtures/budget-project` and checked against a
+  token budget: total tokens processed (cache reads included, because
+  every turn re-reads the context), fresh tokens, turns and cost. Budgets
+  are ceilings calibrated on the first green run and tightened as the
+  plugin gets cheaper; a case that starts failing is a regression in
+  turns or context. Always explicit: `--suite budget`.
 
-Each case is one `claude -p` call (default model: haiku), so the suites
-cost real money and run on demand — never in CI. A single-sample judge is
+Each routing or gate case is one `claude -p` call (default model: haiku),
+and each budget case one whole session, so the suites cost real money
+and run on demand — never in CI. A single-sample judge is
 noisy, so a failing answer is retried once (`--retries`) before the case
 counts as failed; a pass on retry is printed as a flake signal, and a case
 that fails twice in a row is a real finding:
 
 ```
-npm run evals                     # both suites
+npm run evals                     # routing and gates
 npm run evals -- --suite routing --filter layer
+npm run evals -- --suite budget   # whole headless sessions against their token budgets
 npm run evals -- --dry-run        # print the constructed prompts, no calls
 ```
 

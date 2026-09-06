@@ -19,6 +19,13 @@ process.stdin.on('end', () => {
     console.error('fake judge failure');
     process.exit(Number(process.env.ACDEV_FAKE_EXIT));
   }
+  if (process.env.ACDEV_FAKE_JSON) {
+    // Budget suite: a headless-style result, preceded by a banner line the
+    // parser must skip.
+    console.log('banner');
+    console.log(process.env.ACDEV_FAKE_JSON);
+    return;
+  }
   const seq = process.env.ACDEV_FAKE_SEQ;
   const state = process.env.ACDEV_FAKE_STATE;
   if (seq && state) {

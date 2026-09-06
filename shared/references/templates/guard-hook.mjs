@@ -15,7 +15,9 @@
 // permissionDecision (allow is silent) and exits 0. Fail-open: any internal
 // error allows the call and leaves a trace on stderr, so a broken guard can
 // never take the session down with it.
-// CLI mode: verify | status | freeze <glob...> [--reason T] | unfreeze
+// CLI mode: verify [--full] | status | freeze <glob...> [--reason T] | unfreeze
+// verify prints each command's verdict lines (the whole log only on red or
+// with --full) and records the receipt.
 // Off switch: ACDEV_GUARD=off, or "enabled": false in .acdev/guard.json.
 import { readFileSync, writeFileSync, existsSync, statSync, unlinkSync } from 'node:fs';
 import { join, resolve, relative, dirname, isAbsolute } from 'node:path';
@@ -257,7 +259,22 @@ async function hook() {
   }) + '\n');
 }
 
-function verify(cfg) {
+// What a verify run puts in front of the agent: the verdict lines a runner
+// ends with plus a short tail on green; the failure lines and a longer tail
+// on red; everything with --full. The log never enters the context whole.
+const SUMMARY_RE = /\b\d+\s+(passed|passing|failed|failing|pending|skipped|todo|problems?|errors?|warnings?|tests?|specs?|examples?)\b|^#\s+(tests|pass|fail|suites|skipped|todo|cancelled)\s+\d+|\bTests?:|\bTest Files\b|\bTest Suites:|\btest result:|\bPassed!|\bFailed!|^ok\s+\S|^FAIL\b|^PASS\b|✖|\bDuration\b|\bTime:/i;
+const FAILURE_RE = /\b(fail|failed|failing|error|errors|exception|assert|assertion|expected|received|actual|not ok|panic|traceback|denied|cannot|unhandled)\b|✗|×|✖|^\s+at\s+\S+\s+\(/i;
+function condense(output, ok, full) {
+  // eslint-disable-next-line no-control-regex
+  const lines = output.replace(/\x1b\[[0-9;]*[A-Za-z]/g, '').replace(/\r\n?/g, '\n').split('\n').filter((l) => l.trim());
+  if (full) return lines.join('\n');
+  const seen = new Set();
+  const uniq = (arr) => arr.filter((l) => !seen.has(l.trim()) && seen.add(l.trim()));
+  if (ok) return uniq([...lines.filter((l) => SUMMARY_RE.test(l)).slice(-12), ...lines.slice(-3)]).join('\n');
+  return [...uniq(lines.filter((l) => FAILURE_RE.test(l)).slice(0, 40)), `--- tail (last ${Math.min(30, lines.length)} lines) ---`, ...lines.slice(-30)].join('\n');
+}
+
+function verify(cfg, full = false) {
   if (!cfg.verify.length) {
     console.error('acdev guard: no verify commands in .acdev/guard.json; nothing to run');
     process.exit(1);
@@ -272,7 +289,9 @@ function verify(cfg) {
   let failed = null;
   for (const cmd of cfg.verify) {
     console.log(`acdev guard: running ${cmd}`);
-    const r = spawnSync(cmd, { cwd: ROOT, shell: true, stdio: 'inherit' });
+    const r = spawnSync(cmd, { cwd: ROOT, shell: true, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 64 * 1024 * 1024 });
+    const out = condense(`${r.stdout ?? ''}\n${r.stderr ?? ''}${r.error ? `\nspawn error: ${r.error.message}` : ''}`, r.status === 0, full);
+    if (out) console.log(out);
     if (r.status !== 0) {
       failed = `${cmd} (exit ${r.status ?? 'signal'})`;
       break;
@@ -319,12 +338,12 @@ function unfreeze() {
 const [cmd, ...rest] = process.argv.slice(2);
 try {
   if (!cmd) await hook();
-  else if (cmd === 'verify') verify(loadConfig());
+  else if (cmd === 'verify') verify(loadConfig(), rest.includes('--full'));
   else if (cmd === 'status') status(loadConfig());
   else if (cmd === 'freeze') freeze(rest);
   else if (cmd === 'unfreeze') unfreeze();
   else {
-    console.error(`usage: node ${SELF} [verify|status|freeze <glob...> [--reason T]|unfreeze]`);
+    console.error(`usage: node ${SELF} [verify [--full]|status|freeze <glob...> [--reason T]|unfreeze]`);
     process.exit(1);
   }
 } catch (err) {

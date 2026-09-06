@@ -220,4 +220,29 @@ test('the real case files load and validate', () => {
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /routing: \d+ case\(s\), dry run only/);
   assert.match(r.stdout, /gates: \d+ case\(s\), dry run only/);
+  const b = run(['--dry-run', '--suite', 'budget']);
+  assert.equal(b.status, 0, b.stderr);
+  assert.match(b.stdout, /budget: \d+ case\(s\), dry run only/);
+  assert.match(b.stdout, /cwd: .*budget-project/);
+  assert.ok(!b.stdout.includes('<plugin-root>'), 'the plugin root is substituted into budget prompts');
+});
+
+test('budget suite checks the headless usage against the case budget', () => {
+  const usage = (over) => JSON.stringify({
+    type: 'result', is_error: false, num_turns: over ? 9 : 3, total_cost_usd: over ? 0.5 : 0.01,
+    usage: { input_tokens: over ? 4000 : 800, output_tokens: 200, cache_read_input_tokens: over ? 20000 : 1500, cache_creation_input_tokens: 300 }
+  });
+  const ok = run(['--suite', 'budget', '--cases-dir', fixtureCases, '--retries', '0'], { ACDEV_EVAL_CMD: fakeJudge, ACDEV_FAKE_JSON: usage(false) });
+  assert.equal(ok.status, 0, ok.stdout + ok.stderr);
+  assert.match(ok.stdout, /ok budget-fixture-next: 3 turns, 2800 total \/ 1300 fresh tokens, \$0\.010/);
+  assert.match(ok.stdout, /budget: 1\/1 passed/);
+  const over = run(['--suite', 'budget', '--cases-dir', fixtureCases, '--retries', '0'], { ACDEV_EVAL_CMD: fakeJudge, ACDEV_FAKE_JSON: usage(true) });
+  assert.equal(over.status, 1);
+  assert.match(over.stdout, /FAIL budget-fixture-next: total 24500 > 5000, fresh 4500 > 2000, turns 9 > 4, cost \$0\.500 > \$0\.05/);
+  const err = run(['--suite', 'budget', '--cases-dir', fixtureCases, '--retries', '0'], { ACDEV_EVAL_CMD: fakeJudge, ACDEV_FAKE_JSON: '{"is_error":true,"result":"boom"}' });
+  assert.equal(err.status, 1);
+  assert.match(err.stdout, /FAIL budget-fixture-next: session error: boom/);
+  const none = run(['--suite', 'budget', '--cases-dir', fixtureCases, '--retries', '0'], { ACDEV_EVAL_CMD: fakeJudge, ACDEV_FAKE_ANSWER: 'prose only' });
+  assert.equal(none.status, 1);
+  assert.match(none.stdout, /FAIL budget-fixture-next: no JSON result/);
 });

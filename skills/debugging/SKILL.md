@@ -11,9 +11,10 @@ in order, never skipped under time pressure.
 ## The sequence
 
 1. **Reproduce reliably.** A bug you cannot reproduce is not understood.
-   Capture the exact command and its exact output — not a paraphrase.
-   Intermittent failures still need a reliable trigger before step 3 means
-   anything.
+   Capture the exact command and its decisive output — not a paraphrase,
+   and not the whole log: `node "<plugin-root>/scripts/acdev.mjs" q --
+   <command>` keeps the failure lines and a tail. Intermittent failures
+   still need a reliable trigger before step 3 means anything.
 2. **Read the actual error**, not the assumed one. The stack trace, the
    failing assertion, the log line — the real text, in full, before any
    theory is formed about what it means.
@@ -39,13 +40,14 @@ in order, never skipped under time pressure.
 
    The failing test is the spec of the fix. A fix that needs the test
    changed is a spec change, which is the user's decision, not a fix;
-   the freeze makes that a denial instead of a temptation. `ship` clears
-   it at the close.
+   the freeze makes that a denial instead of a temptation. The close
+   (`acdev close`) clears it once verification is green.
 7. **One line: what was learned.** Record it with the lessons script
-   (`node "<plugin-root>/scripts/lessons.mjs" list`, then `add --id N` if
-   a candidate already matches the root cause, else `add "<lesson>"`;
-   `<plugin-root>` is the path printed as `acdev plugin root:` at session
-   start). Its second occurrence promotes it into `CLAUDE.md`. If the bug
+   (`node "<plugin-root>/scripts/acdev.mjs" lessons list`, then `add --id
+   N` if a candidate already matches the root cause, else `add
+   "<lesson>"`; `<plugin-root>` is the path printed as `acdev plugin
+   root:` at session start). Its second occurrence promotes it into
+   `CLAUDE.md`. If the bug
    exposed a lasting trap — a wrong assumption baked into an ADR, a layer
    behaving unexpectedly — write the ADR as well, so the next person does
    not rediscover it the hard way.

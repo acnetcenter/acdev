@@ -187,6 +187,27 @@ test('a red verification writes a red receipt and blocks the commit with the fai
   assert.match(r.reason, /exit 3/);
 });
 
+test('verify prints the verdict lines, not the log; --full prints everything; red prints the failure lines', () => {
+  const noisy = `"${process.execPath}" -e "for(let i=0;i<80;i++)console.log('  ok '+i+' - case '+i);console.log('# tests 80');console.log('# pass 80');console.log('# fail 0')"`;
+  const p = project({ stage: 'build', git: true, config: { verify: [noisy] } });
+  const v = p.cli('verify');
+  assert.equal(v.status, 0, v.stderr);
+  assert.match(v.stdout, /# tests 80/);
+  assert.match(v.stdout, /# pass 80/);
+  assert.match(v.stdout, /verification GREEN/);
+  assert.ok(!v.stdout.includes('ok 5 - case 5'), 'noise is filtered');
+  assert.ok(v.stdout.split('\n').length < 25, `too long: ${v.stdout.split('\n').length} lines`);
+  const full = p.cli('verify', '--full');
+  assert.ok(full.stdout.includes('ok 5 - case 5'));
+  const red = project({ stage: 'build', git: true, config: { verify: [`"${process.execPath}" -e "for(let i=0;i<80;i++)console.log('ok '+i);console.log('not ok 81 - total');console.log('  AssertionError: expected 2 got 3');console.log('# fail 1');process.exit(1)"`] } });
+  const r = red.cli('verify');
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /not ok 81 - total/);
+  assert.match(r.stdout, /AssertionError: expected 2 got 3/);
+  assert.match(r.stdout, /--- tail/);
+  assert.match(r.stdout, /verification RED/);
+});
+
 test('commits outside build, or without verify commands, are not gated by the receipt', () => {
   const vision = project({ stage: 'vision', git: true, config: { verify: ['false'] } });
   assert.equal(bash(vision, 'git commit -m "docs: project vision"').decision, 'allow');

@@ -1,0 +1,4 @@
+{
+  "tags": [],
+  "notes": "What this project has, from the ADRs; see shared/references/profile-tags.md for the vocabulary. Untagged checklist items always apply; a tagged item applies only when its tag is listed here. Written at blueprint, revisited when an ADR changes."
+}

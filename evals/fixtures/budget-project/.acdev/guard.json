@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "verify": [],
+  "allow_before_build": [],
+  "protected": [],
+  "receipt_ignore": []
+}

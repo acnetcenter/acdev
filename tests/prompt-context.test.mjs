@@ -18,16 +18,18 @@ test('silent (exit 0, no output) outside an acdev project', () => {
   assert.equal(r.stdout, '');
 });
 
-test('injects the stage and routing rules inside an acdev project', () => {
+test('injects one short line: the stage and the step command, inside an acdev project', () => {
   const proj = mkdtempSync(join(tmpdir(), 'acdev-ctx-'));
   mkdirSync(join(proj, '.acdev'));
   writeFileSync(join(proj, '.acdev', 'state.md'),
     '# acdev state\n\nstage: build\nupdated: 2026-07-09 12:00\nacdev_version: 0.1.1\nlanguage: spanish\nlatest_checkpoint: .acdev/checkpoints/x.md\n');
   const r = run(proj);
   assert.equal(r.status, 0);
-  assert.match(r.stdout, /stage "build"/);
-  assert.match(r.stdout, /Pipeline skills outrank process skills/);
-  assert.match(r.stdout, /offer the matching \/acdev commands/);
+  assert.match(r.stdout, /^acdev: stage build\. Step: node ".+\/scripts\/acdev\.mjs" next\s*$/);
+  // The routing rules live in the gateway; the per-prompt line must not
+  // repeat them (every injected line stays in the transcript).
+  assert.doesNotMatch(r.stdout, /Pipeline skills outrank/);
+  assert.ok(r.stdout.trim().length < 160, `line too long: ${r.stdout.length} chars`);
 });
 
 test('finds the project via CLAUDE_PROJECT_DIR when cwd is a subdirectory', () => {
@@ -41,7 +43,7 @@ test('finds the project via CLAUDE_PROJECT_DIR when cwd is a subdirectory', () =
     encoding: 'utf8'
   });
   assert.equal(r.status, 0);
-  assert.match(r.stdout, /stage "mvp"/);
+  assert.match(r.stdout, /stage mvp\./);
 });
 
 test('silent when state.md exists but has no stage line', () => {

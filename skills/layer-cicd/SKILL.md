@@ -40,7 +40,7 @@ repos).
 - Secrets used in CI must come from the platform's secret store, never
   from workflow files — verify: no secret value appears in a workflow
   file, only a reference to the platform's secret store.
-- The deploy job must be separated from the test job, with an environment
+- [deploys] The deploy job must be separated from the test job, with an environment
   gate protecting production — verify: tests run on every push, but the
   production deploy step requires an explicit approval or protected
   environment, and cannot run from an arbitrary branch.

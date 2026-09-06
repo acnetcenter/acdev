@@ -4,7 +4,8 @@ Fill every section below when generating the project's `docs/RUNBOOK.md`
 at blueprint time (only for projects that deploy somewhere users reach).
 It is the operating contract `operate` reads after every deploy and on
 every incident: exact URLs, exact commands, numeric bands. A runbook
-that says "check the dashboard" is a placeholder, not a runbook.
+that says "check the dashboard" is a placeholder, not a runbook. Cap:
+about 100 lines; numbers and commands, not prose.
 
 ```markdown
 # Runbook

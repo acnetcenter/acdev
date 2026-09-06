@@ -1,19 +1,24 @@
 #!/usr/bin/env node
 // On-demand behavioral evals for acdev's semantic surface: does a session
-// route a user prompt to the right skill (routing suite), and does a skill
-// body produce the required decision at its hard rules (gates suite)?
-// Each case is one model call, so this runs on demand (npm run evals),
-// never in CI. See the README "Evals" section.
+// route a user prompt to the right skill (routing suite), does a skill
+// body produce the required decision at its hard rules (gates suite), and
+// does a fixed scenario stay inside its token budget (budget suite)?
+// Each case is at least one model call, so this runs on demand (npm run
+// evals), never in CI. See the README "Evals" section.
 //
-// usage: run-evals.mjs [--suite routing|gates|all] [--model M] [--dry-run]
+// usage: run-evals.mjs [--suite routing|gates|budget|all] [--model M] [--dry-run]
 //        [--filter SUBSTR] [--cases-dir DIR] [--concurrency N]
+//
+// `all` runs routing and gates. The budget suite runs whole headless
+// sessions (`claude -p --output-format json` inside a fixture project) and
+// is always explicit: --suite budget.
 //
 // ACDEV_EVAL_CMD replaces the default `claude -p --model M` judge with a
 // custom command (split on spaces; the prompt always arrives on stdin) so
 // the pipeline is testable without a model call. ACDEV_EVAL_TIMEOUT_MS
 // overrides the per-call judge timeout (test-only injection).
-import { readFileSync, readdirSync, appendFileSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { readFileSync, readdirSync, appendFileSync, existsSync } from 'node:fs';
+import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { spawn, spawnSync } from 'node:child_process';
@@ -42,8 +47,8 @@ try {
   console.error(err.message);
   process.exit(1);
 }
-if (!['routing', 'gates', 'all'].includes(args.suite)) {
-  console.error(`invalid --suite "${args.suite}" (expected routing, gates or all)`);
+if (!['routing', 'gates', 'budget', 'all'].includes(args.suite)) {
+  console.error(`invalid --suite "${args.suite}" (expected routing, gates, budget or all)`);
   process.exit(1);
 }
 
@@ -131,7 +136,7 @@ function loadCases(suite) {
     console.error(`cannot load ${path}: ${err.message}`);
     process.exit(1);
   }
-  const required = suite === 'routing' ? ['id', 'prompt', 'expect'] : ['id', 'context', 'scenario', 'options', 'expect'];
+  const required = suite === 'routing' ? ['id', 'prompt', 'expect'] : suite === 'budget' ? ['id', 'prompt', 'max_total_tokens'] : ['id', 'context', 'scenario', 'options', 'expect'];
   for (const c of data.cases ?? []) {
     const missing = required.filter((k) => c[k] === undefined);
     if (missing.length) {
@@ -143,31 +148,37 @@ function loadCases(suite) {
   return args.filter ? cases.filter((c) => c.id.includes(args.filter)) : cases;
 }
 
-function judgeCmd() {
+function judgeCmd(json = false) {
   const custom = process.env.ACDEV_EVAL_CMD;
   if (custom) {
     // Split on spaces: enough for "node path/to/fake-judge.mjs"; a judge
-    // command whose path contains spaces is not supported.
+    // command whose path contains spaces is not supported. A relative
+    // script path is resolved against the runner's cwd here, because a
+    // budget case spawns the judge inside its fixture project.
     const [cmd, ...rest] = custom.split(' ').filter(Boolean);
-    return { cmd, args: rest, shell: false };
+    const args = rest.map((a) => (existsSync(resolve(process.cwd(), a)) ? resolve(process.cwd(), a) : a));
+    return { cmd, args, shell: false };
   }
   if (!/^[A-Za-z0-9._:-]+$/.test(args.model)) {
     console.error(`invalid --model "${args.model}"`);
     process.exit(1);
   }
+  const flags = ['-p', '--model', args.model, ...(json ? ['--output-format', 'json'] : [])];
   // The claude CLI installs as a .cmd shim on Windows, which needs a
   // shell. A single concatenated string avoids DEP0190; only the
   // validated model name reaches the line, the prompt travels on stdin.
   if (process.platform === 'win32') {
-    return { cmd: `claude -p --model ${args.model}`, args: [], shell: true };
+    return { cmd: `claude ${flags.join(' ')}`, args: [], shell: true };
   }
-  return { cmd: 'claude', args: ['-p', '--model', args.model], shell: false };
+  return { cmd: 'claude', args: flags, shell: false };
 }
 
-function callJudge(prompt) {
-  const { cmd, args: cmdArgs, shell } = judgeCmd();
+// A budget case runs a whole headless session inside a fixture project;
+// the JSON result carries the usage the budget is checked against.
+function callJudge(prompt, { cwd = process.cwd(), json = false } = {}) {
+  const { cmd, args: cmdArgs, shell } = judgeCmd(json);
   return new Promise((resolve) => {
-    const child = spawn(cmd, cmdArgs, { shell, stdio: ['pipe', 'pipe', 'pipe'] });
+    const child = spawn(cmd, cmdArgs, { shell, cwd, stdio: ['pipe', 'pipe', 'pipe'] });
     let out = '';
     let err = '';
     let settled = false;
@@ -235,6 +246,43 @@ function parseGate(raw) {
   return null;
 }
 
+// The headless result is the last JSON object on stdout. Totals: every
+// token the session processed (cache reads included, because each turn
+// re-reads the context) and the fresh ones (input, cache writes, output).
+function parseBudget(raw) {
+  const lines = norm(raw).trim().split('\n').reverse();
+  for (const l of lines) {
+    const t = l.trim();
+    if (!t.startsWith('{')) continue;
+    try {
+      const r = JSON.parse(t);
+      const u = r.usage ?? {};
+      const n = (v) => (typeof v === 'number' ? v : 0);
+      return {
+        turns: r.num_turns ?? null,
+        cost: typeof r.total_cost_usd === 'number' ? r.total_cost_usd : null,
+        fresh: n(u.input_tokens) + n(u.cache_creation_input_tokens) + n(u.output_tokens),
+        total: n(u.input_tokens) + n(u.cache_creation_input_tokens) + n(u.cache_read_input_tokens) + n(u.output_tokens),
+        error: r.is_error ? String(r.result ?? 'error').slice(0, 120) : null
+      };
+    } catch {
+      // keep looking
+    }
+  }
+  return null;
+}
+function budgetVerdict(c, got) {
+  if (!got) return { pass: false, why: 'no JSON result' };
+  if (got.error) return { pass: false, why: `session error: ${got.error}` };
+  const over = [];
+  if (got.total > c.max_total_tokens) over.push(`total ${got.total} > ${c.max_total_tokens}`);
+  if (c.max_fresh_tokens !== undefined && got.fresh > c.max_fresh_tokens) over.push(`fresh ${got.fresh} > ${c.max_fresh_tokens}`);
+  if (c.max_turns !== undefined && got.turns !== null && got.turns > c.max_turns) over.push(`turns ${got.turns} > ${c.max_turns}`);
+  if (c.max_cost_usd !== undefined && got.cost !== null && got.cost > c.max_cost_usd) over.push(`cost $${got.cost.toFixed(3)} > $${c.max_cost_usd}`);
+  return { pass: over.length === 0, why: over.join(', ') };
+}
+const budgetLine = (got) => (got ? `${got.turns ?? '?'} turns, ${got.total} total / ${got.fresh} fresh tokens${got.cost !== null ? `, $${got.cost.toFixed(3)}` : ''}` : 'no result');
+
 async function runPool(items, worker, limit) {
   const results = new Array(items.length);
   let next = 0;
@@ -281,10 +329,11 @@ let total = 0;
 const suiteStats = [];
 for (const suite of suites) {
   const cases = loadCases(suite);
-  const prompts = cases.map((c) => (suite === 'routing' ? routingPrompt(surface, c.prompt) : gatePrompt(c)));
+  const prompts = cases.map((c) => (suite === 'routing' ? routingPrompt(surface, c.prompt) : suite === 'budget' ? c.prompt.replaceAll('<plugin-root>', ROOT.replace(/\\/g, '/')) : gatePrompt(c)));
+  const cwdOf = (c) => (suite === 'budget' ? resolve(args['cases-dir'], c.cwd ?? '.') : process.cwd());
   total += cases.length;
   if (args['dry-run']) {
-    cases.forEach((c, i) => console.log(`=== case ${c.id} ===\n${prompts[i]}\n`));
+    cases.forEach((c, i) => console.log(`=== case ${c.id} ===\n${suite === 'budget' ? `cwd: ${cwdOf(c)}\nbudget: total <= ${c.max_total_tokens}${c.max_fresh_tokens !== undefined ? `, fresh <= ${c.max_fresh_tokens}` : ''}${c.max_turns !== undefined ? `, turns <= ${c.max_turns}` : ''}${c.max_cost_usd !== undefined ? `, cost <= $${c.max_cost_usd}` : ''}\n` : ''}${prompts[i]}\n`));
     console.log(`${suite}: ${cases.length} case(s), dry run only`);
     continue;
   }
@@ -297,11 +346,17 @@ for (const suite of suites) {
     async ({ c, prompt }) => {
       let last;
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        const a = await callJudge(prompt);
-        const got = a.ok ? (suite === 'routing' ? parseRouting(a.out, skillNames) : parseGate(a.out)) : null;
-        const pass = got !== null && (got === c.expect || (c.accept ?? []).includes(got));
-        last = { pass, got, raw: a, attempt };
-        if (pass) break;
+        const a = await callJudge(prompt, { cwd: cwdOf(c), json: suite === 'budget' });
+        if (suite === 'budget') {
+          const got = a.ok || a.out ? parseBudget(a.out) : null;
+          const v = budgetVerdict(c, got);
+          last = { pass: v.pass, got, why: v.why, raw: a, attempt };
+        } else {
+          const got = a.ok ? (suite === 'routing' ? parseRouting(a.out, skillNames) : parseGate(a.out)) : null;
+          const pass = got !== null && (got === c.expect || (c.accept ?? []).includes(got));
+          last = { pass, got, raw: a, attempt };
+        }
+        if (last.pass) break;
       }
       return last;
     },
@@ -313,6 +368,17 @@ for (const suite of suites) {
   const failed = [];
   cases.forEach((c, i) => {
     const r = results[i];
+    if (suite === 'budget') {
+      if (r.pass) {
+        passed++;
+        console.log(`  ok ${c.id}: ${budgetLine(r.got)}`);
+        if (r.attempt > 0) onRetry.push(c.id);
+      } else {
+        failed.push(c.id);
+        console.log(`  FAIL ${c.id}: ${r.why} (${budgetLine(r.got)})`);
+      }
+      return;
+    }
     if (r.pass) {
       passed++;
       if (r.attempt > 0) {
@@ -347,7 +413,7 @@ if (!args['dry-run']) {
   const suffix = allRetry.length ? ` (${allRetry.length} on retry: ${allRetry.join(', ')})` : '';
   console.log(
     failures
-      ? `evals: ${total - failures}/${total} passed${suffix} — a failing case means the description, the gate text or the case itself needs fixing`
+      ? `evals: ${total - failures}/${total} passed${suffix} — a failing case means the description, the gate text, the budget or the case itself needs fixing`
       : `evals: ${total}/${total} passed${suffix}`
   );
   // The only memory between runs: a chronic retry-passer is a finding,

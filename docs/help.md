@@ -2,7 +2,7 @@
 
 How the plugin works, how to use it well, and the questions that come up
 in practice. The README is the overview; this is the manual. Everything
-here describes acdev 0.2.0.
+here describes acdev 0.3.0.
 
 Contents:
 
@@ -40,14 +40,18 @@ kinds of pieces:
 - **Hooks.** Two in the plugin: at session start, the gateway is printed
   into context together with the plugin's install path; on every prompt
   inside a project that has `.acdev/state.md`, one line names the current
-  pipeline stage and the routing rules. One more hook is installed by
+  pipeline stage and the `next` command. One more hook is installed by
   acdev *inside each project*: the guard, which enforces the hard rules
   before a tool call runs (section 7).
-- **Scripts.** Deterministic work never spends context: `checkpoint.mjs`
-  reads and writes pipeline state, `lessons.mjs` promotes repeated
-  mistakes into rules, `lint-budgets.mjs` polices the plugin's own
-  budgets, `run-evals.mjs` checks routing and gates against a model, and
-  the guard's command line runs verification and freezes files.
+- **Scripts.** Deterministic work never spends context. `acdev.mjs` is
+  the pipeline's command line: `next` prints the one step that applies
+  now, `pack` the context a slice needs, `q` a command's verdict, `close`
+  the whole slice close, `run` the headless loop (section 10).
+  `checkpoint.mjs` reads and writes pipeline state, `lessons.mjs`
+  promotes repeated mistakes into rules, `lint-budgets.mjs` polices the
+  plugin's own budgets, `run-evals.mjs` checks routing, gates and budgets
+  against a model, and the guard's command line runs verification and
+  freezes files.
 
 The design principle behind all of it: **cover only the delta over native
 Claude Code.** Plan mode, subagents, worktrees, `/code-review`,
@@ -63,12 +67,13 @@ How a session goes, mechanically:
    root: <path>`. Pipeline skills substitute that path for
    `<plugin-root>` when they run a script.
 2. You type a prompt. If the project has `.acdev/state.md`, the
-   UserPromptSubmit hook adds one line: the stage, "pipeline skills
-   outrank process skills", and the in-doubt rule.
+   UserPromptSubmit hook adds one line: the stage and the `next` command.
 3. The model matches your prompt against the skill descriptions and the
-   gateway. If a skill matches, its body loads and runs. If two readings
-   are plausible, the gateway tells it not to pick silently but to offer
-   the matching `/acdev:<name>` commands and let you choose.
+   gateway. If a skill matches, its body loads and runs; inside build the
+   body is short and the procedure comes from `next`, one step at a time.
+   If two readings are plausible, the gateway tells it not to pick
+   silently but to offer the matching `/acdev:<name>` commands and let
+   you choose.
 4. Every Edit, Write or Bash call passes through the project's guard
    first. Most calls pass silently; a denial or an "ask" comes back with
    the reason and the command that resolves it.
@@ -118,9 +123,9 @@ and nothing downstream reopens an approved artifact silently.
 | 0. Intake | `new-project` (user-run) | Project name, repo, documentation language, Claude-only or multi-AI; the guard installed; `.acdev/state.md` at `vision` | One open question, then the intake questions in one message |
 | 1. VISION | `new-project` | `docs/VISION.md`, seven sections conversed one at a time | HARD: you approve the full document, in these words or equivalent: "Do you approve this VISION document?" |
 | 2. MVP | `new-project` | `docs/MVP.md`: numbered in-scope list traceable to VISION flows, explicit out-of-scope list naming the phase each item moves to, verifiable success criteria | HARD: explicit approval of the full document |
-| 3. Mockups | `mockups` | `mockups/`: one static HTML page per MVP screen, empty/error/loading states, every critical flow walkable; `docs/mockups-inventory.md` for post-MVP screens | HARD: "Do you approve these mockups?" Approval freezes the visual contract |
-| 4. Blueprint | `blueprint` | ROADMAP with verifiable exit criteria; ARCHITECTURE, DATA-MODEL, SECURITY, UI-DESIGN, INTEGRATIONS, RUNBOOK as applicable; ADRs (the stack is decided here); spikes for unproven dependencies; `CLAUDE.md` router and `AGENTS.md` mirror; repo mechanics (`.gitignore`, `.env.example`, CI skeleton, `scripts/verify/`, canary); the guard's `verify` commands | You review the whole package; then a separate, explicit order to start building |
-| 5. Build | `build` + `ship` | Working, deployed software by vertical slices; slice 1 deploys and rolls back | Per slice: a plan gate only when a user-challenge decision exists; `ship` closes each slice with verification, drift check, changelog, lessons, checkpoint, one commit; per phase: exit criteria plus a security pass |
+| 3. Mockups | `mockups` | `mockups/`: one static HTML page per MVP screen, empty/error/loading states, every critical flow walkable; `mockups/SPEC.md`, the per-screen spec build reads instead of the pages; `docs/mockups-inventory.md` for post-MVP screens | HARD: "Do you approve these mockups?" Approval freezes the visual contract and the spec |
+| 4. Blueprint | `blueprint` | ROADMAP with verifiable exit criteria; ARCHITECTURE, DATA-MODEL, SECURITY, UI-DESIGN, RUNBOOK as applicable, each with a reader and a size cap (integrations are ADRs); ADRs (the stack is decided here); spikes for unproven dependencies; `.acdev/profile.json`; `CLAUDE.md` router and `AGENTS.md` mirror; repo mechanics (`.gitignore`, `.env.example`, CI skeleton, `scripts/verify/`, canary); the guard's `verify` commands | You review the whole package; then a separate, explicit order to start building |
+| 5. Build | `build` + `ship` | Working, deployed software by vertical slices, one step at a time from `next`; slice 1 deploys and rolls back | Per slice: a plan gate only when a user-challenge decision exists; `close` (two commands) closes each slice with verification first, drift, changelog, lessons, checkpoint, one commit; per phase: exit criteria plus a security pass |
 | 6. Operate | `operate` | Canary evidence after each deploy; incident specs; runbook corrections | Rollback before diagnosis on red; incident spec before any fix |
 
 Rules that hold across every stage:
@@ -251,7 +256,10 @@ is never rewritten without showing the diff.
 ROADMAP phase section and the names of open plans (incidents first), and
 answers "where are we" in about 2k tokens without scanning the code. If
 the checkpoint disagrees with the repo, it reports the difference and
-trusts the repo.
+trusts the repo. Then `next` prints the one step that applies now (plan
+a slice, construct and close, blocked, an open incident, the phase exit)
+with its commands, in about 300 tokens; the build skill's body holds only
+the rules that never change.
 
 **A change you ask for mid-build.** Anything beyond a trivial fix is a
 mini-slice: the request is captured as a spec in
@@ -272,9 +280,20 @@ spec change, which is your decision. The root cause is recorded as a
 lesson candidate.
 
 **Verification.** No green claim without command output from this
-session, taken after the last edit. `verify` through the guard is the
-run; its streamed output is the evidence; the receipt it writes is what
-`git commit` is checked against. Partial is reported as partial.
+session, taken after the last edit. `verify` through the guard (or
+`close`, which runs it) is the run; its verdict lines are the evidence,
+the whole log only on red or with `--full`; `q -- <command>` does the
+same for any other command, so a test run costs a few lines of context
+instead of hundreds. The receipt `verify` writes is what `git commit` is
+checked against. Partial is reported as partial.
+
+**The close.** `close --check --plan <plan>` lists what the close needs:
+the docs that mention the changed files, the changelog, the plan, the
+docs index, an active freeze, the lessons ledger. You fix what it lists;
+then `close --slice "N: name" --plan <plan> --next "..." --changelog
+"..."` verifies first, refuses on red, and does the rest in one go:
+CHANGELOG line, plan flipped to shipped, freeze cleared, checkpoint, one
+commit.
 
 **Decision classes.** Mechanical (one correct answer: decided silently),
 taste (several valid, cheap to reverse: decided and listed in the audit
@@ -286,12 +305,19 @@ In doubt, the higher class wins.
 without stopping"), `build` runs slice after slice without pausing. The
 gates inside each slice do not change; a user-challenge decision or a
 plan-invalidating trap stops the run with a `--blocked` checkpoint. The
-run ends at the phase exit, including the security pass.
+run ends at the phase exit, including the security pass. The cheapest
+way to run it is the headless loop, `run --max-slices N`: one fresh
+`claude -p` session per slice, memory in git and the checkpoints, cost
+per slice recorded in `.acdev/cost.jsonl` and summed by `cost`.
 
 **Model switch.** The document stages deserve the most capable model.
 At the blueprint gate you are advised that construction can run on a
 cheaper one; at the phase-exit security pass you are advised to switch
 back, because hunting vulnerabilities takes adversarial reasoning.
+Inside build the model is chosen by who judges the result: the cheapest
+tier for subagents whose work a test, a lint or the guard judges (TDD to
+green, lint fixes, doc edits), the capable model where judgment decides
+(planning, root cause, security, every conversation with you).
 
 **Phase exit.** After the last slice of a phase: exit criteria checked
 against what was built, not intended; native `/security-review` over the
@@ -329,10 +355,16 @@ Commands:
 
 ```
 node .claude/hooks/acdev-guard.mjs status
-node .claude/hooks/acdev-guard.mjs verify
+node .claude/hooks/acdev-guard.mjs verify [--full]
 node .claude/hooks/acdev-guard.mjs freeze tests/invoices.test.ts src/legacy/** --reason "bug 42"
 node .claude/hooks/acdev-guard.mjs unfreeze
 ```
+
+`verify` prints each command's verdict lines (counts, totals, the last
+lines) on green and its failure lines plus a tail on red; the whole log
+only with `--full`. `close` runs it itself and commits only on green, so
+the model's own `git commit` is the only path the receipt rule has to
+guard.
 
 `.acdev/guard.json`, with every key optional:
 
@@ -423,7 +455,17 @@ session, or the next deploy silently reverts it.
 
 | Path | What it is |
 |---|---|
-| `<plugin-root>/scripts/checkpoint.mjs read` | Prints `.acdev/state.md` and the latest checkpoint |
+| `<plugin-root>/scripts/acdev.mjs next [--change "topic"]` | The one pipeline step that applies now, from `scripts/steps/`; about 300 tokens |
+| `<plugin-root>/scripts/acdev.mjs pack [--screens a,b] [--layers x,y] [--pitfalls]` | ADR decision lines, current ROADMAP phase, checkpoint, open plans, spec entries, filtered checklists; about 2k tokens |
+| `<plugin-root>/scripts/acdev.mjs checklist --layers x,y [--pitfalls]` | A layer's checklist filtered by `.acdev/profile.json` |
+| `<plugin-root>/scripts/acdev.mjs q [--tail N] [--full] -- <command>` | Runs the command; verdict lines on green, failure lines and a tail on red |
+| `<plugin-root>/scripts/acdev.mjs drift` | Docs that mention the files changed since HEAD, ROADMAP always |
+| `<plugin-root>/scripts/acdev.mjs close --check [--plan P] [--verify]` | What the close needs, without committing |
+| `<plugin-root>/scripts/acdev.mjs close --slice "n: name" --plan P --next T --changelog T [--message M] [--notes T]` | Verification first (refuses on red), CHANGELOG line, plan flip, freeze cleared, checkpoint, one commit |
+| `<plugin-root>/scripts/acdev.mjs mockup-spec [--write]` | Per-screen skeleton of `mockups/*.html`; `--write` updates `mockups/SPEC.md` keeping the Intent lines |
+| `<plugin-root>/scripts/acdev.mjs run [--max-slices N] [--model M] [--claude CMD] [--extra "flags"] [--prompt T] [--dry-run]` | Continuous build as one fresh headless session per slice; stops on blocked, phase exit, no progress, error or the cap |
+| `<plugin-root>/scripts/acdev.mjs cost [--json]` | The `.acdev/cost.jsonl` ledger, per run and per closed slice |
+| `<plugin-root>/scripts/checkpoint.mjs read` | Prints `.acdev/state.md` and the latest checkpoint (also `acdev.mjs checkpoint read`) |
 | `<plugin-root>/scripts/checkpoint.mjs write --stage S --branch B --next T [--slice "n: name"] [--plan path] [--files a,b] [--blocked T] [--notes T] [--lang L]` | Writes a checkpoint and updates the state; `--stage` is one of `intake`, `vision`, `mvp`, `mockups`, `blueprint`, `build`; `--lang` is sticky |
 | `<plugin-root>/scripts/lessons.mjs` | `add`, `add --id`, `promote --id`, `list` (section 8) |
 | `.claude/hooks/acdev-guard.mjs` | `verify`, `status`, `freeze`, `unfreeze`; hook mode with no arguments (section 7) |
@@ -433,7 +475,10 @@ session, or the next deploy silently reverts it.
 | `.acdev/checkpoints/*.md` | Frontmatter: date, stage, branch, slice, plan, files_modified, next_step, blocked_on; up to ten lines of prose |
 | `.acdev/lessons.md` | The lessons ledger |
 | `.acdev/guard.json` | Guard policy for this repo |
-| `.acdev/freeze.json`, `.acdev/verify-receipt.json` | Session state, gitignored |
+| `.acdev/profile.json` | What the project has (`tags`); filters the layer checklists |
+| `.acdev/freeze.json`, `.acdev/verify-receipt.json`, `.acdev/cost.jsonl` | Session state and the cost ledger, gitignored |
+| `mockups/SPEC.md` | Per-screen spec generated from the pages at the freeze; build reads it instead of the HTML |
+| `<plugin-root>/scripts/steps/*.md` | The twelve step files `next` prints, one per situation |
 | `docs/plans/*.md` | Slice plans, change specs, incident specs; `status: active`, `shipped` or `abandoned`; never moved or deleted |
 | `docs/README.md` | The docs index, one line per document and per series folder |
 | `CLAUDE.md`, `AGENTS.md` | One-page router: golden rules, stack, read-before-working, verification, lessons, drift rule |
@@ -447,28 +492,44 @@ canary stubs, design-tell scanner).
 
 Fixed cost per session, measured from the tree and checked by the lint:
 the twenty model-invocable descriptions plus the gateway body, about
-1.1k tokens. Inside a project, one routing line per prompt, about 60
-tokens. Skill bodies load only when the skill activates; `references/`
-load only when a body points at them; scripts run outside the context.
+1.1k tokens. Inside a project, one line per prompt, about 25 tokens.
+Skill bodies load only when the skill activates; `references/` load only
+when a body points at them; step files one at a time; scripts run
+outside the context.
+
+The fixed cost is the small part. An agent's bill is turns times context
+times model price, plus output tokens, and that is what the command line
+cuts: a slice close is two calls instead of ten; `next` is a step of
+about 300 tokens instead of a body of 2,500; `pack` is about 2k tokens
+instead of ADRs, ROADMAP, checkpoints and mockup pages read whole; `q`
+and the guard's `verify` put verdict lines in the context instead of
+logs; subagents get the pack and a filtered checklist and return a
+report, not diffs; the model is chosen by who judges the result; the
+headless loop starts every slice with an empty context. `cost` and the
+budget eval suite measure it per slice.
 
 Budgets, enforced in CI: a description is at most 400 characters; a body
-under 500 lines and 20,000 characters; the gateway file at most 1,600
-characters. The lint also rejects emojis, overlapping trigger vocabularies
-between descriptions, divergence in the block the layer skills share,
-manifest disagreement, and a README whose tables or ledger drift from the
-tree.
+under 250 lines and 8,000 characters; a step file at most 1,500
+characters, one per situation, no orphans; the gateway file at most
+1,600 characters. The lint also rejects emojis, overlapping trigger
+vocabularies between descriptions, divergence in the block the layer
+skills share, manifest disagreement, and a README whose tables or ledger
+drift from the tree.
 
-Practical consequences: subagents receive only the layer skills their
-slice touches, never all eight; `status` never scans the repo; outputs
-name the sections that matter instead of pasting whole documents.
+Practical consequences: subagents receive only the layer checklists
+their slice touches, filtered by the profile, never all eight skills;
+`status` never scans the repo; outputs name the sections that matter
+instead of pasting whole documents; plans and documents carry size caps
+because output tokens are the expensive ones.
 
 ## 12. Working on acdev itself
 
 ```
-node --test                  # unit suite: hooks, checkpoint, lessons, guard, lint, eval runner
+node --test                  # unit suite: hooks, checkpoint, lessons, guard, lint, eval runner, the command line
 node scripts/lint-budgets.mjs
 npm run evals                # routing and gate suites against a model; on demand, costs money
 npm run evals -- --suite gates --filter operate
+npm run evals -- --suite budget   # whole headless sessions against their token budgets
 npm run evals -- --dry-run   # print the constructed prompts
 npm run evals -- --ablate    # which gate cases a judge answers with no context at all
 ```
@@ -477,7 +538,8 @@ Contribution rules: budgets are hard limits; no emojis anywhere; English
 across skills, docs and commits; a commit that adds or rewords a hard
 rule adds or updates its gate case in the same commit; a persistent eval
 failure is fixed by sharpening the text or the case, never by widening
-`accept`. The plugin's own changes follow the rules it imposes: a
+`accept`; a procedure belongs in a step file or a script, a skill body
+holds only the rules that never change. The plugin's own changes follow the rules it imposes: a
 non-trivial change gets a plan in `docs/plans/`, a CHANGELOG line, and
 the spec's amendment log when it changes the design.
 
@@ -537,9 +599,20 @@ mini-slice with a spec.
 
 **How is continuous build different from just letting it run?**
 The pauses between slices are removed; nothing else changes. Every slice
-still gets its plan, TDD, verification and full `ship` close. A
-user-challenge decision stops the run with a `--blocked` checkpoint. You
-approve continuous mode explicitly; it is never assumed.
+still gets its plan, TDD, verification and full close. A user-challenge
+decision stops the run with a `--blocked` checkpoint. You approve
+continuous mode explicitly; it is never assumed.
+
+**What does `run` do, and is it safe to leave alone?**
+It starts one fresh `claude -p` session per slice with a fixed prompt
+(run `next`, build one slice, close it, stop), reads the checkpoint back,
+and stops on a blocked checkpoint, the phase exit, no new checkpoint, an
+error, or `--max-slices`. Each session's cost lands in
+`.acdev/cost.jsonl`. The guard runs inside every session, so no commit
+lands without a green receipt and no destructive command runs without a
+human; a headless session cannot ask you anything, which is exactly why
+a user-challenge decision ends the loop. Run it from a terminal you
+watch, and calibrate the budget evals from its ledger.
 
 **Which model should I use?**
 The most capable one for VISION, MVP, mockups, blueprint and the
@@ -583,9 +656,12 @@ comment and no value; real values live in the platform's secret store per
 environment, and the guard asks before any `.env` file is written.
 
 **How much does acdev cost per session?**
-About 1.1k tokens fixed, measured and linted. Skill bodies cost only when
-they activate; the largest is under 5k tokens. The evals cost real money
-and run only on demand.
+About 1.1k tokens fixed, measured and linted, plus about 25 per prompt
+inside a project. Skill bodies cost only when they activate and the
+largest is under 2k tokens; a step from `next` is about 300; a pack
+about 2k. The number that matters is the cost per shipped slice, which
+`cost` reports from the headless ledger and the budget evals check. The
+evals cost real money and run only on demand.
 
 **How do I know a skill activated?**
 The model invokes it before responding and its behavior follows the

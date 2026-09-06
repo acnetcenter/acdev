@@ -28,19 +28,20 @@ repos).
 - Indexes must be justified by real queries — foreign keys and frequent
   WHERE/ORDER BY columns first — verify: EXPLAIN on the hot queries shows
   index use, not a sequential scan.
-- PII columns must be marked in DATA-MODEL with a retention rule — verify:
-  the table listing PII exists and matches the actual schema.
-- Retention and deletion must be enforced, not only declared: when the
+- [pii] PII columns must be marked with a retention rule, in DATA-MODEL.md
+  or in SECURITY.md when the schema lives in code — verify: the table
+  listing PII exists and matches the actual schema.
+- [pii,compliance] Retention and deletion must be enforced, not only declared: when the
   compliance ADR grants users deletion or a retention window expires, the
   data must actually be erased or anonymized — verify: running the
   deletion path for a test subject removes or anonymizes their rows and
   stored files, and a documented note states how backups age out.
-- On multi-tenant projects, tenant-owned tables must carry the tenant key
+- [multi-tenant] On multi-tenant projects, tenant-owned tables must carry the tenant key
   and it must be non-nullable — verify: inserting a row without a tenant
   key fails at the DB.
 - Backups must be automated AND restore must be tested — verify: a restore
   drill note exists; an untested backup is not a backup.
-- Object storage must be private by default, use signed URLs, and enforce
+- [uploads] Object storage must be private by default, use signed URLs, and enforce
   size/type limits at upload — verify: a direct unsigned URL to a stored
   object fails.
 

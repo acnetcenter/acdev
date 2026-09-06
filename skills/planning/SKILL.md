@@ -37,6 +37,13 @@ checkpoint. "Implement the feature" is too big to verify meaningfully;
 against a fresh db" is sized right. Splitting further than that just adds
 bookkeeping without adding confidence.
 
+## Size
+
+A slice plan fits in 40 lines and a change spec in 60; a design plan is
+proportional to the decision. Output tokens are the expensive ones, and a
+plan is reread at every step of its slice. If the plan does not fit, the
+slice is too big (see `build`'s slice smells), not the cap.
+
 ## Decision audit table
 
 When steps involved decisions classified per

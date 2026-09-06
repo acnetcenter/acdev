@@ -31,7 +31,7 @@ repos).
 - The permission matrix in SECURITY.md must be the source of truth and
   tests must mirror it — verify: at least one test per matrix row exists
   for critical resources.
-- On multi-tenant projects, the tenant must be resolved from the session
+- [multi-tenant] On multi-tenant projects, the tenant must be resolved from the session
   server-side, never from client input — verify: a forged tenant id in the
   request payload cannot cross tenants.
 - Auth flows must be complete: signup, verify, reset, logout-everywhere —
@@ -39,7 +39,7 @@ repos).
 - Secrets used for auth (signing keys) must be rotated per a documented
   procedure — verify: the rotation procedure exists and names an owner and
   cadence.
-- OAuth providers must use state and PKCE where applicable — verify: the
+- [oauth] OAuth providers must use state and PKCE where applicable — verify: the
   authorization request includes both for the flows that support them.
 
 ## Pitfalls

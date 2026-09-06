@@ -73,6 +73,18 @@ update `docs/VISION.md` and/or `docs/MVP.md` in the same commit as the
 mockup change, and reconfirm the affected document with the user. A mockup
 never silently redefines what the product does.
 
+## Spec
+
+Before the gate, generate the compact spec that `build` reads instead of
+the pages: `node "<plugin-root>/scripts/acdev.mjs" mockup-spec --write`
+(`<plugin-root>` is the path printed as `acdev plugin root:` at session
+start) extracts one entry per screen from the HTML (title, headings, nav,
+fields, columns, buttons, links, state variants) into `mockups/SPEC.md`.
+Complete its one Intent line per screen: what the user does there and
+what must be true when it works. Regenerate after every revision round;
+the Intent lines survive regeneration. A page is opened during build only
+for the screen being implemented; everything else comes from the spec.
+
 ## Gate
 
 **HARD GATE.** Ask for explicit approval of the full mockup set, the same
@@ -82,8 +94,9 @@ continue to `blueprint` until the answer is an explicit approval.
 
 Once approved, the mockups are FROZEN as the visual contract for the MVP
 build: `blueprint` derives its UI-DESIGN doc from them, and `build`
-replicates them in the real frontend — no redesigning on the fly during
-build. Reopening the contract after approval requires re-approval through
+replicates them in the real frontend, reading `mockups/SPEC.md` and
+opening a page only for the screen at hand — no redesigning on the fly
+during build. Reopening the contract after approval requires re-approval through
 this skill again, and an ADR if the change also touches VISION or MVP.
 
 The freeze is normative for what the mockups actually draw: layout,
@@ -94,9 +107,9 @@ as taste-class decisions recorded in its audit table, without reopening
 this gate. Reopening applies to normative changes only.
 
 On approval, advance the pipeline state (`node
-"<plugin-root>/scripts/checkpoint.mjs" write --stage blueprint --branch
-<branch> --next "blueprint: normative docs, ADRs, repo mechanics"`) and
-commit. The guard reads that state: from here it asks before any file
+"<plugin-root>/scripts/acdev.mjs" checkpoint write --stage blueprint
+--branch <branch> --next "blueprint: normative docs, ADRs, repo
+mechanics"`) and commit, `mockups/SPEC.md` included. The guard reads that state: from here it asks before any file
 under `mockups/` is edited, which is the freeze made deterministic.
 
 Post-MVP phases do not get mockups now. Each phase gets its mockups

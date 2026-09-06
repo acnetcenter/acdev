@@ -45,6 +45,11 @@ From those sources, report:
 - **Phase progress** — which slices/exit criteria in the current ROADMAP
   phase are done versus outstanding, read from that phase section only.
 
+Then, when the user wants to continue, run `node
+"<plugin-root>/scripts/acdev.mjs" next`: it prints the one pipeline step
+that applies now (plan, construct, blocked, incident, phase exit), with
+its commands, in about 300 tokens.
+
 **Budget.** The whole status answer, including the read above, stays under
 roughly 2k tokens. No repo scanning, no grepping for code, no dumping full
 files into the conversation — the checkpoint, one ROADMAP section and the

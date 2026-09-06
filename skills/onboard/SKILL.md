@@ -111,6 +111,11 @@ Once confirmed, propose the adoption plan:
   what it will enforce before installing; an adopted repo may have
   conventions (a generated directory, a vendored tree) that belong in
   `allow_before_build` or `receipt_ignore`.
+- **The profile.** Write `.acdev/profile.json` from
+  `shared/references/templates/profile.json` with the tags the situation
+  map supports (`shared/references/profile-tags.md`: `auth`,
+  `multi-tenant`, `pii`, `deploys`...). The layer checklists drop the
+  items whose tags the project lacks; leave it empty rather than guess.
 - **`docs/RUNBOOK.md`, if the project deploys** and has no equivalent:
   written from `shared/references/templates/runbook.md` with what the
   situation map found (URLs, deploy path, whatever rollback exists) and

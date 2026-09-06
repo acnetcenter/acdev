@@ -16,7 +16,7 @@ repos).
 
 ## Production checklist
 
-- Row-level security (or equivalent row filtering) must be active on every
+- [auth,multi-tenant] Row-level security (or equivalent row filtering) must be active on every
   tenant/user-owned table AND proven by an isolation test — verify: a test
   authenticated as user A queries for user B's rows and gets an empty
   result, and that test exists and runs in CI (not just locally).
@@ -34,14 +34,14 @@ repos).
 - Secrets must live only in env vars or a secret manager, never in the
   repo — verify: a repo-history scan finds no secrets, and `.env.example`
   lists variable names only, with no real values.
-- Data residency must match the compliance ADR — verify: the regions of
+- [compliance,pii] Data residency must match the compliance ADR — verify: the regions of
   the database, file storage and backups are listed and each is allowed
   by the ADR's jurisdiction constraints, or the ADR explicitly records
   that residency is unconstrained.
-- Security headers must be present on the deployed app — verify: the
+- [deploys] Security headers must be present on the deployed app — verify: the
   response includes Content-Security-Policy, Strict-Transport-Security,
   X-Content-Type-Options, and frame-ancestors (or X-Frame-Options).
-- Webhooks must be verified by signature with a replay window — verify: a
+- [webhooks] Webhooks must be verified by signature with a replay window — verify: a
   request with a missing or invalid signature is rejected, and a replayed
   valid request outside the allowed time window is rejected too.
 - Dependencies must be audited in CI with a triage rule — verify: the CI

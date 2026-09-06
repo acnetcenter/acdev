@@ -10,9 +10,11 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SKILLS_DIR = process.env.ACDEV_SKILLS_DIR ?? join(ROOT, 'skills');
 const REPO_CHECKS = !process.env.ACDEV_SKILLS_DIR;
 const DESCRIPTION_MAX_CHARS = 400;   // ~100 tokens
-const BODY_MAX_LINES = 500;
-const BODY_MAX_CHARS = 20000;        // ~5k tokens
+const BODY_MAX_LINES = 250;
+const BODY_MAX_CHARS = 8000;         // ~2k tokens; procedure lives in scripts/steps, detail in references
 const GATEWAY_MAX_CHARS = 1600;      // ~400 tokens, whole file
+const STEP_MAX_CHARS = 1500;         // ~375 tokens, one step of the dispenser
+const STEP_IDS = ['no-project', 'stage-intake', 'stage-vision', 'stage-mvp', 'stage-mockups', 'stage-blueprint', 'build-plan', 'build-construct', 'build-blocked', 'build-incident', 'build-phase-exit', 'build-change'];
 // Extended_Pictographic plus the pieces it does not cover: regional
 // indicators (country flags), VS16 and the keycap combiner. The lookahead
 // exempts (c) (r) (tm), which are text, not emoji.
@@ -141,6 +143,20 @@ for (const p of mdFilesUnder(SKILLS_DIR)) {
 if (REPO_CHECKS) {
   for (const p of mdFilesUnder(join(ROOT, 'shared'))) {
     if (EMOJI.test(readFileSync(p, 'utf8'))) errors.push(`${label(p, ROOT)}: contains emoji`);
+  }
+
+  // The step dispenser: one file per situation `scripts/lib/next.mjs` can
+  // pick, each under its budget, none with emoji, no orphans.
+  const stepsDir = join(ROOT, 'scripts', 'steps');
+  const stepFiles = existsSync(stepsDir) ? readdirSync(stepsDir).filter((f) => f.endsWith('.md')) : [];
+  for (const id of STEP_IDS) {
+    if (!stepFiles.includes(`${id}.md`)) errors.push(`scripts/steps/${id}.md: missing (the dispenser can select it)`);
+  }
+  for (const f of stepFiles) {
+    const raw = norm(readFileSync(join(stepsDir, f), 'utf8'));
+    if (!STEP_IDS.includes(f.replace(/\.md$/, ''))) errors.push(`scripts/steps/${f}: not a step the dispenser selects (orphan)`);
+    if (raw.length > STEP_MAX_CHARS) errors.push(`scripts/steps/${f}: ${raw.length} chars > ${STEP_MAX_CHARS}`);
+    if (EMOJI.test(raw)) errors.push(`scripts/steps/${f}: contains emoji`);
   }
 
   // Manifests must parse, and the values duplicated across them must agree.

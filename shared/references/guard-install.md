@@ -31,6 +31,11 @@ follow these steps; none of them re-explains them.
 6. Evidence: run `node .claude/hooks/acdev-guard.mjs status` and paste its
    output. It names the stage the guard enforces, the freeze state, the
    verify commands and the receipt state.
+7. From build on, the slice close is `node
+   "<plugin-root>/scripts/acdev.mjs" close`, which runs the guard's
+   `verify` itself and commits only on green. `verify` prints each
+   command's verdict lines (the whole log only on red or with `--full`)
+   so the evidence enters the context without the noise.
 
 ## What the guard enforces
 

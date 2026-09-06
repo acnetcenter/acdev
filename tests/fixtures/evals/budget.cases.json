@@ -1,0 +1,14 @@
+{
+  "about": "Budget eval fixture: one headless scenario with tiny budgets, run against the fake judge.",
+  "cases": [
+    {
+      "id": "budget-fixture-next",
+      "cwd": "budget-project",
+      "prompt": "Run node \"<plugin-root>/scripts/acdev.mjs\" next and reply with the step id only.",
+      "max_total_tokens": 5000,
+      "max_fresh_tokens": 2000,
+      "max_turns": 4,
+      "max_cost_usd": 0.05
+    }
+  ]
+}

@@ -26,7 +26,7 @@ repos).
   happy path — verify: each of the three states is reachable (empty
   dataset, forced failure, artificial delay) and renders distinct,
   intentional UI.
-- Routing guards must match the permission matrix — verify: a direct URL
+- [auth] Routing guards must match the permission matrix — verify: a direct URL
   to a route the current role cannot access redirects or returns 403
   instead of rendering.
 - Forms must validate client-side for UX AND rely on server validation as
@@ -44,7 +44,7 @@ repos).
   container, no blocking third-party scripts — verify: a bundle report or
   route-level check shows the slice did not add an unsplit chunk or a
   render-blocking script tag.
-- Copy must be i18n-ready when VISION declares multiple languages —
+- [i18n] Copy must be i18n-ready when VISION declares multiple languages —
   verify: every user-facing string in the slice resolves through the
   i18n layer, none hardcoded inline.
 - Motion must follow `references/motion-craft.md` — transform/opacity

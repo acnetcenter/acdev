@@ -25,13 +25,13 @@ repos).
 - Cache keys must include every variance dimension — tenant, locale,
   role — verify: user A never receives user B's cached payload, and a
   request with a different locale or role produces a different cache key.
-- Static assets must be served through a CDN with immutable hashed
+- [public-web] Static assets must be served through a CDN with immutable hashed
   filenames — verify: asset responses carry long-lived immutable
   cache-control, distinct from the HTML document's cache-control.
 - HTML and API responses must be no-store or short private cache unless
   deliberately public — verify: an authenticated response is not served
   from the CDN cache to a different user.
-- Compression must be enabled — verify: responses carry a
+- [deploys] Compression must be enabled — verify: responses carry a
   content-encoding header (gzip or brotli) for compressible content
   types.
 - Performance budgets must be stated in the blueprint and checked at

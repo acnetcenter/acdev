@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Added
+- The plugin command line, `scripts/acdev.mjs` ([plan](docs/plans/2026-09-06-cost-first.md)): `next` prints the one pipeline step that applies now from `scripts/steps/` (twelve situations, each under 1,500 characters); `pack` prints the context a slice needs (ADR decision lines, the current ROADMAP phase, the checkpoint, open plans, `mockups/SPEC.md` entries, filtered checklists) in about 2k tokens; `checklist` filters a layer's items by `.acdev/profile.json`; `q` runs any command and prints its verdict lines on green, its failure lines and a tail on red; `drift` lists the docs that mention the changed files; `close --check` and `close` replace the hand-run slice close (verification first, refusing on red, then the CHANGELOG line, the plan's `status: shipped`, the freeze cleared, the checkpoint and one commit); `mockup-spec --write` extracts a per-screen spec from the mockup pages, keeping hand-written Intent lines; `run` is continuous build as one fresh headless `claude -p` session per slice, stopping on a `--blocked` checkpoint, the phase exit, no progress or an error, with cost and tokens per iteration in `.acdev/cost.jsonl`; `cost` sums that ledger; `checkpoint` and `lessons` delegate to their scripts.
+- `.acdev/profile.json` (`shared/references/templates/profile.json`, vocabulary in `shared/references/profile-tags.md`): checklist items tagged `[multi-tenant]`, `[payments]`, `[pii]`, `[jobs]`, `[deploys]`... apply only when the project declares the tag; no profile keeps every item. `blueprint` writes it from the ADRs, `onboard` from the situation map.
+- The budget eval suite (`evals/budget.cases.json`, `--suite budget`, fixture project under `evals/fixtures/budget-project`): fixed scenarios run as whole headless sessions and checked against total tokens, fresh tokens, turns and cost.
+- Tests for every command (`tests/acdev-cli`, `quiet`, `next`, `pack`, `drift`, `close`, `mockup-spec`, `run`) against throwaway git projects and a fake `claude`; 94 tests in the suite.
+
+### Changed
+- `build`, `ship` and `operate` keep only the rules that never change and point at `next`; their bodies went from 9.7k, 10.9k and 4.9k characters to 3.3k, 3.1k and 4.0k. Continuous mode, user-requested changes and post-MVP phases moved to `skills/build/references/continuous.md` and `changes.md`; the phase exit and its security pass to `skills/ship/references/phase-exit.md`; the subagent template in `slice-guide.md` now pastes the pack, asks for a report (files, tests, verdict lines, audit rows, traps) instead of diffs, and picks the model by oracle (cheapest tier where a test or the guard judges, the capable model where judgment decides).
+- `tdd`, `verifying` and `debugging` run commands through `q`, one test file at a time while red/green, the full suite once, and never re-read a file just written; the whole log never enters the context.
+- `blueprint`: every normative doc is proposed with its reader and its size cap; repo mechanics moved to `references/repo-mechanics.md`; the profile is written after the ADRs. The docs catalog folds INTEGRATIONS into ADRs plus the runbook, makes DATA-MODEL conditional on a schema that is not code, and caps every document. `mockups` writes `mockups/SPEC.md` before the gate and freezes it; `planning` caps slice plans at 40 lines and change specs at 60; VISION, MVP, runbook and incident templates carry caps.
+- The guard's `verify` prints each command's verdict lines (the whole log only on red or with `--full`) instead of streaming everything; the receipt is unchanged.
+- The per-prompt hook line is the stage and the `next` command only (about 25 tokens); the routing rules live in the gateway.
+- Lint budgets: a skill body is now at most 250 lines and 8,000 characters; step files at most 1,500 characters, one per situation the dispenser selects, no orphans.
+
 ## [0.2.2] - 2026-09-05
 
 ### Added

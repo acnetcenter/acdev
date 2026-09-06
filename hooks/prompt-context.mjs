@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-// UserPromptSubmit hook: injects one line of routing context per prompt,
-// but only inside a project that runs the pipeline (.acdev/state.md with a
-// stage). Silent everywhere else — zero cost outside acdev projects.
-// Deterministic half of routing: the model still reads intent, but the
-// project STATE it must route against is read from disk, fresh, every turn.
+// UserPromptSubmit hook: one short line per prompt, only inside a project
+// that runs the pipeline (.acdev/state.md with a stage). Silent everywhere
+// else. The line carries the stage and the step command; the routing rules
+// live in the gateway (injected at session start) and are not repeated
+// here, because every injected line stays in the transcript for the rest
+// of the session.
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 try {
   // CLAUDE_PROJECT_DIR points at the project root even when the session was
@@ -14,9 +16,8 @@ try {
   const state = readFileSync(join(root, '.acdev', 'state.md'), 'utf8');
   const stage = state.match(/^stage:\s*(.+)$/m)?.[1]?.trim();
   if (!stage) process.exit(0);
-  console.log(
-    `acdev: this project is at pipeline stage "${stage}". Pipeline skills outrank process skills when both match. In doubt or ambiguity about which skill applies, offer the matching /acdev commands and let the user choose instead of picking silently.`
-  );
+  const plugin = resolve(dirname(fileURLToPath(import.meta.url)), '..').replace(/\\/g, '/');
+  console.log(`acdev: stage ${stage}. Step: node "${plugin}/scripts/acdev.mjs" next`);
 } catch {
   // Not an acdev project (or unreadable state): inject nothing.
 }

@@ -5,7 +5,7 @@ It gets the same paper trail as any other change: a spec in
 `docs/plans/YYYY-MM-DD-incident-<slug>.md`, written before any fix is
 coded, then a mini-slice through build and a close through ship. Fill
 every section; a missing fact is asked or declared as a gap, never
-invented.
+invented. Cap: about 60 lines.
 
 ```markdown
 ---

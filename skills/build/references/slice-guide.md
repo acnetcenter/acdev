@@ -74,30 +74,45 @@ decisions are asked, not auto-decided, so they are not rows in this table:
 ## Subagent prompt template
 
 Use this shape when dispatching a narrow, per-layer subagent during the
-construction loop. Fill every bracket; do not paste all eight layer
-skills — only the ones this subagent's work actually touches.
+construction step. The pack is the context: `node
+"<plugin-root>/scripts/acdev.mjs" pack --screens <a.html> --layers
+<api,data>` prints the ADR decision lines, the current phase, the
+checkpoint, the spec entries and the checklists filtered by the
+project's profile. Paste its output; never all eight layer skills, never
+whole documents.
 
 ```
-Goal: <one sentence — what this subagent builds or fixes, scoped to one
+Goal: <one sentence: what this subagent builds or fixes, scoped to one
 layer of the current slice>
 
-Slice spec excerpt: <paste only the lines of the just-in-time slice plan
-that this layer needs — not the whole plan>
+Plan lines: <only the goal + verify steps of the slice plan this layer
+owns, not the whole plan>
 
-ADR lines: <paste the specific lines from the relevant ADR(s) that this
-work must follow — stack, schema shape, auth approach, etc., only what
-applies>
+Context: <the pack output>
 
-Injected layer checklist(s): <name only the layer-* skills whose bodies
-were included for this subagent, e.g. "layer-api, layer-data" — never all
-eight>
+Rules: TDD per the tdd skill (test first, red, green, refactor), tests
+run through `acdev q -- <command>`; the guard's denial is a gate; a
+user-challenge decision is not yours to make: stop and report it.
 
-TDD: follow the tdd skill — test first, red, green, refactor.
-
-Return a summary and the diff, not the whole files.
+Report back, in this order and nothing else: files changed (paths),
+tests added (names), the verdict lines of the last green run, audit rows
+(| Decision | Class | Choice | Reason |), traps found. No diffs, no file
+contents.
 ```
 
-The last line matters beyond token economy: a subagent that returns full
-files invites the orchestrating skill to skim instead of review. A summary
-plus a diff keeps the change auditable against the slice spec and the ADR
-lines it was given.
+## Model by oracle
+
+Pick the subagent's model by who judges its result, not by the stage:
+
+- **Cheapest tier** (a test, a lint, a typecheck or the guard judges):
+  TDD to green against a written test, lint and type fixes, doc edits
+  the drift list names, changelog and checkpoint bookkeeping.
+- **Capable model** (judgment judges): slice planning, cutting the slice,
+  root-cause debugging, anything security-sensitive, the mockups, and
+  every conversation with the user.
+
+The report format above is what makes the cheap tier safe: a subagent
+cannot declare itself done, it returns verdict lines the orchestrator can
+check against the guard's receipt. A subagent that returns full files or
+diffs invites the orchestrator to skim instead of review, and doubles the
+tokens of every slice.

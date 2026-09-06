@@ -1,5 +1,7 @@
 # VISION
 
+<!-- Cap: about 120 lines in total. Every section says something real; a section that needs more than 15 lines is hiding a decision that belongs in MVP.md or an ADR. -->
+
 ## 1. What it is / what it is NOT
 
 <!-- One sentence: what the product is, without jargon. Then what it explicitly is NOT / what is out of scope. -->

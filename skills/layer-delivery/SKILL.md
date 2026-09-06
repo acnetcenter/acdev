@@ -39,7 +39,7 @@ repos).
 - A health endpoint must be checked by the platform before routing traffic
   — verify: a deploy with a deliberately failing health check is blocked
   from receiving traffic, and the previous version keeps serving.
-- Migrations must be coordinated with deploy order, using
+- [db] Migrations must be coordinated with deploy order, using
   expand-migrate-contract for breaking schema changes — verify: during the
   rollout window, the old code version runs correctly against the new
   schema before the old columns/fields are removed.

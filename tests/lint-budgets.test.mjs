@@ -38,7 +38,7 @@ test('invalid skills fail with named violations', () => {
   assert.match(r.stderr, /layer-broken: contains emoji/);
   assert.match(r.stderr, /no-frontmatter: missing frontmatter/);
   assert.match(r.stderr, /missing-file: missing SKILL\.md/);
-  assert.match(r.stderr, /body-too-long: body \d+ lines > 500/);
+  assert.match(r.stderr, /body-too-long: body \d+ lines > 250/);
   assert.match(r.stderr, /layer-broken\/references\/note\.md: contains emoji/);
   assert.match(r.stderr, /layer-broken\/references\/flag\.md: contains emoji/);
   assert.match(r.stderr, /layer-broken\/references\/keycap\.md: contains emoji/);

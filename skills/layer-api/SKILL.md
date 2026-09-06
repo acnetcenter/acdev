@@ -26,7 +26,7 @@ repos).
 - Every list endpoint must paginate from day one — verify: a list endpoint
   backed by 1000+ rows returns a single page with pagination metadata, not
   the entire dataset.
-- Mutations with money or external side effects must be idempotent —
+- [payments,external-apis] Mutations with money or external side effects must be idempotent —
   verify: replaying the same request with the same idempotency key
   produces exactly one effect, not two.
 - Multi-step writes must be transactional — verify: forcing a failure
@@ -35,13 +35,13 @@ repos).
 - Relation-heavy endpoints must be checked for N+1 queries — verify: query
   count stays constant as the size of the returned list grows, not linear
   with it.
-- Slow or external work must run in background jobs with retry and a
+- [jobs] Slow or external work must run in background jobs with retry and a
   dead-letter path — verify: a forced job failure retries per policy and
   lands in the dead-letter queue instead of being silently dropped.
 - API evolution must be additive-only or explicitly versioned, and the
   choice recorded in an ADR — verify: the ADR exists and the slice's
   changes comply with it (no breaking change to an unversioned endpoint).
-- Outbound calls must have timeouts and retries with backoff — verify: a
+- [external-apis] Outbound calls must have timeouts and retries with backoff — verify: a
   simulated slow or failing dependency does not hang the request past the
   configured timeout, and a transient failure is retried per policy.
 
