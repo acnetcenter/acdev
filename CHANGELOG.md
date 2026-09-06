@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-09-05
+
 ### Added
 - `docs/help.md`: the manual. How the plugin runs (skills, hooks, scripts), install and update, the pipeline stage by stage, a worked example from intake to an incident, adopting an existing repo, daily work (resume, changes, bugs, verification, decision classes, continuous build, model switch, phase exit), the guard with its rules, commands and config, the lessons ratchet, operating in production, a scripts and files reference, cost and budgets, contributor notes, and a FAQ. Linked from the README quickstart.
 
