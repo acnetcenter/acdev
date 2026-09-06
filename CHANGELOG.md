@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-06
+
 ### Added
 - The plugin command line, `scripts/acdev.mjs` ([plan](docs/plans/2026-09-06-cost-first.md)): `next` prints the one pipeline step that applies now from `scripts/steps/` (twelve situations, each under 1,500 characters); `pack` prints the context a slice needs (ADR decision lines, the current ROADMAP phase, the checkpoint, open plans, `mockups/SPEC.md` entries, filtered checklists) in about 2k tokens; `checklist` filters a layer's items by `.acdev/profile.json`; `q` runs any command and prints its verdict lines on green, its failure lines and a tail on red; `drift` lists the docs that mention the changed files; `close --check` and `close` replace the hand-run slice close (verification first, refusing on red, then the CHANGELOG line, the plan's `status: shipped`, the freeze cleared, the checkpoint and one commit); `mockup-spec --write` extracts a per-screen spec from the mockup pages, keeping hand-written Intent lines; `run` is continuous build as one fresh headless `claude -p` session per slice, stopping on a `--blocked` checkpoint, the phase exit, no progress or an error, with cost and tokens per iteration in `.acdev/cost.jsonl`; `cost` sums that ledger; `checkpoint` and `lessons` delegate to their scripts.
 - `.acdev/profile.json` (`shared/references/templates/profile.json`, vocabulary in `shared/references/profile-tags.md`): checklist items tagged `[multi-tenant]`, `[payments]`, `[pii]`, `[jobs]`, `[deploys]`... apply only when the project declares the tag; no profile keeps every item. `blueprint` writes it from the ADRs, `onboard` from the situation map.
