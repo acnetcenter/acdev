@@ -196,6 +196,35 @@ if (REPO_CHECKS) {
   } else {
     errors.push('skills/using-acdev: gateway skill missing (SessionStart hook and README ledger depend on it)');
   }
+
+  // The manual and its Spanish mirror must keep the same structure: a
+  // section, table, code block or FAQ entry added to one without the other
+  // is drift. Prose is translated, so structure is what can be compared.
+  const helpPair = ['docs/help.md', 'docs/help.es.md'];
+  const profile = (text) => ({
+    'sections (##)': (text.match(/^## /gm) ?? []).length,
+    'subsections (###)': (text.match(/^### /gm) ?? []).length,
+    'table rows': (text.match(/^\|/gm) ?? []).length,
+    'code fences': (text.match(/^```/gm) ?? []).length,
+    'FAQ entries': (text.match(/^\*\*[^*].*\*\*$/gm) ?? []).length,
+    'numbered contents entries': (text.match(/^\d+\. \[/gm) ?? []).length
+  });
+  const helpTexts = helpPair.map((rel) => {
+    const p = join(ROOT, rel);
+    if (!existsSync(p)) {
+      errors.push(`${rel}: missing (docs/help.md and docs/help.es.md are mirrors; both must exist)`);
+      return null;
+    }
+    const t = norm(readFileSync(p, 'utf8'));
+    if (EMOJI.test(t)) errors.push(`${rel}: contains emoji`);
+    return t;
+  });
+  if (helpTexts.every(Boolean)) {
+    const [en, es] = helpTexts.map(profile);
+    for (const k of Object.keys(en)) {
+      if (en[k] !== es[k]) errors.push(`help mirror drift: ${k} differ (docs/help.md ${en[k]}, docs/help.es.md ${es[k]}); update both files in the same commit`);
+    }
+  }
 }
 
 if (errors.length) {

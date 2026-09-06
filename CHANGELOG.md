@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+- `docs/help.es.md`, the Spanish mirror of the manual, kept structurally identical: `lint-budgets.mjs` now fails when the two files differ in sections, subsections, table rows, code fences, FAQ entries or contents entries, or when either is missing or contains an emoji. The mirror rule is recorded in the README contribution rules.
+
 ## [0.2.1] - 2026-09-05
 
 ### Added

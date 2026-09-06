@@ -44,7 +44,7 @@ Without Node the skills still activate from their descriptions alone (degraded a
 - Resuming work on any acdev project: `/acdev:status`
 - After a deploy lands, or when production misbehaves: `/acdev:operate`
 
-The full manual, with a worked example and a FAQ, is [docs/help.md](docs/help.md).
+The full manual, with a worked example and a FAQ, is [docs/help.md](docs/help.md); its Spanish mirror is [docs/help.es.md](docs/help.es.md).
 
 Every pipeline skill is also a slash command (`/acdev:mockups`, `/acdev:blueprint`, `/acdev:build`, `/acdev:ship`), and each one activates on its own when the work matches; only `new-project` and `onboard` are run by the user, never by the model.
 
@@ -274,4 +274,4 @@ Contribution rules:
 
 - Budgets are hard limits, not guidelines — a skill that exceeds a budget fails the lint and fails CI.
 - No emojis, anywhere: skill files, scripts, hooks, docs.
-- English only, across skills, docs and commit messages.
+- English only, across skills, docs and commit messages. The one exception is `docs/help.es.md`, the Spanish mirror of the manual: every change to `docs/help.md` lands in both files in the same commit, and the lint fails when their structure (sections, tables, code blocks, FAQ entries) diverges.
