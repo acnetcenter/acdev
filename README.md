@@ -44,6 +44,8 @@ Without Node the skills still activate from their descriptions alone (degraded a
 - Resuming work on any acdev project: `/acdev:status`
 - After a deploy lands, or when production misbehaves: `/acdev:operate`
 
+The full manual, with a worked example and a FAQ, is [docs/help.md](docs/help.md).
+
 Every pipeline skill is also a slash command (`/acdev:mockups`, `/acdev:blueprint`, `/acdev:build`, `/acdev:ship`), and each one activates on its own when the work matches; only `new-project` and `onboard` are run by the user, never by the model.
 
 Pipeline map (five stages to production, each gated before the next starts, plus the operate loop that runs after every deploy):
