@@ -2,7 +2,18 @@
 
 [![ci](https://github.com/acnetcenter/acdev/actions/workflows/ci.yml/badge.svg)](https://github.com/acnetcenter/acdev/actions/workflows/ci.yml)
 
-acdev is a Claude Code plugin that takes a software project from idea to production — or adopts an existing one — through a gated, documentation-first, token-disciplined pipeline. For its author it replaces two overlapping setups: the general-purpose `superpowers` plugin and the personal `proyecto-kike` skill, which together meant two startup hooks and duplicate skills (two TDDs, two brainstormings) competing for activation on every session. acdev's core principle is to cover only the delta over native Claude Code: it does not re-teach what Claude already does well, it adds the process discipline, the hard approval gates, and the per-layer production checklists that a real project needs on top of that.
+acdev is a Claude Code plugin that takes a software project from idea to production — or adopts an existing one — and keeps it running afterwards, through a gated, documentation-first, token-disciplined pipeline. It is built for one developer or a small team shipping a real product: the product is defined and approved before any code exists, every production layer is covered by a checklist parameterized by the project's own decisions, the hard rules are enforced by a hook inside the repo rather than by the model's memory, and the whole plugin costs about 1.1k tokens per session.
+
+## Why acdev
+
+- **Product before code, with hard gates.** VISION, MVP and mockups are conversed with the user, who watches each document grow and approves it in full before the pipeline moves on. Zero product code exists before the user orders construction, and a hook in the repo denies it until then.
+- **Decisions made once.** The stack, hosting, data store, auth and tenancy are recorded as ADRs at blueprint; the eight layer skills read them and never re-derive them. Every other decision is classified as mechanical, taste or user-challenge, so the user is interrupted only for what changes the product, the money, the security posture or the data model.
+- **Production knowledge per layer, not per technology.** Frontend, API, data, auth, security, performance, delivery and CI/CD each carry a stack-agnostic checklist in goal + verify form, with the project's own `scripts/verify/` probes as evidence. Narrow subagents receive only the layer they are building.
+- **Governance as code.** A PreToolUse guard installed in each project enforces the stage ladder, the frozen documents, the frozen test under a fix, secrets, destructive commands, and a `git commit` that needs a green verification receipt. Repeated mistakes are promoted into the project's `CLAUDE.md` by script, and every incident becomes a spec before a fix.
+- **Git is the memory.** Pipeline state, checkpoints, the lessons ledger and the guard config travel with the repo. Resuming a project costs about 2k tokens, never a re-scan.
+- **Token discipline that is measured, not hoped for.** Every fixed cost is recomputed from the tree by a lint that fails CI when this README goes stale; skill descriptions, bodies and the gateway have hard budgets, and overlapping trigger vocabularies between skills fail the lint before they collide in a session.
+- **The plugin verifies itself.** A unit suite covers the scripts and the guard, the lint covers structure and drift, and two on-demand eval suites check that prompts route to the right skill and that every hard rule forces the required decision.
+- **Only the delta over native Claude Code.** Plan mode, subagents, worktrees, `/code-review`, `/security-review` and `/rewind` are referenced where they belong and never re-taught.
 
 ## Install
 
@@ -24,13 +35,16 @@ Requirements:
 - Claude Code with plugins enabled.
 - Node.js >= 20 on `PATH`, used by the SessionStart and UserPromptSubmit hooks, by `scripts/checkpoint.mjs`, `scripts/lessons.mjs` and `scripts/lint-budgets.mjs`, and by the guard hook acdev installs inside each project.
 
-Node is not strictly required: without it both hooks fail silently and acdev still works, but skills activate from their descriptions alone (degraded auto-activation) instead of from the gateway skill map injected at session start and the per-prompt routing line, and the project guard fails open.
+Without Node the skills still activate from their descriptions alone (degraded auto-activation, no gateway map at session start, no per-prompt routing line), but the pipeline's machinery does not run: no checkpoints or state, no lessons ledger, and the project guard fails open. Git is required inside a project for the verification receipt.
 
 ## Quickstart
 
 - New project, starting from zero: `/acdev:new-project`
 - Existing repo, adopting acdev on top of it: `/acdev:onboard`
 - Resuming work on any acdev project: `/acdev:status`
+- After a deploy lands, or when production misbehaves: `/acdev:operate`
+
+Every pipeline skill is also a slash command (`/acdev:mockups`, `/acdev:blueprint`, `/acdev:build`, `/acdev:ship`), and each one activates on its own when the work matches; only `new-project` and `onboard` are run by the user, never by the model.
 
 Pipeline map (five stages to production, each gated before the next starts, plus the operate loop that runs after every deploy):
 
@@ -43,7 +57,38 @@ Pipeline map (five stages to production, each gated before the next starts, plus
 | 5. Build | The MVP by vertical slices (slice 1 deploys and rolls back); post-MVP phases get mockups + spec just-in-time | Explicit order to start building; per-slice/per-phase gates; `git commit` needs a green verification receipt |
 | 6. Operate | Canary after each deploy against the runbook bands; incidents as specs in `docs/plans/` closing as mini-slices; repeated mistakes promoted into `CLAUDE.md` | Rollback before diagnosis on red; no fix without an incident spec |
 
-Zero product code is written before stage 5. Inside a project that rule, the frozen documents, the frozen test under a fix and the red-check-blocks-close rule are enforced by a hook, not by memory (see Governance as code below).
+Zero product code is written before stage 5. Inside a project, that rule, the frozen documents, the frozen test under a fix and the red-check-blocks-close rule are enforced by a hook, not by memory (see Governance as code below).
+
+## What acdev leaves in your repo
+
+Everything the pipeline produces is committed with the project, so state and history travel with the code and any session on any machine resumes from the same facts:
+
+```
+project/
+├── docs/
+│   ├── VISION.md              # stage 1, approved by the user
+│   ├── MVP.md                 # stage 2, approved by the user
+│   ├── ROADMAP.md             # phases with verifiable exit criteria
+│   ├── ARCHITECTURE.md ...    # normative docs chosen from the catalog
+│   ├── RUNBOOK.md             # deploy, exact rollback, control bands (deploying projects)
+│   ├── adr/                   # one record per closed decision
+│   ├── plans/                 # dated specs: slices, user-requested changes, incidents
+│   └── README.md              # the docs index, kept current by ship
+├── mockups/                   # stage 3: the frozen visual contract
+├── spikes/                    # disposable experiments, never merged into product code
+├── scripts/verify/            # one runnable probe per layer, plus canary.mjs
+├── .acdev/
+│   ├── state.md               # pipeline stage; the guard reads it
+│   ├── checkpoints/           # resume points written at every close
+│   ├── lessons.md             # the lessons ledger
+│   └── guard.json             # what the guard enforces in this repo
+├── .claude/hooks/acdev-guard.mjs   # the guard, wired in .claude/settings.json
+├── CLAUDE.md                  # one-page router: golden rules, stack, lessons
+├── AGENTS.md                  # identical mirror, for multi-AI projects
+└── CHANGELOG.md               # one line per shipped change, linking its plan
+```
+
+All generated documents are written in the documentation language chosen at intake, which need not be English.
 
 ## The 22 skills
 
@@ -91,7 +136,7 @@ Zero product code is written before stage 5. Inside a project that rule, the fro
 
 ## Governance as code
 
-The playbooks and harnesses that shaped acdev's 2026 revision agree on one thing: a hard rule that lives only in prose is a suggestion. acdev keeps its rules short in the skills and enforces them with three deterministic pieces installed inside each project, versioned with it, and usable by any agent that runs there.
+A hard rule that lives only in prose is a suggestion. acdev keeps its rules short in the skills and enforces them with three deterministic pieces installed inside each project and versioned with it. The guard's hook is wired for Claude Code; its command line (`verify`, `status`, `freeze`, `unfreeze`) and the lessons script work from any shell, for any agent.
 
 **The guard** (`.claude/hooks/acdev-guard.mjs`, from `shared/references/templates/guard-hook.mjs`, wired as a `PreToolUse` hook in the project's `.claude/settings.json`; `new-project` installs it at intake, `onboard` proposes it, `blueprint` completes its configuration in `.acdev/guard.json`):
 
@@ -101,14 +146,25 @@ The playbooks and harnesses that shaped acdev's 2026 revision agree on one thing
 | Approved documents stay approved | ask | `docs/VISION.md`, `docs/MVP.md`, `mockups/` and `docs/adr/` ask before an edit once their gate has closed (the drift rule made explicit) |
 | The failing test is the spec of the fix | deny | `debugging` freezes the test (`freeze <glob> --reason`); edits to frozen paths are denied until `ship` clears the freeze |
 | A red check blocks the close | deny | In build, `git commit` is denied without a receipt from `node .claude/hooks/acdev-guard.mjs verify`: the configured checks ran green on the current code tree; docs and `.acdev/` bookkeeping never stale it, code edits do |
-| Secrets and destructive commands | ask | `.env*` (examples exempt), `*.pem`, `*.key`; force push, `reset --hard`, `clean -f`, discard-all checkouts, `rm -f`, `DROP`/`TRUNCATE` |
+| Secrets and destructive commands | ask | `.env*` (examples exempt), `*.pem`, `*.key`; force push, `reset --hard`, `clean -f`, discard-all checkouts, force branch delete, stash drop, `rm -f`, `DROP`/`TRUNCATE` |
 | The guard itself | ask | The hook, its config and `.claude/settings.json` |
 
 Bash write targets (redirections, `tee`, `cp`, `mv`, `touch`, `sed -i`) go through the same path policy as Edit and Write. The hook fails open on any internal error and can be switched off with `"enabled": false` or `ACDEV_GUARD=off`; the model-side rule in the gateway closes what a parser cannot: a guard denial is a gate, never an obstacle to route around. `tests/guard-hook.test.mjs` exercises every rule.
 
+Day to day, the skills run four commands against it:
+
+```
+node .claude/hooks/acdev-guard.mjs verify                       # run the configured checks, record the receipt (ship)
+node .claude/hooks/acdev-guard.mjs status                       # stage, freeze, verify commands, receipt state
+node .claude/hooks/acdev-guard.mjs freeze tests/login.test.ts --reason "bug 42"   # debugging, before touching the code under a failing test
+node .claude/hooks/acdev-guard.mjs unfreeze                     # ship, at the close
+```
+
+Per-repo policy lives in `.acdev/guard.json`: the `verify` commands, extra paths allowed before build (a generated directory, a vendored tree), extra protected documents, and paths the receipt ignores.
+
 **The lessons ratchet** (`scripts/lessons.mjs`, ledger in `.acdev/lessons.md`): a mistake the agent makes once is a candidate; the second occurrence promotes it, by script, into the `## Lessons` section of the project's `CLAUDE.md` (mirrored to `AGENTS.md` when the project keeps one). `ship` runs it at every close, `debugging` and `operate` feed it, and a promoted lesson that can be checked mechanically becomes a test or a `scripts/verify/` probe in the same commit. Nobody hand-edits the section; past twelve promoted lessons the script asks for consolidation so the router stays under one page.
 
-**The operate loop** (`operate` skill, `docs/RUNBOOK.md`, `scripts/verify/canary.mjs`): after every deploy the canary checks health, smoke paths and p95 against the runbook's numeric bands; a red canary rolls back before anyone diagnoses; every incident becomes a spec in `docs/plans/` before any fix is coded, then closes as a mini-slice through `ship` with a lesson and a mechanical check; phase 1 of any deploying project does not exit until the rollback was rehearsed once.
+**The operate loop** (`operate` skill, `docs/RUNBOOK.md`, `scripts/verify/canary.mjs`): after every deploy the canary checks health, smoke paths and p95 against the runbook's numeric bands; a red canary rolls back before anyone diagnoses, unless the runbook's own unsafe-when clause applies and the user chooses the roll-forward path; every incident becomes a spec in `docs/plans/` before any fix is coded, then closes as a mini-slice through `ship` with a lesson and a mechanical check; each production release gets a security rescan; phase 1 of any deploying project does not exit until the rollback was rehearsed once.
 
 ## Token cost ledger
 
@@ -139,11 +195,11 @@ Budgets enforced by `scripts/lint-budgets.mjs` (and checked in CI):
 | Skill body | < 500 lines and < 20,000 characters (~5k tokens) |
 | Gateway file (`using-acdev/SKILL.md`, whole file) | <= 1,600 characters (~400 tokens) |
 
-Beyond budgets, the lint also rejects emojis in every markdown file under `skills/` and `shared/`, verifies that `plugin.json`, `marketplace.json` and `package.json` parse and agree on version and description, and checks the skill tables and token ledger in this README against the actual frontmatter — doc drift about the plugin fails its CI the same way doc drift about a project fails a slice.
+Beyond budgets, the lint also rejects emojis in every markdown file under `skills/` and `shared/`, fails when two model-invocable descriptions share enough trigger vocabulary to collide at activation time, fails when the block the eight layer skills repeat by design diverges between them, verifies that `plugin.json`, `marketplace.json` and `package.json` parse and agree on version and description, and checks the skill tables and token ledger in this README against the actual frontmatter — doc drift about the plugin fails its CI the same way doc drift about a project fails a slice.
 
 ## Migration from superpowers / proyecto-kike
 
-If you currently use the `superpowers` plugin and/or the personal `proyecto-kike` skill, uninstall/remove both when you adopt acdev:
+acdev was born to replace two overlapping setups its author ran side by side: the general-purpose `superpowers` plugin and the personal `proyecto-kike` skill, which together meant two startup hooks and duplicate skills (two TDDs, two brainstormings) competing for activation on every session. If you currently use the `superpowers` plugin and/or the personal `proyecto-kike` skill, uninstall/remove both when you adopt acdev:
 
 1. Uninstall the `superpowers` plugin.
 2. Delete the personal `proyecto-kike` skill from your skills directory.
@@ -190,10 +246,9 @@ npm run evals -- --dry-run        # print the constructed prompts, no calls
 ```
 
 Run them before a release and after changing any skill description, the
-gateway, or the wording of a gate. A case that fails twice in a row (the
-run plus its retry) is a real finding: the description, the gate text, or
-the case itself needs fixing — and a persistent failure is fixed by
-sharpening the surface or the case, never by widening `accept`. The gates
+gateway, or the wording of a gate. A real finding is fixed by sharpening
+the description, the gate text or the case itself, never by widening
+`accept`. The gates
 suite is an open-book check — it proves the governing text forces the
 required decision, not that a session under pressure will obey it.
 `npm run evals -- --ablate` measures how many gate cases a judge answers

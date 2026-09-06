@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed
+- README: leads with what acdev is for and a "Why acdev" list of its strengths instead of the author's migration story (moved to the Migration section); adds "What acdev leaves in your repo" (the committed project layout) and the guard's day-to-day commands and per-repo policy; corrects the Node paragraph (the pipeline's scripts and the guard need Node, skills alone do not) and the overclaim that the guard hook serves any agent (the hook is Claude Code's; the CLI and the lessons script are shell-agnostic); names the lint's overlap and layer-parity checks; removes a duplicated sentence in Evals; fixes the broken sentence under the pipeline map.
+
 ## [0.2.0] - 2026-09-05
 
 ### Added
