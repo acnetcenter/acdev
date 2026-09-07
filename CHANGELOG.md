@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed
+- `evals/budget.cases.json` calibrated on a real run of acdev 0.4.2 (haiku judge): every case closes in 2 turns and about 63k total tokens, so the ceilings drop from 8/4/4 turns and 200k/120k/120k total tokens to 3 turns and 80k total, with 14k fresh tokens (the observed 9.7k to 11.1k is mostly the one-time cache write of the system prompt); the observed numbers are recorded in each case.
+
 ## [0.4.2] - 2026-09-07
 
 ### Fixed

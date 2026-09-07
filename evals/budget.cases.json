@@ -1,32 +1,32 @@
 {
-  "about": "Budget eval cases: a fixed scenario run as a whole headless session (claude -p --output-format json) inside the fixture project under fixtures/budget-project, checked against a token budget. total counts every token the session processed, cache reads included, because each turn re-reads the context; fresh counts input, cache writes and output. Budgets are ceilings, calibrated on the first green run and tightened as the plugin gets cheaper; a case that starts failing means a regression in turns or context, not a flaky judge. Run explicitly: node scripts/run-evals.mjs --suite budget. <plugin-root> in a prompt is replaced by the plugin's path.",
+  "about": "Budget eval cases: a fixed scenario run as a whole headless session (claude -p --output-format json) inside the fixture project under fixtures/budget-project, checked against a token budget. total counts every token the session processed, cache reads included, because each turn re-reads the context; fresh counts input, cache writes and output. Budgets are ceilings calibrated on a real run (see each why) and tightened as the plugin gets cheaper; a case that starts failing means a regression in turns or context, not a flaky judge. Run explicitly: node scripts/run-evals.mjs --suite budget. <plugin-root> in a prompt is replaced by the plugin's path.",
   "cases": [
     {
       "id": "budget-status",
       "cwd": "fixtures/budget-project",
       "prompt": "/acdev:status",
-      "max_total_tokens": 200000,
-      "max_fresh_tokens": 8000,
+      "max_total_tokens": 80000,
+      "max_fresh_tokens": 14000,
       "max_turns": 3,
-      "why": "The resume snapshot is one acdev.mjs status call and must not scan the repo."
+      "why": "The resume snapshot is one acdev.mjs status call and must not scan the repo. Calibrated 2026-09-07 on acdev 0.4.2 with the haiku judge: 2 turns, 64,593 total / 11,066 fresh tokens, $0.030; ceilings are that run plus about 25 percent (fresh is dominated by the one-time cache write of the system prompt, which the plugin does not control)."
     },
     {
       "id": "budget-next-step",
       "cwd": "fixtures/budget-project",
       "prompt": "Run node \"<plugin-root>/scripts/acdev.mjs\" next and reply with the step id and the next_step line only.",
-      "max_total_tokens": 120000,
-      "max_fresh_tokens": 6000,
-      "max_turns": 4,
-      "why": "One command, one answer: the dispenser must cost one tool call."
+      "max_total_tokens": 80000,
+      "max_fresh_tokens": 14000,
+      "max_turns": 3,
+      "why": "One command, one answer: the dispenser must cost one tool call. Calibrated 2026-09-07 on acdev 0.4.2 with the haiku judge: 2 turns, 62,679 total / 9,654 fresh tokens, $0.025; ceilings are that run plus about 25 percent (fresh is dominated by the one-time cache write of the system prompt, which the plugin does not control)."
     },
     {
       "id": "budget-pack",
       "cwd": "fixtures/budget-project",
       "prompt": "Run node \"<plugin-root>/scripts/acdev.mjs\" pack --layers api and reply with the number of ADR decisions and the number of checklist items it printed.",
-      "max_total_tokens": 120000,
-      "max_fresh_tokens": 8000,
-      "max_turns": 4,
-      "why": "The pack replaces reading ADRs, ROADMAP and checkpoints; it must stay one call and about 2k tokens."
+      "max_total_tokens": 80000,
+      "max_fresh_tokens": 14000,
+      "max_turns": 3,
+      "why": "The pack replaces reading ADRs, ROADMAP and checkpoints; it must stay one call and about 2k tokens. Calibrated 2026-09-07 on acdev 0.4.2 with the haiku judge: 2 turns, 63,560 total / 10,527 fresh tokens, $0.028; ceilings are that run plus about 25 percent (fresh is dominated by the one-time cache write of the system prompt, which the plugin does not control)."
     }
   ]
 }
