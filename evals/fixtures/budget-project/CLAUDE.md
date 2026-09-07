@@ -5,6 +5,7 @@ stage, slice 1 shipped. Not a real project; do not modify it.
 
 ## Read before working
 
-- docs/ROADMAP.md for the current phase.
-- The latest checkpoint via /acdev:status.
-- docs/adr/ for decisions already made.
+The step (`next`) and the pack it names already carry the current phase,
+the ADR decision lines and the latest checkpoint. Open docs/ROADMAP.md or
+docs/adr/ only when the pack prints one of its fallback markers. Resuming
+starts with /acdev:status, once.

@@ -24,7 +24,21 @@ State variants live in their own file, suffixed and linked from the main
 page, never toggled with JS: `invoice-list-empty.html`,
 `invoice-list-error.html`, `invoice-list-loading.html`. Link to these from
 the primary screen (e.g. a small "view empty state" link near the top) so
-they stay reachable without cluttering the main flow.
+they stay reachable without cluttering the main flow. A variant is
+produced with `node "<plugin-root>/scripts/acdev.mjs" scaffold mockup-variant
+mockups/<page>.html <state>`, which copies the page with the `<main>` body
+replaced by a one-line marker; write only that block. A variant is never
+authored from scratch, because header, nav and footer are identical by
+definition and re-emitting them is pure output cost. Variants stay
+separate files with no JS toggling: `mockup-spec` lists them per screen
+by filename.
+
+## Revisions
+
+A revision round is a set of Edits to the affected blocks of the affected
+pages, never a page rewrite: a changed column touches the `<table>`, a
+renamed action touches the `<button>`. A rewrite re-emits everything that
+did not change and risks silently altering it.
 
 ## styles.css and design tokens
 
@@ -46,10 +60,12 @@ spacing — not hardcoded values scattered across pages:
 }
 ```
 
-These custom properties are not just convenience — they become the source
-for the UI-DESIGN doc written later at `blueprint`. Name them clearly and
-keep the set small and deliberate; a token sprawl here becomes a token
-sprawl in the real design system.
+These custom properties are not just convenience — they are the product's
+token set: the frontend copies `styles.css` into the stack's token file
+at build, and `pack` prints the `:root` block to every frontend slice;
+UI-DESIGN never transcribes them. Name them clearly and keep the set
+small and deliberate; a token sprawl here becomes a token sprawl in the
+real design system.
 
 ## Semantic HTML
 
@@ -71,6 +87,9 @@ product, in the project's documentation language:
   a believable range (not every row dated today).
 - Statuses, categories, and other enums: the actual values from MVP.md, not
   invented ones.
+- Volume: 5-8 rows per table and 3-6 items per list or card grid. That is
+  enough to show formatting, every status and a believable date range;
+  more rows add output cost without adding information.
 
 Never use lorem ipsum, "Lorem ipsum dolor," `[placeholder]`, `TODO`, or
 `Item 1 / Item 2 / Item 3` filler. If a real value is not known yet, invent
@@ -109,6 +128,45 @@ Mockups are static pages linked to each other with plain `<a href>`; no
 client-side state, no fetch calls, no framework runtime. If a flow needs to
 show a screen "after" an action, that is a separate HTML page, not a JS
 state change.
+
+## Skeleton inventory
+
+Write `docs/mockups-inventory.md` with `node "<plugin-root>/scripts/acdev.mjs"
+scaffold mockups-inventory docs/mockups-inventory.md` (`<plugin-root>` is
+the path printed as `acdev plugin root:` at session start) and replace each
+`<!-- ... -->` guidance comment and each `<...>` placeholder with real
+content: one line per post-MVP screen (name, purpose,
+target phase from VISION §7, where it attaches in navigation). The MVP
+menu, sidebar or nav bar shows where those phase-2+ items will attach; the
+screens themselves are not drawn.
+
+## Presenting and revising
+
+Point the user at `mockups/index.html` to browse in a normal browser.
+Collect corrections and apply them in rounds; commit each round as
+`docs: mockups revision N` (N = 1, 2, 3...), as block Edits per the
+Revisions section above.
+
+## Spec generation
+
+Before the gate, and again after every revision round:
+
+```
+node "<plugin-root>/scripts/acdev.mjs" mockup-spec --write
+```
+
+extracts one entry per screen from the HTML (title, headings, nav, fields,
+columns, buttons, links, state variants) into `mockups/SPEC.md`. Complete
+the one Intent line per screen; the Intent lines survive regeneration.
+
+## Closing the gate
+
+On an explicit approval (the skill body holds the wording and the freeze
+semantics), advance the state and commit with `mockups/SPEC.md` included:
+
+```
+node "<plugin-root>/scripts/acdev.mjs" checkpoint write --stage blueprint --branch <branch> --next "blueprint: normative docs, ADRs, repo mechanics"
+```
 
 ## Accessibility floor
 

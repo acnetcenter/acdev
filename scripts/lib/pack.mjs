@@ -44,6 +44,18 @@ export function specEntries(root, screens) {
   return out;
 }
 
+// The first `:root { ... }` block of mockups/styles.css, capped: the frontend
+// copies the file into the stack's token file, so the pack shows the values
+// instead of UI-DESIGN transcribing them. Comments go first: a brace inside
+// one would otherwise end the block early.
+export function designTokens(root, { maxLines = 60 } = {}) {
+  const css = readIf(join(root, 'mockups', 'styles.css'));
+  if (css === null) return null;
+  const block = norm(css).replace(/\/\*[\s\S]*?\*\//g, '').match(/:root\s*\{[^}]*\}/);
+  if (!block) return '(mockups/styles.css has no :root block)';
+  return cap(block[0], maxLines);
+}
+
 export function buildPack(root, { pluginRoot, screens = [], layers = [], pitfalls = false } = {}) {
   const state = readState(root);
   const out = ['# acdev pack'];
@@ -69,6 +81,10 @@ export function buildPack(root, { pluginRoot, screens = [], layers = [], pitfall
   const profile = loadProfile(root);
   out.push('', `## profile`, profile ? `tags: ${profile.tags.join(', ') || '(none)'}` : '(no .acdev/profile.json; every checklist item applies)');
   if (screens.length) out.push('', '## mockup spec', ...specEntries(root, screens));
+  if (layers.includes('frontend')) {
+    const tokensBlock = designTokens(root);
+    if (tokensBlock !== null) out.push('', '## design tokens (mockups/styles.css)', tokensBlock);
+  }
   if (layers.length) out.push('', renderChecklists(pluginRoot, layers, profile, { pitfalls }));
   const text = out.join('\n');
   return `${text}\n\npack: ${text.length} chars (~${tokens(text.length)} tokens)`;

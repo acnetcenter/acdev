@@ -15,13 +15,21 @@ the exact command and the time to restore. No drill, no exit.
 
 If build ran on a cheaper model, switch back to the most capable one
 (`/model`): construction follows instructions, hunting vulnerabilities
-takes adversarial reasoning. Three parts, each with evidence:
+takes adversarial reasoning. Three parts, each with evidence, in this
+order:
 
-1. Native `/security-review` over the phase's full diff (first slice of
-   the phase to HEAD).
-2. The OWASP Top 10 pass from `layer-security`'s checklist over the
-   permission matrix and the phase's injection surfaces.
-3. The project's `scripts/verify/` security probes, through `q`.
+1. The project's `scripts/verify/` security probes, through `q`, first:
+   they are free and a red one ends the pass before any diff is read.
+2. Native `/security-review` over the phase's diff (first slice of the
+   phase to HEAD) with the non-risk paths excluded: tests, docs, mockup
+   HTML, lockfiles, the CHANGELOG. Exclude by path only; never scope the
+   diff by profile tags (they carry no path mapping) and never skip
+   commits because `/code-review` saw them (that is not a security
+   review). The unscoped diff stays the backstop when in doubt.
+3. The OWASP Top 10 pass from `layer-security`'s checklist over the
+   permission matrix and the phase's injection surfaces, reasoning over
+   the diff already in context instead of re-reading the files; open a
+   file only for a surface the diff does not show whole.
 
 A high-severity finding blocks the phase close the same way a red check
 blocks a slice: fix it, or put the acceptance to the user as an explicit

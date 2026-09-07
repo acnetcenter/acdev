@@ -44,8 +44,8 @@ close. Open a document only when the pack says it lacks something.
   alternative path, no edit to `.acdev/` or the hook to make it go away.
   Either the state is behind reality (the pipeline advances it at its
   gate, with the user) or the action is wrong.
-- The orchestrator stays thin. Construction runs in subagents that receive
-  the pack and the filtered checklists and return a short report; the
+- The orchestrator stays thin. Construction runs in subagents that run
+  the pack command named in their prompt and return a short report; the
   capable model plans, decides and hunts security, the cheapest tier does
   what a test or a lint can judge (`references/slice-guide.md`).
 - Every slice closes through `ship`: verified green first, one commit.

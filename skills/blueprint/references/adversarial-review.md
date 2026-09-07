@@ -6,9 +6,12 @@ gate. Everything here happens BEFORE the package is approved and frozen.
 ## Panels
 
 Run two independent panels via the native Agent tool (it already knows
-how to run subagents). Each panel receives the full package — normative
-docs, ADRs, spike results, the mockups contract — and no knowledge of
-the other panel:
+how to run subagents). Each panel receives the file paths of the package
+(`docs/*.md`, `docs/adr/`, `mockups/SPEC.md`, `mockups/index.html`,
+spike results if any) plus its lens, and reads the files itself; the
+package is never pasted into the prompt, since a subagent is a fresh
+context and pasting re-emits at output cost what it can read at input
+cost. Neither panel knows of the other:
 
 - **The excess panel** attacks what is there: over-design, speculative
   structure, complexity the MVP does not pay for, dependencies that
@@ -19,6 +22,14 @@ the other panel:
 
 When the user wants extra diversity, run the panels on different models;
 opposing lenses find more than a second copy of the same reviewer.
+
+## Bounded return
+
+Each panel returns findings severity-first, one line each (file, finding,
+severity): every high or critical finding in full, then at most 10
+lower-severity findings ordered by severity, then one closing line saying
+how many were omitted if more exist ("12 low findings omitted"). Nothing
+else comes back: no restated context, no quoted documents.
 
 ## Contrast before presenting
 

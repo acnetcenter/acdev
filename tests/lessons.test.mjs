@@ -9,7 +9,9 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const script = join(here, '..', 'scripts', 'lessons.mjs');
 const run = (proj, ...args) => spawnSync(process.execPath, [script, ...args], { cwd: proj, encoding: 'utf8' });
-const ROUTER = '# Demo\n\n## Golden rules\n\n- rule one\n\n## Stack\n\nNode. See [docs/adr/](docs/adr/).\n';
+// The router carries the template's "## Mirror note" heading: that is how
+// lessons (and close) tell an acdev AGENTS.md copy from a hand-kept one.
+const ROUTER = '# Demo\n\n## Golden rules\n\n- rule one\n\n## Stack\n\nNode. See [docs/adr/](docs/adr/).\n\n## Mirror note\n\nAGENTS.md is a copy of this file.\n';
 
 test('first occurrence is a candidate; second promotes into CLAUDE.md and the AGENTS.md mirror', () => {
   const proj = mkdtempSync(join(tmpdir(), 'acdev-lessons-'));
@@ -33,6 +35,37 @@ test('first occurrence is a candidate; second promotes into CLAUDE.md and the AG
   assert.match(ledger, /\| 1 \| 2 \| \d{4}-\d{2}-\d{2} \| \d{4}-\d{2}-\d{2} \| promoted \| slice 5 \| Run migrations/);
   const l = run(proj, 'list');
   assert.match(l.stdout, /#1 \[promoted, seen 2/);
+});
+
+test('a hand-kept AGENTS.md (no router copy marker) is left alone when a lesson promotes', () => {
+  const proj = mkdtempSync(join(tmpdir(), 'acdev-lessons-'));
+  const kept = '# Agents\n\nHand-written guidance for other agents.\n';
+  writeFileSync(join(proj, 'CLAUDE.md'), '# Demo\n\n## Golden rules\n\n- rule one\n');
+  writeFileSync(join(proj, 'AGENTS.md'), kept);
+  run(proj, 'add', 'lesson');
+  const r = run(proj, 'promote', '--id', '1');
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /^promoted #1 to CLAUDE\.md: - lesson/m);
+  assert.doesNotMatch(r.stdout, /and AGENTS\.md/);
+  assert.match(r.stdout, /^AGENTS\.md kept as is \(not an acdev router copy\)$/m);
+  assert.equal(readFileSync(join(proj, 'AGENTS.md'), 'utf8'), kept);
+  assert.match(readFileSync(join(proj, 'CLAUDE.md'), 'utf8'), /## Lessons\n\n.*\n\n- lesson/);
+  // The explicit marker comment counts as a copy too, like in close.
+  const marked = mkdtempSync(join(tmpdir(), 'acdev-lessons-'));
+  writeFileSync(join(marked, 'CLAUDE.md'), '# Demo\n');
+  writeFileSync(join(marked, 'AGENTS.md'), '<!-- acdev: copy of CLAUDE.md -->\n# Demo\n');
+  run(marked, 'add', 'lesson');
+  const m = run(marked, 'promote', '--id', '1');
+  assert.match(m.stdout, /promoted #1 to CLAUDE\.md and AGENTS\.md/);
+  assert.doesNotMatch(m.stdout, /kept as is/);
+  assert.match(readFileSync(join(marked, 'AGENTS.md'), 'utf8'), /## Lessons/);
+  // No AGENTS.md at all: no mirror line either way.
+  const none = mkdtempSync(join(tmpdir(), 'acdev-lessons-'));
+  writeFileSync(join(none, 'CLAUDE.md'), '# Demo\n');
+  run(none, 'add', 'lesson');
+  const n = run(none, 'promote', '--id', '1');
+  assert.match(n.stdout, /^promoted #1 to CLAUDE\.md: /m);
+  assert.doesNotMatch(n.stdout, /AGENTS/);
 });
 
 test('bullets append inside an existing Lessons section, before the next heading, without duplicates', () => {

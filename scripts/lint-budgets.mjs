@@ -2,6 +2,9 @@
 // Structure and budget lint for acdev skills. Approximation: 1 token = 4 chars.
 // With ACDEV_SKILLS_DIR set (test fixtures), only the skills-dir checks run;
 // against the real tree it also lints shared/, the manifests and README drift.
+// ACDEV_STEPS_DIR (test fixtures) points the per-file step checks at another
+// directory; the completeness check (every dispenser id present) stays
+// repo-only. Pointers are always resolved against the real tree.
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,17 +12,55 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SKILLS_DIR = process.env.ACDEV_SKILLS_DIR ?? join(ROOT, 'skills');
 const REPO_CHECKS = !process.env.ACDEV_SKILLS_DIR;
+const STEPS_DIR = process.env.ACDEV_STEPS_DIR ?? join(ROOT, 'scripts', 'steps');
+const STEP_CHECKS = REPO_CHECKS || Boolean(process.env.ACDEV_STEPS_DIR);
 const DESCRIPTION_MAX_CHARS = 400;   // ~100 tokens
 const BODY_MAX_LINES = 250;
 const BODY_MAX_CHARS = 8000;         // ~2k tokens; procedure lives in scripts/steps, detail in references
 const GATEWAY_MAX_CHARS = 1600;      // ~400 tokens, whole file
 const STEP_MAX_CHARS = 1500;         // ~375 tokens, one step of the dispenser
 const STEP_IDS = ['no-project', 'stage-intake', 'stage-vision', 'stage-mvp', 'stage-mockups', 'stage-blueprint', 'build-plan', 'build-construct', 'build-blocked', 'build-incident', 'build-phase-exit', 'build-change'];
+// The pre-build bodies were thinned by classification: procedure moved to
+// the steps and references, rules stayed. A body's cap is its thinned size
+// plus about 10 percent, so procedure cannot creep back in; the phrases are
+// the gates, user-challenge triggers and format contracts that must stay in
+// the body verbatim (the gate evals paste the body and expect them to
+// decide). Compared whitespace-collapsed, since line wrapping differs.
+const PIPELINE_BODY_MAX = { 'new-project': 5400, mockups: 5500, blueprint: 6000, onboard: 5600 };
+const REQUIRED_PHRASES = {
+  'new-project': [
+    'Do you approve this VISION document?',
+    'Ask for explicit approval of the full MVP.md document, the same way as stage 1.',
+    'Zero product code',
+    'No placeholders anywhere in generated documents.'
+  ],
+  mockups: [
+    'Do you approve these mockups?',
+    'The freeze is normative for what the mockups actually draw',
+    'is illustrative: `build` decides those as taste-class decisions',
+    'Reopening the contract after approval requires re-approval'
+  ],
+  blueprint: [
+    'user-challenge',
+    'asked, never assumed',
+    'The Decision section is what the pack quotes to every build slice',
+    'Only this write unlocks product code',
+    "It starts ONLY on the user's explicit order"
+  ],
+  onboard: [
+    'declared gap',
+    'Ask for explicit confirmation that the map is accurate before proposing anything.',
+    'Never rewrite an existing doc without showing the diff'
+  ]
+};
 // Extended_Pictographic plus the pieces it does not cover: regional
 // indicators (country flags), VS16 and the keycap combiner. The lookahead
 // exempts (c) (r) (tm), which are text, not emoji.
 const EMOJI = /(?![©®™])(?:\p{Extended_Pictographic}|[\u{1F1E6}-\u{1F1FF}\u{FE0F}\u{20E3}])/u;
-const LAYER_REQUIRED_HEADINGS = ['## Production checklist', '## Pitfalls', '## How to verify'];
+// A layer SKILL.md is a stub (the gate plus how to verify); its items live
+// in references/checklist.md, which the checklist command and the pack read.
+const LAYER_REQUIRED_HEADINGS = ['## Before advising', '## How to verify'];
+const LAYER_CHECKLIST_HEADINGS = ['## Production checklist', '## Pitfalls'];
 const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 const norm = (s) => s.replace(/\r\n/g, '\n');
 const fmt = (n) => n.toLocaleString('en-US');
@@ -45,6 +86,18 @@ function mdFilesUnder(base) {
   return out;
 }
 const label = (p, base) => relative(base, p).replaceAll('\\', '/');
+
+// There is no `acdev` executable: an invocation shape (a subcommand, then
+// optional positional tokens, then a flag) written that way sends a
+// subagent hunting for a binary. A flag (`--layers`, `-x`) may follow
+// positional tokens (`checkpoint write --stage`); the bare `--` separator
+// counts only directly after the subcommand (`q -- npm test`), so prose
+// such as "acdev close clears the freeze -- and the receipt" stays legal,
+// and a closing backtick ends the token walk ("`acdev close` clears it").
+const BARE_COMMAND = /(?<![\w/."-])acdev (next|pack|q|close|checklist|drift|run|cost|checkpoint|lessons|mockup-spec|status|scaffold)\b(?=(?: [^\s`-][^\s`]*)* --?[a-z]| --(?![^\s]))/g;
+function bareCommands(raw) {
+  return [...norm(raw).matchAll(BARE_COMMAND)].map((m) => m[0]);
+}
 
 const dirs = readdirSync(SKILLS_DIR, { withFileTypes: true }).filter((d) => d.isDirectory());
 if (dirs.length === 0) errors.push('skills dir contains no skill directories');
@@ -74,11 +127,28 @@ for (const dir of dirs) {
   const lines = body.split('\n').length;
   if (lines > BODY_MAX_LINES) errors.push(`${lbl}: body ${lines} lines > ${BODY_MAX_LINES}`);
   if (norm(body).length > BODY_MAX_CHARS) errors.push(`${lbl}: body ${norm(body).length} chars > ${BODY_MAX_CHARS}`);
+  if (dir.name in PIPELINE_BODY_MAX && norm(body).length > PIPELINE_BODY_MAX[dir.name]) {
+    errors.push(`${lbl}: body ${norm(body).length} chars > ${PIPELINE_BODY_MAX[dir.name]} (thinned pipeline body; procedure goes to scripts/steps or references/)`);
+  }
+  if (dir.name in REQUIRED_PHRASES) {
+    const flat = norm(body).replace(/\s+/g, ' ');
+    for (const phrase of REQUIRED_PHRASES[dir.name]) {
+      if (!flat.includes(phrase)) errors.push(`${lbl}: body is missing the required phrase "${phrase}"`);
+    }
+  }
   if (dir.name === 'using-acdev' && norm(raw).length > GATEWAY_MAX_CHARS) errors.push(`${lbl}: gateway ${norm(raw).length} chars > ${GATEWAY_MAX_CHARS}`);
   if (EMOJI.test(raw)) errors.push(`${lbl}: contains emoji`);
   if (dir.name.startsWith('layer-')) {
     for (const h of LAYER_REQUIRED_HEADINGS) {
       if (!body.includes(h)) errors.push(`${lbl}: missing required heading "${h}"`);
+    }
+    const checklist = join(SKILLS_DIR, dir.name, 'references', 'checklist.md');
+    if (!existsSync(checklist)) errors.push(`${lbl}: missing references/checklist.md (the checklist command reads it)`);
+    else {
+      const text = readFileSync(checklist, 'utf8');
+      for (const h of LAYER_CHECKLIST_HEADINGS) {
+        if (!text.includes(h)) errors.push(`${lbl}/references/checklist.md: missing required heading "${h}"`);
+      }
     }
   }
   const noModel = /^disable-model-invocation:\s*true$/m.test(fm);
@@ -111,11 +181,13 @@ for (let i = 0; i < invocable.length; i++) {
 
 // The layer skills repeat two shared blocks by design (each skill loads in
 // isolation); this guards that an edit to one of them reaches all of them.
+// The only legitimate difference inside "Before advising" is the layer's
+// own name in the checklist command, normalized away before comparing.
 const layerSkills = skills.filter((s) => s.dir.startsWith('layer-'));
 if (layerSkills.length > 1) {
   const variants = new Map();
   for (const l of layerSkills) {
-    const t = norm(l.body).match(/## Before advising\n([\s\S]*?)(?=\n## )/)?.[1]?.trim() ?? '<missing>';
+    const t = norm(l.body).match(/## Before advising\n([\s\S]*?)(?=\n## )/)?.[1]?.trim().replace(/--layers [a-z-]+/g, '--layers X') ?? '<missing>';
     if (!variants.has(t)) variants.set(t, []);
     variants.get(t).push(l.dir);
   }
@@ -136,27 +208,43 @@ for (const l of layerSkills) {
 // The no-emoji rule covers references and templates too, not only SKILL.md.
 const scanned = new Set(dirs.map((d) => join(SKILLS_DIR, d.name, 'SKILL.md')));
 for (const p of mdFilesUnder(SKILLS_DIR)) {
-  if (scanned.has(p)) continue; // already scanned above
-  if (EMOJI.test(readFileSync(p, 'utf8'))) errors.push(`skills/${label(p, SKILLS_DIR)}: contains emoji`);
+  const raw = readFileSync(p, 'utf8');
+  if (!scanned.has(p) && EMOJI.test(raw)) errors.push(`skills/${label(p, SKILLS_DIR)}: contains emoji`);
+  for (const bare of bareCommands(raw)) errors.push(`skills/${label(p, SKILLS_DIR)}: "${bare}" names no executable; write node "<plugin-root>/scripts/acdev.mjs" ${bare.slice(6)}`);
+}
+
+// The step dispenser: one file per situation `scripts/lib/next.mjs` can
+// pick, each under its budget, none with emoji, no orphans.
+const stepFiles = STEP_CHECKS && existsSync(STEPS_DIR) ? readdirSync(STEPS_DIR).filter((f) => f.endsWith('.md')) : [];
+if (REPO_CHECKS) {
+  for (const id of STEP_IDS) {
+    if (!stepFiles.includes(`${id}.md`)) errors.push(`scripts/steps/${id}.md: missing (the dispenser can select it)`);
+  }
+}
+if (STEP_CHECKS) {
+  for (const f of stepFiles) {
+    const raw = norm(readFileSync(join(STEPS_DIR, f), 'utf8'));
+    if (!STEP_IDS.includes(f.replace(/\.md$/, ''))) errors.push(`scripts/steps/${f}: not a step the dispenser selects (orphan)`);
+    if (raw.length > STEP_MAX_CHARS) errors.push(`scripts/steps/${f}: ${raw.length} chars > ${STEP_MAX_CHARS}`);
+    if (EMOJI.test(raw)) errors.push(`scripts/steps/${f}: contains emoji`);
+    // A step is read in a headless session with no skill directory in
+    // sight: every pointer into the plugin must be absolute (next fills
+    // <plugin-root> in) and must resolve, or the model spends turns
+    // searching for it. The path class cannot end in a dot, so the full
+    // stop of a sentence ("...SKILL.md.") is not captured as part of it.
+    for (const m of raw.matchAll(/<plugin-root>\/((?:skills|shared)\/[A-Za-z0-9_./-]*[A-Za-z0-9_/-])/g)) {
+      if (!existsSync(join(ROOT, m[1]))) errors.push(`scripts/steps/${f}: pointer <plugin-root>/${m[1]} does not resolve`);
+    }
+    for (const m of raw.matchAll(/(?<![\w/])references\/[a-z-]+\.md/g)) {
+      errors.push(`scripts/steps/${f}: relative pointer "${m[0]}"; write <plugin-root>/skills/<skill>/${m[0]}`);
+    }
+    for (const bare of bareCommands(raw)) errors.push(`scripts/steps/${f}: "${bare}" names no executable; write node "<plugin-root>/scripts/acdev.mjs" ${bare.slice(6)}`);
+  }
 }
 
 if (REPO_CHECKS) {
   for (const p of mdFilesUnder(join(ROOT, 'shared'))) {
     if (EMOJI.test(readFileSync(p, 'utf8'))) errors.push(`${label(p, ROOT)}: contains emoji`);
-  }
-
-  // The step dispenser: one file per situation `scripts/lib/next.mjs` can
-  // pick, each under its budget, none with emoji, no orphans.
-  const stepsDir = join(ROOT, 'scripts', 'steps');
-  const stepFiles = existsSync(stepsDir) ? readdirSync(stepsDir).filter((f) => f.endsWith('.md')) : [];
-  for (const id of STEP_IDS) {
-    if (!stepFiles.includes(`${id}.md`)) errors.push(`scripts/steps/${id}.md: missing (the dispenser can select it)`);
-  }
-  for (const f of stepFiles) {
-    const raw = norm(readFileSync(join(stepsDir, f), 'utf8'));
-    if (!STEP_IDS.includes(f.replace(/\.md$/, ''))) errors.push(`scripts/steps/${f}: not a step the dispenser selects (orphan)`);
-    if (raw.length > STEP_MAX_CHARS) errors.push(`scripts/steps/${f}: ${raw.length} chars > ${STEP_MAX_CHARS}`);
-    if (EMOJI.test(raw)) errors.push(`scripts/steps/${f}: contains emoji`);
   }
 
   // Manifests must parse, and the values duplicated across them must agree.

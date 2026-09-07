@@ -35,18 +35,25 @@ kinds of pieces:
   production knowledge per layer (`layer-frontend`, `layer-api`,
   `layer-data`, `layer-auth`, `layer-security`, `layer-performance`,
   `layer-delivery`, `layer-cicd`), and one gateway (`using-acdev`) tells
-  the model how to use the rest. A skill's body loads into context only
-  when it activates; only its one-line description is always present.
+  the model how to use the rest. A layer skill's body is a stub: it makes
+  the model read the ADRs, run `checklist --layers <x> --pitfalls` and
+  cite the output before advising; the items live in
+  `skills/layer-<x>/references/checklist.md` and reach context only
+  through that command or `pack`, filtered by the profile. A skill's body
+  loads into context only when it activates; only its one-line
+  description is always present.
 - **Hooks.** Two in the plugin: at session start, the gateway is printed
   into context together with the plugin's install path; on every prompt
   inside a project that has `.acdev/state.md`, one line names the current
-  pipeline stage and the `next` command. One more hook is installed by
+  pipeline stage and nothing else. One more hook is installed by
   acdev *inside each project*: the guard, which enforces the hard rules
   before a tool call runs (section 7).
 - **Scripts.** Deterministic work never spends context. `acdev.mjs` is
   the pipeline's command line: `next` prints the one step that applies
   now, `pack` the context a slice needs, `q` a command's verdict, `close`
-  the whole slice close, `run` the headless loop (section 10).
+  the whole slice close, `run` the headless loop, `status` the resume
+  snapshot, `scaffold` verbatim copies of the guard, the verify stubs,
+  the templates and the mockup state variants (section 10).
   `checkpoint.mjs` reads and writes pipeline state, `lessons.mjs`
   promotes repeated mistakes into rules, `lint-budgets.mjs` polices the
   plugin's own budgets, `run-evals.mjs` checks routing, gates and budgets
@@ -67,7 +74,8 @@ How a session goes, mechanically:
    root: <path>`. Pipeline skills substitute that path for
    `<plugin-root>` when they run a script.
 2. You type a prompt. If the project has `.acdev/state.md`, the
-   UserPromptSubmit hook adds one line: the stage and the `next` command.
+   UserPromptSubmit hook adds one line: the stage. The `next` command and
+   the plugin root are in the gateway, re-injected after every compaction.
 3. The model matches your prompt against the skill descriptions and the
    gateway. If a skill matches, its body loads and runs; inside build the
    body is short and the procedure comes from `next`, one step at a time.
@@ -123,8 +131,8 @@ and nothing downstream reopens an approved artifact silently.
 | 0. Intake | `new-project` (user-run) | Project name, repo, documentation language, Claude-only or multi-AI; the guard installed; `.acdev/state.md` at `vision` | One open question, then the intake questions in one message |
 | 1. VISION | `new-project` | `docs/VISION.md`, seven sections conversed one at a time | HARD: you approve the full document, in these words or equivalent: "Do you approve this VISION document?" |
 | 2. MVP | `new-project` | `docs/MVP.md`: numbered in-scope list traceable to VISION flows, explicit out-of-scope list naming the phase each item moves to, verifiable success criteria | HARD: explicit approval of the full document |
-| 3. Mockups | `mockups` | `mockups/`: one static HTML page per MVP screen, empty/error/loading states, every critical flow walkable; `mockups/SPEC.md`, the per-screen spec build reads instead of the pages; `docs/mockups-inventory.md` for post-MVP screens | HARD: "Do you approve these mockups?" Approval freezes the visual contract and the spec |
-| 4. Blueprint | `blueprint` | ROADMAP with verifiable exit criteria; ARCHITECTURE, DATA-MODEL, SECURITY, UI-DESIGN, RUNBOOK as applicable, each with a reader and a size cap (integrations are ADRs); ADRs (the stack is decided here); spikes for unproven dependencies; `.acdev/profile.json`; `CLAUDE.md` router and `AGENTS.md` mirror; repo mechanics (`.gitignore`, `.env.example`, CI skeleton, `scripts/verify/`, canary); the guard's `verify` commands | You review the whole package; then a separate, explicit order to start building |
+| 3. Mockups | `mockups` | `mockups/`: one static HTML page per MVP screen, empty/error/loading states, each written from `scaffold mockup-variant <page> <state>`, a copy of its page with `<main>` reduced to one marker line so the model writes only that block (separate files, never a JS toggle); sample data capped at 5-8 rows per table and 3-6 items per list, every critical flow walkable; `mockups/SPEC.md`, the per-screen spec build reads instead of the pages; `docs/mockups-inventory.md` for post-MVP screens | HARD: "Do you approve these mockups?" Approval freezes the visual contract and the spec |
+| 4. Blueprint | `blueprint` | ROADMAP with verifiable exit criteria; ARCHITECTURE, DATA-MODEL, SECURITY, UI-DESIGN (30 lines: component inventory and taste decisions; tokens stay in `mockups/styles.css`), RUNBOOK as applicable, each with a reader and a size cap (integrations are ADRs); ADRs (the stack is decided here); spikes for unproven dependencies; `.acdev/profile.json`; `CLAUDE.md` router and `AGENTS.md` copy (`cp`, regenerated by `close`, never hand-synced); repo mechanics (`.gitignore`, `.env.example`, CI skeleton, `scripts/verify/`, canary); the guard's `verify` commands | You review the package as a list: the document table, the ADR titles with their Decision line, the audit table, the guard status; you open the files, chat never quotes them. Explicit acceptance before corrections and the commit; then a separate, explicit order to start building |
 | 5. Build | `build` + `ship` | Working, deployed software by vertical slices, one step at a time from `next`; slice 1 deploys and rolls back | Per slice: a plan gate only when a user-challenge decision exists; `close` (two commands) closes each slice with verification first, drift, changelog, lessons, checkpoint, one commit; per phase: exit criteria plus a security pass |
 | 6. Operate | `operate` | Canary evidence after each deploy; incident specs; runbook corrections | Rollback before diagnosis on red; incident spec before any fix |
 
@@ -164,10 +172,13 @@ pastes the guard's `status` output as evidence.
 at a time. For each it proposes a draft from what you already said, you
 correct it, and it shows you the section as it will read in the
 document. It challenges weak answers: "freelancers" is not a market until
-you say who is not a customer. After section 7 it presents the full
-document and asks for approval. You approve. It writes `docs/VISION.md`
-in Spanish, advances the state to `mvp`, and commits `docs: project
-vision`. From now on an edit to VISION makes the guard ask first.
+you say who is not a customer. Each agreed section is edited into
+`docs/VISION.md` (initialized from the template, in Spanish) the moment
+you accept it. After section 7 it presents the full document and asks
+for approval; a change you ask for edits that section, shows it, and
+the full document is presented again. You approve. It advances the
+state to `mvp`, and commits `docs: project vision`. From now on an edit
+to VISION makes the guard ask first.
 
 **MVP.** It cuts the first delivery from the approved VISION: in-scope
 features numbered and traced to VISION flows, out-of-scope features each
@@ -179,28 +190,43 @@ fixes VISION with you first. You approve the full MVP. State moves to
 **Mockups.** It builds `mockups/index.html`, `invoice-list.html`,
 `invoice-list-empty.html`, `invoice-detail.html`, `invoice-new.html`,
 `settings.html` with a shared `styles.css`, realistic sample data (real
-names, real amounts, never lorem ipsum), and the navigation showing where
-phase-2 modules will attach. You open the index in a browser, ask for
-two rounds of corrections (`docs: mockups revision 1`, `... 2`), then
-approve. The set is frozen; state moves to `blueprint`.
+names, real amounts, never lorem ipsum; 5-8 rows per table),
+`invoice-list-empty.html` scaffolded with `scaffold mockup-variant
+mockups/invoice-list.html empty` (the copy keeps header, nav and footer
+and reduces `<main>` to one marker line; the model writes only that
+block), and the navigation showing where phase-2 modules will attach. You open the index in a browser, ask for two rounds of
+corrections, each applied as edits to the affected blocks and preceded
+by a one-line-per-screen audit (typography / color / layout / states /
+content / iconography, pass or FAIL with reason) (`docs: mockups
+revision 1`, `... 2`), then approve. The set is frozen; state moves to
+`blueprint`.
 
 **Blueprint.** It proposes the document set with a one-line reason each,
 then writes ROADMAP (phase 1 = the MVP, exit criteria including one
 rehearsed rollback), ARCHITECTURE, DATA-MODEL (PII columns marked),
-SECURITY (permission matrix), UI-DESIGN (tokens read from `styles.css`),
-RUNBOOK (health URL, exact rollback command, numeric bands), and the
-ADRs: stack, hosting, data store, auth, tenancy, compliance (it asks
-which jurisdictions apply; it never assumes them from the domain). A
-decision that depends on something unproven, say a bank-sync API, gets a
-timeboxed spike with a success criterion written before any code. It
-generates `CLAUDE.md` with golden rules derived from the model ("every
-table change proves tenant isolation"), `scripts/verify/` with concrete
+SECURITY (permission matrix), UI-DESIGN (30 lines: component inventory
+and taste decisions; the tokens stay in `mockups/styles.css`, which the
+frontend copies into the stack's token file and `pack` prints to
+frontend slices), RUNBOOK (health URL, exact rollback command, numeric
+bands), and the ADRs: stack, hosting, data store, auth, tenancy,
+compliance (it asks which jurisdictions apply; it never assumes them
+from the domain). A decision that depends on something unproven, say a
+bank-sync API, gets a timeboxed spike with a success criterion written
+before any code. It generates `CLAUDE.md` (copied once to `AGENTS.md`
+if multi-AI) with golden rules derived from the model ("every table
+change proves tenant isolation"), `scripts/verify/` with concrete
 probes, `scripts/verify/canary.mjs`, the CI skeleton, and fills the
 guard's `verify` commands. It offers an optional adversarial design
-review. You review the package; it commits, advances the state to
-`build`, and asks two things: switch to a cheaper model for construction,
-and whether to build the whole MVP without pausing. It waits for your
-explicit order to start.
+review. Its two panels receive file paths and a lens, read the files
+themselves, and return findings severity-first: every high or critical
+one, at most 10 lower ones, and a count of what was omitted. It
+presents the package as a list, never quoted documents: the document
+table (path, reader, lines), the ADR titles with their Decision line,
+the audit table, the guard's `status`; you open the files. On your
+explicit acceptance it commits, advances the state to `build`, and asks
+two things: switch to a cheaper model for construction, and whether to
+build the whole MVP without pausing. It waits for your explicit order
+to start.
 
 **Build.** You say "start". Slice 1 is the walking skeleton: log in, see
 an empty invoice list, deployed to staging through CI, and rolled back
@@ -208,8 +234,9 @@ once with the runbook's command. Its plan is written just in time in
 `docs/plans/`, every step as goal + verify, decisions classified in an
 audit table. Only a user-challenge decision (draft invoices or not?)
 interrupts you. The loop is TDD: red test, minimal green, refactor.
-Layers that can proceed independently go to narrow subagents that
-receive only their layer skill and the relevant ADR lines.
+Layers that can proceed independently go to narrow subagents whose
+prompt carries the `pack` command for their layer (with `--pitfalls`),
+never a pasted context or a layer skill.
 
 **Ship.** At the close: `node .claude/hooks/acdev-guard.mjs verify` runs
 the configured checks and records the receipt; a red check blocks the
@@ -235,9 +262,13 @@ Run `/acdev:onboard` in the repo. The model inventories it before writing
 anything and produces `docs/SITUATION.md`, where every line carries its
 source tag in order of precedence: `[user]` (what you said this session,
 overrides everything), `[docs]`, `[code]`, `[git]`. What it looked for
-and did not find is a declared `[gap]`, never a guess. You correct the
-map; it asks for explicit confirmation that the map is accurate before
-proposing anything.
+and did not find is a declared `[gap]`, never a guess. The map is about
+80 lines: the eight layer rows are mandatory, everything else one line
+per fact; a genuinely complex repo gets more lines and says so. You
+correct the map; it asks for explicit confirmation that the map is
+accurate before proposing anything. The adoption plan is written only
+as the map's last section; chat says "the plan is the last section of
+`docs/SITUATION.md`; confirm or correct it".
 
 The adoption plan then offers, only where it applies: VISION written
 retroactively (conversed, not autogenerated from the map), MVP only if
@@ -252,13 +283,14 @@ is never rewritten without showing the diff.
 ## 6. Daily work inside a project
 
 **Resuming.** Start every session on an acdev project with
-`/acdev:status`. It reads `state.md`, the latest checkpoint, the current
-ROADMAP phase section and the names of open plans (incidents first), and
-answers "where are we" in about 2k tokens without scanning the code. If
+`/acdev:status`. It runs `acdev.mjs status` once and reports from its
+output: `state.md`, the latest checkpoint, the names of open plans
+(incidents first) and the current ROADMAP phase, answering "where are
+we" in about 1k tokens; it never scans the repo. If
 the checkpoint disagrees with the repo, it reports the difference and
 trusts the repo. Then `next` prints the one step that applies now (plan
 a slice, construct and close, blocked, an open incident, the phase exit)
-with its commands, in about 300 tokens; the build skill's body holds only
+with its commands, in under 500 tokens; the build skill's body holds only
 the rules that never change.
 
 **A change you ask for mid-build.** Anything beyond a trivial fix is a
@@ -288,12 +320,18 @@ instead of hundreds. The receipt `verify` writes is what `git commit` is
 checked against. Partial is reported as partial.
 
 **The close.** `close --check --plan <plan>` lists what the close needs:
-the docs that mention the changed files, the changelog, the plan, the
-docs index, an active freeze, the lessons ledger. You fix what it lists;
-then `close --slice "N: name" --plan <plan> --next "..." --changelog
-"..."` verifies first, refuses on red, and does the rest in one go:
-CHANGELOG line, plan flipped to shipped, freeze cleared, checkpoint, one
-commit.
+the docs that mention the changed files (each with its matching lines,
+three at most; the root `CLAUDE.md` and `AGENTS.md` are scanned too;
+`docs/ROADMAP.md` always, showing its current phase heading), the
+changelog, the plan, the docs index, an active freeze, the lessons
+ledger. You fix what it lists; then `close --slice "N: name" --plan
+<plan> --next "..." --changelog "..."` verifies first, refuses on red,
+and does the rest in one go: CHANGELOG line, plan flipped to shipped,
+freeze cleared, `AGENTS.md` regenerated from `CLAUDE.md` when it is an
+acdev router copy (it carries the template's `## Mirror note` heading or
+a `<!-- acdev: copy of CLAUDE.md -->` comment; an `AGENTS.md` kept by
+hand for other agents is left as is and `close` says so), checkpoint,
+one commit.
 
 **Decision classes.** Mechanical (one correct answer: decided silently),
 taste (several valid, cheap to reverse: decided and listed in the audit
@@ -308,7 +346,17 @@ plan-invalidating trap stops the run with a `--blocked` checkpoint. The
 run ends at the phase exit, including the security pass. The cheapest
 way to run it is the headless loop, `run --max-slices N`: one fresh
 `claude -p` session per slice, memory in git and the checkpoints, cost
-per slice recorded in `.acdev/cost.jsonl` and summed by `cost`.
+per slice recorded in `.acdev/cost.jsonl` and summed by `cost`. Each
+iteration is capped (`--budget-usd`, by default twice the ledger's median
+and never below 5 USD) and starts with the dynamic system-prompt sections
+excluded, so the static prefix stays a cache read across iterations; a
+headless session cannot answer a permission prompt, so the project's
+settings must allow the `node` and `git` commands the steps run (the
+guard settings template ships that block). In a headless `run` session a
+layer with no new test file and under about three files is built inline
+after one `pack --layers a,b,c --pitfalls` call; the `build-construct`
+step carries that threshold, and the session knows it is headless by the
+`run` prompt it received (build one slice, then stop).
 
 **Model switch.** The document stages deserve the most capable model.
 At the blueprint gate you are advised that construction can run on a
@@ -317,14 +365,28 @@ back, because hunting vulnerabilities takes adversarial reasoning.
 Inside build the model is chosen by who judges the result: the cheapest
 tier for subagents whose work a test, a lint or the guard judges (TDD to
 green, lint fixes, doc edits), the capable model where judgment decides
-(planning, root cause, security, every conversation with you).
+(planning, root cause, security, every conversation with you). The tier
+is named in the dispatch, not hoped for: the plugin ships two agents,
+`acdev-builder` (the cheapest model) and `acdev-builder-capable` (the
+session's model), and the construct step dispatches by `subagent_type`;
+a subagent without a named tier inherits the session's model. During
+construction the subagent prompt carries `pack --screens <a.html>
+--layers <layer> --pitfalls`; the flag is what delivers the layer's
+Pitfalls, since a construction subagent never loads a layer skill. The
+headless ledger records each session's per-model usage, so `cost` shows
+whether the split happened.
 
 **Phase exit.** After the last slice of a phase: exit criteria checked
-against what was built, not intended; native `/security-review` over the
-phase diff, the OWASP pass from `layer-security`, the project's security
-probes; for phase 1, the rehearsed rollback. A high-severity finding
-blocks the phase unless you accept it explicitly. The next phase starts
-with its own mockups gate.
+against what was built, not intended; for phase 1, the rehearsed
+rollback. Then the security pass, on the most capable model, in this
+order: the project's security probes first, through `q`, as a fast fail
+(a red one ends the pass before any diff is read); native
+`/security-review` over the phase diff with tests, docs, mockup HTML,
+lockfiles and the CHANGELOG excluded by path, never by profile tag and
+never by skipping commits an earlier code review saw; then the OWASP
+pass from `layer-security` over the diff already in context. A
+high-severity finding blocks the phase unless you accept it explicitly.
+The next phase starts with its own mockups gate.
 
 ## 7. The guard
 
@@ -334,6 +396,14 @@ The guard is a PreToolUse hook that lives in your repo at
 stage from `.acdev/state.md` and answers `allow` (silent), `ask` (you
 confirm) or `deny` (blocked, with the reason) before a tool call runs.
 
+Install: `node "<plugin-root>/scripts/acdev.mjs" scaffold guard`, one
+call that copies the hook, `.acdev/guard.json` and `.acdev/profile.json`
+from their templates (existing files are kept; `--force` recopies),
+merges the `permissions.allow` patterns and the two `PreToolUse` entries
+into `.claude/settings.json` without touching any other key (rerunning
+changes nothing) and adds the guard's session state to `.gitignore`.
+Evidence: `node .claude/hooks/acdev-guard.mjs status`.
+
 | Rule | Decision | When |
 |---|---|---|
 | Zero product code before build | deny | Stage before `build` and the path is outside the allowlist for that stage: always `docs/`, `.acdev/`, `.claude/`, root markdown, `.gitignore`, `.env.example`; from `mockups`, `mockups/`; from `blueprint`, `spikes/`, `scripts/verify/`, CI files, manifests and tool configs |
@@ -341,6 +411,7 @@ confirm) or `deny` (blocked, with the reason) before a tool call runs.
 | Frozen paths | deny | Whatever `freeze` recorded, until `unfreeze` |
 | Secrets | ask | `.env`, `.env.*` (examples exempt), `*.pem`, `*.key` |
 | Destructive commands | ask | Force push, `reset --hard`, `clean -f`, `checkout -- .`, force branch delete, stash drop, `rm -f`, `DROP`/`TRUNCATE` |
+| Inline node code | ask | `node -e`/`-p`/`--eval`/`--print`/`--input-type`, `node -`, a bare `node` fed by a pipe or a heredoc: a program the path policy cannot read (`Bash(node *)` is pre-allowed, so nothing else would prompt); script files stay allowed |
 | Verification receipt | deny | In build, `git commit` without a receipt that is green and still bound to the code tree |
 | The guard's own files | ask | The hook, `.acdev/guard.json`, `.claude/settings.json` |
 
@@ -361,8 +432,15 @@ node .claude/hooks/acdev-guard.mjs unfreeze
 ```
 
 `verify` prints each command's verdict lines (counts, totals, the last
-lines) on green and its failure lines plus a tail on red; the whole log
-only with `--full`. `close` runs it itself and commits only on green, so
+lines) on green and, on red, its failure lines plus a short tail: stack
+frames from `node_modules/`, `dist/` and Node's own `node:` modules are
+dropped (the first one is kept only when a failing test has no project
+frame at all), project frames are capped at two per failing test, and
+the tail holds at most ten lines that the failure section has not
+already shown; the whole log only with `--full`. The guard's filter is
+a copy of the plugin's `scripts/lib/quiet.mjs` block, kept identical by
+`tests/guard-quiet-parity.test.mjs`. `close` runs it itself and commits
+only on green, so
 the model's own `git commit` is the only path the receipt rule has to
 guard.
 
@@ -404,8 +482,16 @@ The ledger is `.acdev/lessons.md`, a committed markdown table. A first
 occurrence is a candidate. `add --id N` on a candidate is its second
 occurrence: the script appends a bullet under `## Lessons` in `CLAUDE.md`
 and, if the project keeps `AGENTS.md`, the identical bullet there. Nobody
-hand-edits that section. Past twelve promoted lessons the script asks for
-consolidation so the router stays under one page.
+hand-edits that section. Past twelve promoted lessons the script warns
+and `close` refuses, like a red verify, until you consolidate the
+section with the user (merge bullets, or move detail into an ADR);
+`close --check` reports it as `lessons: N promoted > 12: consolidate the
+section and .acdev/lessons.md before close`. The router stays under one
+page. When the project keeps `AGENTS.md` as an acdev router copy (the
+template's `## Mirror note` heading or a `<!-- acdev: copy of CLAUDE.md
+-->` comment), `close` regenerates it from `CLAUDE.md` in the same
+commit, so the mirror never drifts by hand; an `AGENTS.md` kept by hand
+for other agents is left as is and `close` says so.
 
 `ship` runs it at every close, `debugging` records root causes, `operate`
 records incidents (a repeat incident of the same class is a second
@@ -455,16 +541,18 @@ session, or the next deploy silently reverts it.
 
 | Path | What it is |
 |---|---|
-| `<plugin-root>/scripts/acdev.mjs next [--change "topic"]` | The one pipeline step that applies now, from `scripts/steps/`; about 300 tokens |
-| `<plugin-root>/scripts/acdev.mjs pack [--screens a,b] [--layers x,y] [--pitfalls]` | ADR decision lines, current ROADMAP phase, checkpoint, open plans, spec entries, filtered checklists; about 2k tokens |
+| `<plugin-root>/scripts/acdev.mjs next [--change "topic"]` | The one pipeline step that applies now, from `scripts/steps/`; under 500 tokens |
+| `<plugin-root>/scripts/acdev.mjs status` | Resume snapshot in one call: state, latest checkpoint, open plans (incidents first), current ROADMAP phase; about 1k tokens |
+| `<plugin-root>/scripts/acdev.mjs pack [--screens a,b] [--layers x,y] [--pitfalls]` | ADR decision lines, current ROADMAP phase, checkpoint, open plans, spec entries, the `:root` block of `mockups/styles.css` when `--layers` includes `frontend` (first block, capped at 60 lines), filtered checklists; about 2k tokens |
 | `<plugin-root>/scripts/acdev.mjs checklist --layers x,y [--pitfalls]` | A layer's checklist filtered by `.acdev/profile.json` |
-| `<plugin-root>/scripts/acdev.mjs q [--tail N] [--full] -- <command>` | Runs the command; verdict lines on green, failure lines and a tail on red |
-| `<plugin-root>/scripts/acdev.mjs drift` | Docs that mention the files changed since HEAD, ROADMAP always |
+| `<plugin-root>/scripts/acdev.mjs q [--tail N] [--full] -- <command>` | Runs the command; verdict lines on green; on red the failure lines (no vendor frames, two project frames per test) and a deduped tail of min(N, 10) lines |
+| `<plugin-root>/scripts/acdev.mjs drift` | Docs that mention the files changed since HEAD, with the matching lines (grep -n style, three per doc); the root `CLAUDE.md` and `AGENTS.md` too; ROADMAP always, with its current phase heading |
 | `<plugin-root>/scripts/acdev.mjs close --check [--plan P] [--verify]` | What the close needs, without committing |
 | `<plugin-root>/scripts/acdev.mjs close --slice "n: name" --plan P --next T --changelog T [--message M] [--notes T]` | Verification first (refuses on red), CHANGELOG line, plan flip, freeze cleared, checkpoint, one commit |
 | `<plugin-root>/scripts/acdev.mjs mockup-spec [--write]` | Per-screen skeleton of `mockups/*.html`; `--write` updates `mockups/SPEC.md` keeping the Intent lines |
-| `<plugin-root>/scripts/acdev.mjs run [--max-slices N] [--model M] [--claude CMD] [--extra "flags"] [--prompt T] [--dry-run]` | Continuous build as one fresh headless session per slice; stops on blocked, phase exit, no progress, error or the cap |
-| `<plugin-root>/scripts/acdev.mjs cost [--json]` | The `.acdev/cost.jsonl` ledger, per run and per closed slice |
+| `<plugin-root>/scripts/acdev.mjs run [--max-slices N] [--model M] [--budget-usd N] [--mcp-config F] [--no-isolate] [--claude CMD] [--extra "flags"] [--prompt T] [--timeout-min N] [--dry-run]` | Continuous build as one fresh headless session per slice, capped per iteration; stops on blocked, phase exit, no progress, error, the budget or the cap. `--mcp-config F`, or `.acdev/headless-mcp.json` when that file exists, loads only those MCP servers (`--strict-mcp-config`). `--timeout-min` defaults to 120 minutes; the timeout kills the whole process tree on both platforms (POSIX through a detached process group, Windows through `taskkill`) |
+| `<plugin-root>/scripts/acdev.mjs cost [--json]` | The `.acdev/cost.jsonl` ledger: total, fresh and per-model tokens per run and per closed slice |
+| `<plugin-root>/scripts/acdev.mjs scaffold guard \| verify --layers a,b [--canary] \| <template> <target> \| mockup-variant <page> <state> [--force]` | Copies the guard files and merges settings, writes the verify stubs (design-tells with `frontend`, canary on request), materializes a template (`runbook`, `incident`, `router`, `docs-index`, `vision`, `mvp`, `mockups-inventory`, `adr`) printing its caps and the rule "replace each `<...>` placeholder and each `<!-- ... -->` guidance comment", or copies a mockup page to `<page>-<state>.html` (`empty`, `error`, `loading`) with `<main>` reduced to one marker line; byte-identical copies, existing files skipped or refused |
 | `<plugin-root>/scripts/checkpoint.mjs read` | Prints `.acdev/state.md` and the latest checkpoint (also `acdev.mjs checkpoint read`) |
 | `<plugin-root>/scripts/checkpoint.mjs write --stage S --branch B --next T [--slice "n: name"] [--plan path] [--files a,b] [--blocked T] [--notes T] [--lang L]` | Writes a checkpoint and updates the state; `--stage` is one of `intake`, `vision`, `mvp`, `mockups`, `blueprint`, `build`; `--lang` is sticky |
 | `<plugin-root>/scripts/lessons.mjs` | `add`, `add --id`, `promote --id`, `list` (section 8) |
@@ -492,15 +580,20 @@ canary stubs, design-tell scanner).
 
 Fixed cost per session, measured from the tree and checked by the lint:
 the twenty model-invocable descriptions plus the gateway body, about
-1.1k tokens. Inside a project, one line per prompt, about 25 tokens.
+1.1k tokens, plus the two shipped agents' descriptions in the Agent tool
+listing (314 characters, about 80 tokens, outside the lint's ledger).
+Inside a project, one line per prompt, the stage only,
+under 10 tokens; every injected line is re-read on every later turn.
 Skill bodies load only when the skill activates; `references/` load only
-when a body points at them; step files one at a time; scripts run
-outside the context.
+when a body points at them (the layer checklists in
+`references/checklist.md` never load as prose: `checklist` and `pack`
+print them filtered); step files one at a time; scripts run outside the
+context.
 
 The fixed cost is the small part. An agent's bill is turns times context
 times model price, plus output tokens, and that is what the command line
 cuts: a slice close is two calls instead of ten; `next` is a step of
-about 300 tokens instead of a body of 2,500; `pack` is about 2k tokens
+under 500 tokens instead of a body of 2,500; `pack` is about 2k tokens
 instead of ADRs, ROADMAP, checkpoints and mockup pages read whole; `q`
 and the guard's `verify` put verdict lines in the context instead of
 logs; subagents get the pack and a filtered checklist and return a
@@ -509,12 +602,20 @@ headless loop starts every slice with an empty context. `cost` and the
 budget eval suite measure it per slice.
 
 Budgets, enforced in CI: a description is at most 400 characters; a body
-under 250 lines and 8,000 characters; a step file at most 1,500
-characters, one per situation, no orphans; the gateway file at most
-1,600 characters. The lint also rejects emojis, overlapping trigger
+under 250 lines and 8,000 characters; the four pre-build bodies tighter
+still (`new-project` 5,400, `mockups` 5,500, `blueprint` 6,000, `onboard`
+5,600 characters) with their gate phrases required verbatim, since the
+gate evals paste the body and expect that wording to force the decision;
+a step file at most 1,500 characters, one per situation, no orphans; the
+gateway file at most 1,600 characters. The lint also rejects emojis,
+invocation-shaped `acdev <cmd> --flag` mentions in any markdown under
+`skills/` or in the steps (no such executable exists), overlapping trigger
 vocabularies between descriptions, divergence in the block the layer
-skills share, manifest disagreement, and a README whose tables or ledger
-drift from the tree.
+skills share, a layer skill missing its stub headings or its
+`references/checklist.md`, manifest disagreement, and a README whose
+tables or ledger drift from the tree. A skill body, once activated, is
+re-sent on every later turn of the session, which is why those four keep
+only rules and send their procedure to the steps and to `references/`.
 
 Practical consequences: subagents receive only the layer checklists
 their slice touches, filtered by the profile, never all eight skills;
@@ -527,10 +628,10 @@ because output tokens are the expensive ones.
 ```
 node --test                  # unit suite: hooks, checkpoint, lessons, guard, lint, eval runner, the command line
 node scripts/lint-budgets.mjs
-npm run evals                # routing and gate suites against a model; on demand, costs money
+npm run evals                # routing and gate suites against a model, each judge in --safe-mode with no tools; on demand, costs money
 npm run evals -- --suite gates --filter operate
 npm run evals -- --suite budget   # whole headless sessions against their token budgets
-npm run evals -- --dry-run   # print the constructed prompts
+npm run evals -- --dry-run   # print the judge command and the constructed prompts
 npm run evals -- --ablate    # which gate cases a judge answers with no context at all
 ```
 
@@ -607,12 +708,24 @@ continuous mode explicitly; it is never assumed.
 It starts one fresh `claude -p` session per slice with a fixed prompt
 (run `next`, build one slice, close it, stop), reads the checkpoint back,
 and stops on a blocked checkpoint, the phase exit, no new checkpoint, an
-error, or `--max-slices`. Each session's cost lands in
-`.acdev/cost.jsonl`. The guard runs inside every session, so no commit
-lands without a green receipt and no destructive command runs without a
-human; a headless session cannot ask you anything, which is exactly why
-a user-challenge decision ends the loop. Run it from a terminal you
-watch, and calibrate the budget evals from its ledger.
+error, the per-iteration budget cap, or `--max-slices`. Each session's
+cost lands in `.acdev/cost.jsonl` with its total, fresh and per-model
+tokens. The guard runs inside every session, so no commit lands without
+a green receipt and no destructive command runs without a human; a
+headless session cannot ask you anything, which is exactly why a
+user-challenge decision ends the loop. The timeout kills the whole
+process tree on both platforms. Run it from a terminal you watch, and
+calibrate the budget evals from its ledger.
+
+**The headless run stops at its first command with a permission denial.**
+`--permission-mode acceptEdits` covers file edits, not the `node` and
+`git` commands every step runs, and nobody can answer a prompt in a
+headless session. Allow `Bash(node *)`, `Bash(git *)` and the project's
+verify commands in the project's `.claude/settings.json` (the guard
+settings template carries the first two; `guard-install` merges them),
+or pass `run --extra "--allowedTools ..."`. The guard still asks before
+destructive git and inline `node -e`/`-p`/stdin code, and denies a
+commit without a receipt.
 
 **Which model should I use?**
 The most capable one for VISION, MVP, mockups, blueprint and the
@@ -622,8 +735,9 @@ run cheaper; the blueprint gate reminds you of the switch point.
 **Can I use acdev with Codex, Cursor or another agent?**
 The plugin runs in Claude Code. What it leaves in the repo is agent
 neutral: `AGENTS.md` mirrors `CLAUDE.md` when you choose multi-AI at
-intake, and the guard's command line, the lessons script and the canary
-run from any shell. The guard's hook enforcement itself is Claude Code's.
+intake (an `AGENTS.md` you keep by hand, without the router marker, is
+left alone), and the guard's command line, the lessons script and the
+canary run from any shell. The guard's hook enforcement itself is Claude Code's.
 
 **Can I keep superpowers installed alongside acdev?**
 Not recommended. Two startup hooks and two TDD or brainstorming skills
@@ -632,12 +746,13 @@ process skills it needed from superpowers; uninstall it.
 
 **A lesson was promoted with wording I do not like.**
 Reword it as a consolidation, with the user, in one commit: the ledger
-row in `.acdev/lessons.md`, the bullet in `CLAUDE.md` and the identical
-bullet in `AGENTS.md`, all together. The "never hand-edit" rule exists
-so promotion stays deterministic and the mirror never drifts, not to
-freeze wording; a consolidation that touches all three at once keeps
-both guarantees. The same move merges bullets or moves detail into an
-ADR when the script warns past twelve lessons.
+row in `.acdev/lessons.md` and the bullet in `CLAUDE.md` together
+(`close` regenerates `AGENTS.md` from `CLAUDE.md`). The "never
+hand-edit" rule exists so promotion stays deterministic and the mirror
+never drifts, not to freeze wording; a consolidation that touches both
+at once keeps both guarantees. The same move merges bullets or moves
+detail into an ADR when the script warns and `close` refuses past
+twelve promoted lessons.
 
 **The canary is red but I am sure the release is fine.**
 Roll back anyway if the runbook has no unsafe-when clause; a rehearsed
@@ -658,7 +773,7 @@ environment, and the guard asks before any `.env` file is written.
 **How much does acdev cost per session?**
 About 1.1k tokens fixed, measured and linted, plus about 25 per prompt
 inside a project. Skill bodies cost only when they activate and the
-largest is under 2k tokens; a step from `next` is about 300; a pack
+largest is under 2k tokens; a step from `next` is under 500; a pack
 about 2k. The number that matters is the cost per shipped slice, which
 `cost` reports from the headless ledger and the budget evals check. The
 evals cost real money and run only on demand.

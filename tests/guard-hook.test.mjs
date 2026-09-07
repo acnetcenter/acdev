@@ -129,6 +129,35 @@ test('bash write targets go through the same path policy', () => {
   assert.equal(bash(build, 'echo SECRET=1 >> .env').decision, 'ask');
 });
 
+test('inline node code asks (the path policy cannot read it); node script files and node flags do not', () => {
+  const p = project({ stage: 'build' });
+  const inline = [
+    'node -e "require(\'fs\').writeFileSync(\'src/a.ts\', \'x\')"',
+    'node -p 1',
+    'node --eval=1',
+    'node --input-type=module -',
+    'echo x | node',
+    "node <<'EOF'\nconsole.log(1)\nEOF",
+    '"C:\\Program Files\\nodejs\\node.exe" -e 1',
+    'NODE_ENV=test node -e 1',
+    'cd src && node -p 1'
+  ];
+  for (const cmd of inline) {
+    const r = bash(p, cmd);
+    assert.equal(r.decision, 'ask', cmd);
+    assert.match(r.reason, /node runs (inline code|a program read from stdin)/, cmd);
+    assert.match(r.reason, /Edit or Write tools/, cmd);
+  }
+  assert.match(bash(p, 'node -e 1').reason, /inline code \(-e\/-p\/--eval\/--print\/--input-type\)/);
+  assert.match(bash(p, 'echo x | node').reason, /a program read from stdin/);
+  for (const cmd of ['node scripts/acdev.mjs next', 'node --test tests/', 'node script.mjs -e', 'node < scripts/x.js', 'node --version', 'node -v', 'npm test', 'node_modules/.bin/vitest -e']) {
+    assert.equal(bash(p, cmd).decision, 'allow', cmd);
+  }
+  // The rule is independent of the stage ladder.
+  assert.equal(bash(project({ stage: 'mvp' }), 'node -e 1').decision, 'ask');
+  assert.equal(bash(project(), 'node -p 1').decision, 'ask');
+});
+
 test('destructive commands ask', () => {
   const p = project({ stage: 'build' });
   for (const cmd of ['git push --force origin main', 'git push -f', 'git reset --hard HEAD~1', 'git clean -fd', 'git checkout -- .', 'rm -rf build', 'git branch -D feature', 'git stash drop', 'psql -c "DROP TABLE users"']) {

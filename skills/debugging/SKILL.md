@@ -40,8 +40,9 @@ in order, never skipped under time pressure.
 
    The failing test is the spec of the fix. A fix that needs the test
    changed is a spec change, which is the user's decision, not a fix;
-   the freeze makes that a denial instead of a temptation. The close
-   (`acdev close`) clears it once verification is green.
+   the freeze makes that a denial instead of a temptation. The acdev close
+   command (`node "<plugin-root>/scripts/acdev.mjs" close`) clears it
+   once verification is green.
 7. **One line: what was learned.** Record it with the lessons script
    (`node "<plugin-root>/scripts/acdev.mjs" lessons list`, then `add --id
    N` if a candidate already matches the root cause, else `add

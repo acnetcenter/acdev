@@ -116,7 +116,7 @@
         "D": "Summarize the last 50 git commits and reconstruct the project state from what they show."
       },
       "expect": "B",
-      "why": "Status answers from its three cheap sources under ~2k tokens; no repo scanning."
+      "why": "Status answers from its three cheap sources under ~1k tokens; no repo scanning."
     },
     {
       "id": "gate-user-run-entry",
@@ -286,6 +286,19 @@
       },
       "expect": "B",
       "why": "Every incident becomes a spec before any fix is coded; the fix then runs as a build mini-slice and closes through ship. A hotfix without a spec is a side edit."
+    },
+    {
+      "id": "gate-layer-checklist-command",
+      "context": ["skills/layer-api/SKILL.md"],
+      "scenario": "Outside any build slice, in a project whose ADRs are in place, the user asks how a list endpoint should paginate.",
+      "options": {
+        "A": "Answer from general API practice: cursor pagination with a capped page size and a metadata envelope.",
+        "B": "Read the ADRs, then run the plugin's checklist command for this layer and answer from what it prints.",
+        "C": "Read the ADRs and ARCHITECTURE.md, then answer from them together with your own API knowledge.",
+        "D": "Ask the user which pagination style they prefer before giving any recommendation for the endpoint."
+      },
+      "expect": "B",
+      "why": "The layer skill body is a stub: before any advice on the layer the checklist command must run and its output be cited; reading the ADRs alone skips the gate."
     }
   ]
 }

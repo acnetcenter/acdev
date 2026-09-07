@@ -5,8 +5,9 @@
 //
 // Ledger: .acdev/lessons.md (committed with the repo). A lesson enters as a
 // candidate on its first occurrence; its second occurrence promotes it to a
-// bullet under "## Lessons" in CLAUDE.md, mirrored to AGENTS.md when the
-// project keeps one. The Lessons section is never hand-edited.
+// bullet under "## Lessons" in CLAUDE.md, mirrored to AGENTS.md when that
+// file is an acdev router copy (the same check close uses; a hand-kept
+// AGENTS.md is left alone). The Lessons section is never hand-edited.
 //
 //   lessons.mjs add "<one-line lesson>" [--source <plan path or slice>]
 //   lessons.mjs add --id N [--source ...]        second occurrence: promotes
@@ -15,6 +16,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
+import { isRouterCopy } from './lib/close.mjs';
 
 const cwd = process.cwd();
 const LEDGER = join(cwd, '.acdev', 'lessons.md');
@@ -80,10 +82,12 @@ function promote(rows, row) {
   row.status = 'promoted';
   const bullet = `- ${cell(row.lesson)} (${row.last}${row.source ? `, ${cell(row.source)}` : ''})`;
   const count = appendLesson(ROUTER, bullet);
-  const mirrored = existsSync(MIRROR);
+  const present = existsSync(MIRROR);
+  const mirrored = present && isRouterCopy(readFileSync(MIRROR, 'utf8'));
   if (mirrored) appendLesson(MIRROR, bullet);
   writeLedger(rows);
   console.log(`promoted #${row.id} to CLAUDE.md${mirrored ? ' and AGENTS.md' : ''}: ${bullet}`);
+  if (present && !mirrored) console.log('AGENTS.md kept as is (not an acdev router copy)');
   if (count > BUDGET) console.log(`warning: ${count} promoted lessons > budget ${BUDGET}; consolidate the Lessons section with the user (merge, or move detail into an ADR) in the next close`);
 }
 

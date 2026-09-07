@@ -8,30 +8,37 @@ follow these steps; none of them re-explains them.
 
 ## Steps
 
-1. Copy `shared/references/templates/guard-hook.mjs` (in the plugin root
-   printed as `acdev plugin root:` at session start) to
-   `.claude/hooks/acdev-guard.mjs` in the project. Never edit the copy:
-   project-specific policy goes in `.acdev/guard.json`.
-2. Write `.acdev/guard.json` from `shared/references/templates/guard.json`.
-   At intake `verify` stays empty; `blueprint` fills it with the project's
+1. Run `node "<plugin-root>/scripts/acdev.mjs" scaffold guard`
+   (`<plugin-root>` is the path printed as `acdev plugin root:` at session
+   start). One call, no retyping: it copies the hook to
+   `.claude/hooks/acdev-guard.mjs`, `.acdev/guard.json` and
+   `.acdev/profile.json` from their templates (existing files are kept;
+   `--force` recopies), merges the `permissions.allow` patterns and the
+   two `PreToolUse` entries from `guard-settings.json` into
+   `.claude/settings.json` without touching any other key (creating the
+   file if absent; rerunning changes nothing), and adds the guard's
+   session state (`.acdev/verify-receipt.json`, `.acdev/freeze.json`,
+   `.acdev/cost.jsonl`) to `.gitignore`. It prints one line per file
+   written, skipped or merged; paste them. Never edit the hook copy:
+   project-specific policy goes in `.acdev/guard.json`, where `verify`
+   stays empty at intake and `blueprint` fills it with the project's
    verification commands (the `scripts/verify/` runner and the test
-   command) once they exist.
-3. Merge the `hooks` block from
-   `shared/references/templates/guard-settings.json` into the project's
-   `.claude/settings.json`: create the file if absent; if it exists, add
-   the two `PreToolUse` entries and leave every other key untouched.
-4. Add `.acdev/verify-receipt.json` and `.acdev/freeze.json` to
-   `.gitignore`: both are session state, not history. `.acdev/guard.json`,
-   `.acdev/state.md`, `.acdev/lessons.md` and the checkpoints are
-   committed.
-5. Make sure `.acdev/state.md` exists with the current stage (the stage
+   command) once they exist. The allow patterns (`Bash(node *)`,
+   `Bash(git *)`) are what a headless session needs to run the pipeline's
+   own commands; add the project's verify commands next to them once
+   `blueprint` names them. The guard still asks before destructive git
+   and inline node code, and denies a commit without a receipt.
+   `.acdev/guard.json`, `.acdev/state.md`, `.acdev/lessons.md` and the
+   checkpoints are committed; the ignored files are session state, not
+   history.
+2. Make sure `.acdev/state.md` exists with the current stage (the stage
    ladder is read from it): `node "<plugin-root>/scripts/checkpoint.mjs"
    write --stage <stage> --branch <branch> --next "<next step>" --lang
    "<documentation language>"`.
-6. Evidence: run `node .claude/hooks/acdev-guard.mjs status` and paste its
+3. Evidence: run `node .claude/hooks/acdev-guard.mjs status` and paste its
    output. It names the stage the guard enforces, the freeze state, the
    verify commands and the receipt state.
-7. From build on, the slice close is `node
+4. From build on, the slice close is `node
    "<plugin-root>/scripts/acdev.mjs" close`, which runs the guard's
    `verify` itself and commits only on green. `verify` prints each
    command's verdict lines (the whole log only on red or with `--full`)
@@ -46,6 +53,7 @@ follow these steps; none of them re-explains them.
 | Frozen paths | deny | Whatever `node .claude/hooks/acdev-guard.mjs freeze <glob...> --reason "..."` recorded, until `unfreeze` |
 | Secrets | ask | `.env` and `.env.*` (examples exempt), `*.pem`, `*.key` |
 | Destructive commands | ask | Force push, `reset --hard`, `clean -f`, discard-all checkouts, force branch delete, stash drop, `rm -f`, `DROP`/`TRUNCATE` |
+| Inline node code | ask | `node -e`, `-p`, `--eval`, `--print`, `--input-type`, `node -`, a bare `node` fed by a pipe or a heredoc; script files stay allowed |
 | Verification receipt | deny | In build, `git commit` needs a receipt written by `node .claude/hooks/acdev-guard.mjs verify` that is green and still matches the code tree (docs and `.acdev/` edits never stale it) |
 | The guard's own files | ask | The hook, `.acdev/guard.json`, `.claude/settings.json` |
 

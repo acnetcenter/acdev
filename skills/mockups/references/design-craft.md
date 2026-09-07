@@ -43,8 +43,8 @@ explicitly calls for one:
   consistent with the brand. Zero risks reads as template; several reads
   as noise.
 - Tokens from the first mockup: colors, spacing and type steps live in
-  `styles.css` as custom properties, because `blueprint` derives
-  UI-DESIGN from them.
+  `styles.css` as custom properties, because the frontend copies that
+  file into the stack's token file and `pack` prints its `:root` block.
 
 ## Per-screen audit pass
 
@@ -53,6 +53,17 @@ Before presenting a revision round, audit each screen: typography
 (rhythm, alignment, no structural tells above), states (empty/error/
 loading exist where required), content (realistic data per the mockups
 guide), iconography (one family, one weight, informative only).
+
+The report is one fixed six-slot line per screen, never prose; a slot is
+`pass` or `FAIL (reason)`:
+
+```
+invoice-list.html: typography: pass / color: pass / layout: pass / states: FAIL (no error state) / content: pass / iconography: pass
+```
+
+A FAIL is fixed before the round is presented, or named to the user as a
+known gap; the line format keeps the audit scannable across many
+screens and comparable between rounds.
 
 ## Sources
 

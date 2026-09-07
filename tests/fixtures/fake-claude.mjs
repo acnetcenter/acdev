@@ -23,9 +23,18 @@ const n = Number(process.env.FAKE_CLAUDE_N ?? '1');
 const write = (args) => spawnSync(process.execPath, [checkpoint, 'write', '--stage', 'build', '--branch', 'main', ...args], { cwd: process.cwd(), encoding: 'utf8' });
 const result = (extra = {}) => JSON.stringify({
   type: 'result', subtype: 'success', is_error: false, duration_ms: 1500, num_turns: 7, session_id: `fake-${n}`, total_cost_usd: 0.25,
-  usage: { input_tokens: 1200, output_tokens: 300, cache_read_input_tokens: 9000, cache_creation_input_tokens: 400 }, result: 'done', ...extra
+  usage: { input_tokens: 1200, output_tokens: 300, cache_read_input_tokens: 9000, cache_creation_input_tokens: 400 },
+  modelUsage: { 'claude-haiku-4-5-20251001': { inputTokens: 1200, outputTokens: 300, cacheReadInputTokens: 9000, cacheCreationInputTokens: 400, costUSD: 0.25 } },
+  result: 'done', ...extra
 });
-if (mode === 'progress') {
+if (mode === 'hang') {
+  // A stuck session: the loop's timeout must kill it, on Windows too.
+  await new Promise((r) => setTimeout(r, 20000));
+  console.log(result());
+} else if (mode === 'budget') {
+  console.log(result({ is_error: true, subtype: 'error_max_budget_usd', result: 'Reached max budget of $5' }));
+  process.exit(1);
+} else if (mode === 'progress') {
   write(['--slice', `${n}: fake slice`, '--next', `slice ${n + 1}`]);
   console.log('some banner line');
   console.log(result());

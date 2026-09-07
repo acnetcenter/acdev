@@ -29,6 +29,33 @@ test('pack carries decisions, phase, checkpoint, plans, spec entries and filtere
   assert.match(out, /pack: \d+ chars \(~\d+ tokens\)/);
 });
 
+test('pack prints the :root block of mockups/styles.css before the checklists when --layers includes frontend', () => {
+  const p = makeProject({ mockups: true });
+  p.write('mockups/styles.css', 'body { margin: 0; }\n:root {\n  --color-bg: #ffffff;\n  --color-primary: #2563eb;\n  --space-md: 16px;\n}\n.card { padding: var(--space-md); }\n:root { --late: 1; }\n');
+  const r = p.cli(['pack', '--layers', 'frontend,api']);
+  assert.equal(r.status, 0, r.stderr);
+  const out = r.stdout;
+  assert.match(out, /## design tokens \(mockups\/styles\.css\)\n:root \{\n  --color-bg: #ffffff;\n  --color-primary: #2563eb;\n  --space-md: 16px;\n\}\n/);
+  assert.ok(!out.includes('--late'), 'only the first :root block');
+  assert.ok(!out.includes('.card'), 'rules outside :root are not printed');
+  assert.ok(out.indexOf('## design tokens') < out.indexOf('## layer-frontend checklist'), 'tokens come before the checklists');
+  // without frontend in --layers the section is absent; without the file it is absent too
+  assert.ok(!p.cli(['pack', '--layers', 'api']).stdout.includes('## design tokens'));
+  const q = makeProject({ mockups: true });
+  assert.ok(!q.cli(['pack', '--layers', 'frontend']).stdout.includes('## design tokens'));
+});
+
+test('pack strips CSS comments before reading :root, so a brace inside a comment does not cut the block', () => {
+  const p = makeProject({ mockups: true });
+  p.write('mockups/styles.css', '/* tokens { start */\n:root {\n  --color-bg: #ffffff; /* was #fff } once */\n  /* spacing\n     scale } */\n  --space-md: 16px;\n}\n.card { padding: var(--space-md); }\n');
+  const r = p.cli(['pack', '--layers', 'frontend']);
+  assert.equal(r.status, 0, r.stderr);
+  const out = r.stdout;
+  assert.match(out, /## design tokens \(mockups\/styles\.css\)\n:root \{\n  --color-bg: #ffffff; \n  \n  --space-md: 16px;\n\}\n/);
+  assert.ok(!out.includes('was #fff'), 'comments are not printed');
+  assert.ok(!out.includes('.card'), 'the block ends at its real closing brace');
+});
+
 test('pack without a project says so instead of inventing state', () => {
   const p = makeProject({ git: false });
   const r = p.cli(['pack'], { cwd: join(p.root, 'src') });
@@ -36,9 +63,9 @@ test('pack without a project says so instead of inventing state', () => {
   assert.match(r.stdout, /no \.acdev\//);
 });
 
-test('every layer skill parses into a non-empty checklist and tagged items filter by profile', () => {
+test('every layer checklist file parses into a non-empty checklist and tagged items filter by profile', () => {
   for (const layer of LAYERS) {
-    const raw = readFileSync(join(PLUGIN, 'skills', `layer-${layer}`, 'SKILL.md'), 'utf8');
+    const raw = readFileSync(join(PLUGIN, 'skills', `layer-${layer}`, 'references', 'checklist.md'), 'utf8');
     const { items, pitfalls } = parseLayerSkill(raw);
     assert.ok(items.length >= 5, `layer-${layer}: ${items.length} items`);
     assert.ok(pitfalls.length >= 3, `layer-${layer}: ${pitfalls.length} pitfalls`);

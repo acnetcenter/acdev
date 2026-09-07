@@ -14,63 +14,19 @@ never re-derive or second-guess it here. If no ADRs exist, say so and route
 to blueprint (new projects) or have the user run /acdev:onboard (existing
 repos).
 
-## Production checklist
-
-- [auth,multi-tenant] Row-level security (or equivalent row filtering) must be active on every
-  tenant/user-owned table AND proven by an isolation test — verify: a test
-  authenticated as user A queries for user B's rows and gets an empty
-  result, and that test exists and runs in CI (not just locally).
-- New tables and routes must be default-deny — verify: a table created
-  without explicit policies is inaccessible, not open by default; the same
-  holds for a new route with no explicit authorization rule.
-- Auth endpoints and expensive routes must be rate limited with counters
-  in a SHARED store, never per-process memory — verify: two app instances
-  (or two requests routed to different processes) share the same limit
-  count, and a request past the limit returns 429 with a Retry-After
-  header.
-- Input must be validated at every trust boundary — verify: a malformed
-  or out-of-schema payload is rejected at the API, at webhook receivers,
-  at file upload handlers, and at queue consumers, not just at the UI.
-- Secrets must live only in env vars or a secret manager, never in the
-  repo — verify: a repo-history scan finds no secrets, and `.env.example`
-  lists variable names only, with no real values.
-- [compliance,pii] Data residency must match the compliance ADR — verify: the regions of
-  the database, file storage and backups are listed and each is allowed
-  by the ADR's jurisdiction constraints, or the ADR explicitly records
-  that residency is unconstrained.
-- [deploys] Security headers must be present on the deployed app — verify: the
-  response includes Content-Security-Policy, Strict-Transport-Security,
-  X-Content-Type-Options, and frame-ancestors (or X-Frame-Options).
-- [webhooks] Webhooks must be verified by signature with a replay window — verify: a
-  request with a missing or invalid signature is rejected, and a replayed
-  valid request outside the allowed time window is rejected too.
-- Dependencies must be audited in CI with a triage rule — verify: the CI
-  pipeline runs a dependency audit step and a documented rule states who
-  triages findings and by when.
-- An OWASP Top 10 pass over the permission matrix and injection surfaces
-  must happen at each phase exit (owned and run by `ship`'s phase-exit
-  security pass) — verify: the phase-exit checklist or report references
-  this pass and lists what was checked.
-
-## Pitfalls
-
-- RLS enabled but the app queries through a service-role/admin client —
-  bypasses row-level security silently; app code must use the
-  policy-constrained client for user-facing queries.
-- Rate limiting only at the edge/CDN while the origin is directly
-  reachable — an attacker who hits the origin skips the limit entirely.
-- CORS configured with `*` alongside credentials — allows any origin to
-  make authenticated requests on behalf of the user.
-- SSRF via user-supplied URLs in fetchers, importers, or webhook
-  registration — an attacker points the server at internal
-  infrastructure; validate and restrict outbound targets.
-- Error messages leaking internals (stack traces, SQL, file paths) to
-  clients — hands attackers a map of the system; return generic errors
-  and log details server-side.
+Hard gate: before any advice or verdict on this layer you MUST run
+`node "<plugin-root>/scripts/acdev.mjs" checklist --layers security --pitfalls`
+and cite its output. That output is this skill, filtered by
+`.acdev/profile.json` (code-formatted); do not open the checklist file:
+the command is the only way it enters context. During build the pack,
+run with `--pitfalls`, already carries it: any context whose slice pack
+already printed this layer checklist (a subagent, or the orchestrator
+building a layer inline) cites that output instead of re-running the
+command.
 
 ## How to verify
 
 Run the project's `scripts/verify/` checks for this layer if present.
-Otherwise run the `verify:` probe attached to each checklist item above
+Otherwise run the `verify:` probe attached to each checklist item
 directly, scoped to what the current slice touched, and paste the decisive
 output lines as evidence.

@@ -51,11 +51,11 @@ mechanical scan the exception is deliberate.
 
 ## Verification
 
-`shared/references/templates/verify-design-tells.mjs` mechanically scans
-for `transition: all`, lone ease-in, `scale(0)`, gradient text and
-over-budget durations (CSS, JS object styles, Framer Motion props and
-Tailwind classes) — `blueprint` copies it into `scripts/verify/` for the
-frontend layer. A justified exception is silenced per line with a
+`scripts/verify/design-tells.mjs` mechanically scans for `transition:
+all`, lone ease-in, `scale(0)`, gradient text and over-budget durations
+(CSS, JS object styles, Framer Motion props and Tailwind classes); at
+blueprint, `node "<plugin-root>/scripts/acdev.mjs" scaffold verify --layers
+frontend` writes it from the plugin's template. A justified exception is silenced per line with a
 `motion-ok` comment; token files are exempt because they declare the
 scale rather than use it. Reduced-motion needs a manual pass: load the
 critical flow with reduced motion enabled and confirm it works.

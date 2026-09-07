@@ -227,6 +227,58 @@ test('the real case files load and validate', () => {
   assert.ok(!b.stdout.includes('<plugin-root>'), 'the plugin root is substituted into budget prompts');
 });
 
+test('dry run prints the real judge command: isolated for routing and gates, cached prefix for budget', () => {
+  const routing = run(['--dry-run', '--suite', 'routing', '--cases-dir', fixtureCases]);
+  assert.equal(routing.status, 0, routing.stderr);
+  assert.match(routing.stdout, /^judge: claude -p --model haiku --safe-mode --tools ""$/m);
+  const gates = run(['--dry-run', '--suite', 'gates', '--cases-dir', fixtureCases, '--model', 'sonnet']);
+  assert.equal(gates.status, 0, gates.stderr);
+  assert.match(gates.stdout, /^judge: claude -p --model sonnet --safe-mode --tools ""$/m);
+  const ablate = run(['--ablate', '--dry-run', '--cases-dir', fixtureCases]);
+  assert.match(ablate.stdout, /^judge: claude -p --model haiku --safe-mode --tools ""$/m);
+  const budget = run(['--dry-run', '--suite', 'budget', '--cases-dir', fixtureCases]);
+  assert.equal(budget.status, 0, budget.stderr);
+  assert.match(budget.stdout, /^judge: claude -p --model haiku --output-format json --exclude-dynamic-system-prompt-sections$/m);
+  const judgeLine = budget.stdout.match(/^judge: .*$/m)[0];
+  assert.ok(!judgeLine.includes('--safe-mode'), `budget judge must keep the full environment: ${judgeLine}`);
+  for (const r of [routing, gates, ablate, budget]) assert.ok(!r.stdout.includes('--bare'), '--bare skips OAuth and is never used');
+});
+
+// A judge that prints its own argv: `node -p EXPR --` evaluates EXPR with
+// everything after `--` in process.argv, so the flags the runner appends
+// to ACDEV_EVAL_CMD come back as the answer (joined without spaces so
+// the whole list survives the runner's truncation).
+const echoArgv = "node -p process.argv.slice(1).join('|') --";
+
+test('routing and gates judges receive --safe-mode and --tools "" through ACDEV_EVAL_CMD', () => {
+  const routing = run(['--suite', 'routing', '--cases-dir', fixtureCases, '--filter', 'fx-tdd', '--retries', '0'], { ACDEV_EVAL_CMD: echoArgv });
+  assert.equal(routing.status, 1, routing.stdout + routing.stderr);
+  assert.match(routing.stdout, /FAIL fx-tdd: expected tdd, got unparseable: --safe-mode\|--tools\|\r?\n/);
+  const gates = run(['--suite', 'gates', '--cases-dir', fixtureCases, '--retries', '0'], { ACDEV_EVAL_CMD: echoArgv });
+  assert.equal(gates.status, 1, gates.stdout + gates.stderr);
+  assert.match(gates.stdout, /got unparseable: --safe-mode\|--tools\|\r?\n/);
+  assert.ok(!routing.stdout.includes('exclude-dynamic') && !gates.stdout.includes('exclude-dynamic'));
+});
+
+test('the budget judge receives --exclude-dynamic-system-prompt-sections and no --safe-mode', () => {
+  // The echoed argv rides in a headless-style error result so the budget
+  // parser surfaces it verbatim.
+  const echoJson = "node -p JSON.stringify({is_error:true,result:process.argv.slice(1).join('|')}) --";
+  const r = run(['--suite', 'budget', '--cases-dir', fixtureCases, '--retries', '0'], { ACDEV_EVAL_CMD: echoJson });
+  assert.equal(r.status, 1, r.stdout + r.stderr);
+  assert.match(r.stdout, /FAIL budget-fixture-next: session error: --exclude-dynamic-system-prompt-sections \(/);
+  assert.ok(!r.stdout.includes('--safe-mode'), r.stdout);
+});
+
+test('the fake judge ignores the appended suite flags', () => {
+  const r = run(['--suite', 'routing', '--cases-dir', fixtureCases, '--filter', 'fx-tdd'], {
+    ACDEV_EVAL_CMD: fakeJudge,
+    ACDEV_FAKE_ANSWER: 'tdd'
+  });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /routing: 1\/1 passed/);
+});
+
 test('budget suite checks the headless usage against the case budget', () => {
   const usage = (over) => JSON.stringify({
     type: 'result', is_error: false, num_turns: over ? 9 : 3, total_cost_usd: over ? 0.5 : 0.01,

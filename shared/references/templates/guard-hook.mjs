@@ -179,6 +179,31 @@ function bashWriteTargets(command) {
   return targets.filter((t) => !t.startsWith('/dev/') && !t.startsWith('$') && !t.startsWith('&'));
 }
 
+// Inline node code: `node -e/-p/--eval/--print/--input-type`, `node -` and a
+// bare `node` fed by a pipe run a program the path policy cannot read, and
+// `Bash(node *)` is pre-allowed so no permission prompt catches it either.
+// Script files stay allowed: their paths went through the policy when
+// they were written.
+const NODE_BIN = /(?:^|[\\/])node(?:\.exe)?$/i;
+const NODE_INLINE_FLAG = /^(?:-e|-p|-pe|-ep|--eval|--print|--input-type)(?:=|$)/;
+function bashInlineNode(command) {
+  for (const seg of command.split(/&&|\|\||;|\|(?!\|)|\n/)) {
+    const toks = seg.match(/"[^"]*"|'[^']*'|\S+/g) ?? [];
+    const clean = (t) => t.replace(/^["']|["']$/g, '');
+    const cmd = toks.findIndex((t) => !/^[A-Z_]+=/.test(t));
+    if (cmd < 0 || !NODE_BIN.test(clean(toks[cmd]))) continue;
+    const args = toks.slice(cmd + 1).map(clean);
+    // Only node's own flags count: past the script file, `-e` belongs to it.
+    const at = args.findIndex((a) => !a.startsWith('-') && !/^(?:\d?>>?|&>|<)/.test(a));
+    const flags = at < 0 ? args : args.slice(0, at);
+    if (flags.some((a) => NODE_INLINE_FLAG.test(a))) return 'inline code (-e/-p/--eval/--print/--input-type)';
+    // No script file: the program comes from a pipe, a heredoc or `node -`.
+    // `node < file.js` is left alone (the file went through the policy).
+    if (at < 0 && (flags.includes('-') || /<<-?\s*['"]?\w/.test(seg) || command.split(/\|(?!\|)/).length > 1)) return 'a program read from stdin';
+  }
+  return null;
+}
+
 function git(args) {
   const r = spawnSync('git', args, { cwd: ROOT, encoding: 'utf8' });
   if (r.status !== 0) throw new Error(`git ${args[0]} failed: ${(r.stderr || r.error?.message || '').trim()}`);
@@ -223,6 +248,8 @@ function judgeBash(command, cfg, stage) {
     const verdict = judgePath(rel, cfg, stage);
     if (verdict) return verdict;
   }
+  const inline = bashInlineNode(command);
+  if (inline) return ['ask', `node runs ${inline}: the guard cannot see which files it writes, so the stage, freeze and protected-document rules do not apply to it. Write files with the Edit or Write tools, or run the code from a script file; the user confirms this one.`];
   for (const [re, why] of DESTRUCTIVE) {
     if (re.test(command)) return ['ask', `Destructive command: ${why}. The user confirms this one.`];
   }
@@ -260,18 +287,83 @@ async function hook() {
 }
 
 // What a verify run puts in front of the agent: the verdict lines a runner
-// ends with plus a short tail on green; the failure lines and a longer tail
+// ends with plus a short tail on green; the failure lines and a short tail
 // on red; everything with --full. The log never enters the context whole.
-const SUMMARY_RE = /\b\d+\s+(passed|passing|failed|failing|pending|skipped|todo|problems?|errors?|warnings?|tests?|specs?|examples?)\b|^#\s+(tests|pass|fail|suites|skipped|todo|cancelled)\s+\d+|\bTests?:|\bTest Files\b|\bTest Suites:|\btest result:|\bPassed!|\bFailed!|^ok\s+\S|^FAIL\b|^PASS\b|✖|\bDuration\b|\bTime:/i;
-const FAILURE_RE = /\b(fail|failed|failing|error|errors|exception|assert|assertion|expected|received|actual|not ok|panic|traceback|denied|cannot|unhandled)\b|✗|×|✖|^\s+at\s+\S+\s+\(/i;
+// --- shared with the plugin's scripts/lib/quiet.mjs (verdictLines) ---
+// This file is copied into projects as is, so the block is duplicated here
+// instead of imported; the plugin's tests/guard-quiet-parity.test.mjs keeps
+// the two copies producing the same text. Change both or neither.
+// Lines a runner prints as its verdict: counts, totals, TAP summaries.
+const SUMMARY = /\b\d+\s+(passed|passing|failed|failing|pending|skipped|todo|problems?|errors?|warnings?|tests?|specs?|examples?)\b|^#\s+(tests|pass|fail|suites|skipped|todo|cancelled)\s+\d+|\bTests?:|\bTest Files\b|\bTest Suites:|\btest result:|\bPassed!|\bFailed!|^ok\s+\S|^FAIL\b|^PASS\b|✖|\bDuration\b|\bTime:/i;
+// Lines that explain a red run: the assertion, the error, the stack head.
+const FAILURE = /\b(fail|failed|failing|error|errors|exception|assert|assertion|expected|received|actual|not ok|panic|traceback|denied|cannot|unhandled)\b|✗|×|✖|^\s+at\s+\S+\s+\(/i;
+// Stack frames, and the ones that point outside the project's own code.
+const FRAME = /^\s+at\s/;
+const VENDOR = /node_modules[\\/]|\bdist[\\/]|\bnode:/;
+
+const dedupe = (lines) => {
+  const seen = new Set();
+  return lines.filter((l) => {
+    const k = l.trim();
+    if (!k || seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+};
+
+// The failure lines of a red log. A failing test starts at a non-frame
+// failure line; its frames follow. Project frames are capped at two per test
+// because the third never names a new file; vendor frames are dropped, except
+// the first one when the test has no project frame at all (the only lead).
+function failureLines(lines) {
+  const out = [];
+  let project = 0;
+  let vendor = null;
+  const flush = () => {
+    if (!project && vendor) out.push(vendor);
+    project = 0;
+    vendor = null;
+  };
+  for (const l of lines) {
+    if (!FAILURE.test(l)) continue;
+    if (!FRAME.test(l)) {
+      flush();
+      out.push(l);
+    } else if (VENDOR.test(l)) {
+      vendor ??= l;
+    } else if (project < 2) {
+      project++;
+      out.push(l);
+    }
+  }
+  flush();
+  return out;
+}
+
+// Body lines of a verdict: green keeps the summary lines plus the last three;
+// red keeps the failure lines and a tail of at most ten lines that the failure
+// section has not already shown, so a red never repeats itself. Vendor frames
+// stay out of the tail too: dropped above, they must not resurface below.
+function verdictLines(lines, ok, tail) {
+  if (ok) {
+    const summary = dedupe(lines.filter((l) => SUMMARY.test(l))).slice(-12);
+    const last = dedupe(lines.slice(-3).filter((l) => !summary.includes(l)));
+    return [...summary, ...last].map((l) => `  ${l.trim()}`);
+  }
+  const failures = dedupe(failureLines(lines)).slice(0, 40);
+  const printed = new Set(failures.map((l) => l.trim()));
+  const tailLines = dedupe(lines.slice(-Math.min(tail, 10))).filter((l) => !printed.has(l.trim()) && !(FRAME.test(l) && VENDOR.test(l)));
+  const out = [];
+  if (failures.length) out.push(`--- failure lines (first ${failures.length}) ---`, ...failures.map((l) => `  ${l.trimEnd()}`));
+  out.push(`--- tail (last ${tailLines.length} line(s)) ---`, ...tailLines.map((l) => `  ${l.trimEnd()}`));
+  return out;
+}
+// --- end of the shared block ---
 function condense(output, ok, full) {
   // eslint-disable-next-line no-control-regex
   const lines = output.replace(/\x1b\[[0-9;]*[A-Za-z]/g, '').replace(/\r\n?/g, '\n').split('\n').filter((l) => l.trim());
   if (full) return lines.join('\n');
-  const seen = new Set();
-  const uniq = (arr) => arr.filter((l) => !seen.has(l.trim()) && seen.add(l.trim()));
-  if (ok) return uniq([...lines.filter((l) => SUMMARY_RE.test(l)).slice(-12), ...lines.slice(-3)]).join('\n');
-  return [...uniq(lines.filter((l) => FAILURE_RE.test(l)).slice(0, 40)), `--- tail (last ${Math.min(30, lines.length)} lines) ---`, ...lines.slice(-30)].join('\n');
+  return verdictLines(lines, ok, 30).join('\n');
 }
 
 function verify(cfg, full = false) {

@@ -13,10 +13,15 @@
 // sessions (`claude -p --output-format json` inside a fixture project) and
 // is always explicit: --suite budget.
 //
+// Routing and gates judges run in --safe-mode with --tools ""; the budget
+// suite keeps the full environment plus
+// --exclude-dynamic-system-prompt-sections (see SUITE_FLAGS).
+//
 // ACDEV_EVAL_CMD replaces the default `claude -p --model M` judge with a
-// custom command (split on spaces; the prompt always arrives on stdin) so
-// the pipeline is testable without a model call. ACDEV_EVAL_TIMEOUT_MS
-// overrides the per-call judge timeout (test-only injection).
+// custom command (split on spaces; the prompt always arrives on stdin;
+// the suite's isolation flags are appended to it as well) so the pipeline
+// is testable without a model call. ACDEV_EVAL_TIMEOUT_MS overrides the
+// per-call judge timeout (test-only injection).
 import { readFileSync, readdirSync, appendFileSync, existsSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -148,35 +153,60 @@ function loadCases(suite) {
   return args.filter ? cases.filter((c) => c.id.includes(args.filter)) : cases;
 }
 
-function judgeCmd(json = false) {
+// Per-suite judge isolation. A routing or gates judge answers one line
+// from the pasted text alone, so it runs with every host customization
+// off (--safe-mode: no CLAUDE.md, skills, plugins, hooks or MCP servers;
+// --tools "": no tools): a one-line answer does not pay for the whole
+// Claude Code environment, and the installed acdev skills cannot sit next
+// to the pasted copies and contaminate the routing answer. A budget case
+// measures a real session, so it keeps the full environment and only
+// moves the per-machine system prompt sections into the first message,
+// so consecutive cases share the static prefix cache. Never --bare: it
+// skips OAuth.
+const SUITE_FLAGS = {
+  routing: ['--safe-mode', '--tools', ''],
+  gates: ['--safe-mode', '--tools', ''],
+  budget: ['--exclude-dynamic-system-prompt-sections']
+};
+
+function judgeCmd(suite) {
+  const suiteFlags = SUITE_FLAGS[suite];
   const custom = process.env.ACDEV_EVAL_CMD;
   if (custom) {
     // Split on spaces: enough for "node path/to/fake-judge.mjs"; a judge
     // command whose path contains spaces is not supported. A relative
     // script path is resolved against the runner's cwd here, because a
-    // budget case spawns the judge inside its fixture project.
+    // budget case spawns the judge inside its fixture project. The
+    // suite flags travel too, so a stand-in sees what claude would.
     const [cmd, ...rest] = custom.split(' ').filter(Boolean);
     const args = rest.map((a) => (existsSync(resolve(process.cwd(), a)) ? resolve(process.cwd(), a) : a));
-    return { cmd, args, shell: false };
+    return { cmd, args: [...args, ...suiteFlags], shell: false };
   }
   if (!/^[A-Za-z0-9._:-]+$/.test(args.model)) {
     console.error(`invalid --model "${args.model}"`);
     process.exit(1);
   }
-  const flags = ['-p', '--model', args.model, ...(json ? ['--output-format', 'json'] : [])];
+  const flags = ['-p', '--model', args.model, ...(suite === 'budget' ? ['--output-format', 'json'] : []), ...suiteFlags];
   // The claude CLI installs as a .cmd shim on Windows, which needs a
   // shell. A single concatenated string avoids DEP0190; only the
-  // validated model name reaches the line, the prompt travels on stdin.
+  // validated model name and fixed flags reach the line (the empty
+  // --tools value quoted for cmd.exe), the prompt travels on stdin.
   if (process.platform === 'win32') {
-    return { cmd: `claude ${flags.join(' ')}`, args: [], shell: true };
+    return { cmd: `claude ${flags.map((f) => (f === '' ? '""' : f)).join(' ')}`, args: [], shell: true };
   }
   return { cmd: 'claude', args: flags, shell: false };
 }
 
+// The command line a suite's judge runs with, for the dry run.
+function judgeDisplay(suite) {
+  const { cmd, args: cmdArgs } = judgeCmd(suite);
+  return [cmd, ...cmdArgs.map((a) => (a === '' ? '""' : a))].join(' ');
+}
+
 // A budget case runs a whole headless session inside a fixture project;
 // the JSON result carries the usage the budget is checked against.
-function callJudge(prompt, { cwd = process.cwd(), json = false } = {}) {
-  const { cmd, args: cmdArgs, shell } = judgeCmd(json);
+function callJudge(prompt, { cwd = process.cwd(), suite = 'gates' } = {}) {
+  const { cmd, args: cmdArgs, shell } = judgeCmd(suite);
   return new Promise((resolve) => {
     const child = spawn(cmd, cmdArgs, { shell, cwd, stdio: ['pipe', 'pipe', 'pipe'] });
     let out = '';
@@ -306,11 +336,12 @@ if (args.ablate) {
   const cases = loadCases('gates');
   const prompts = cases.map((c) => gatePrompt(c, true));
   if (args['dry-run']) {
+    console.log(`judge: ${judgeDisplay('gates')}`);
     cases.forEach((c, i) => console.log(`=== case ${c.id} (ablated) ===\n${prompts[i]}\n`));
     console.log(`gates ablation: ${cases.length} case(s), dry run only`);
     process.exit(0);
   }
-  const answers = await runPool(prompts, callJudge, Number(args.concurrency) || 4);
+  const answers = await runPool(prompts, (p) => callJudge(p, { suite: 'gates' }), Number(args.concurrency) || 4);
   let hits = 0;
   cases.forEach((c, i) => {
     const got = answers[i].ok ? parseGate(answers[i].out) : null;
@@ -333,6 +364,7 @@ for (const suite of suites) {
   const cwdOf = (c) => (suite === 'budget' ? resolve(args['cases-dir'], c.cwd ?? '.') : process.cwd());
   total += cases.length;
   if (args['dry-run']) {
+    console.log(`judge: ${judgeDisplay(suite)}`);
     cases.forEach((c, i) => console.log(`=== case ${c.id} ===\n${suite === 'budget' ? `cwd: ${cwdOf(c)}\nbudget: total <= ${c.max_total_tokens}${c.max_fresh_tokens !== undefined ? `, fresh <= ${c.max_fresh_tokens}` : ''}${c.max_turns !== undefined ? `, turns <= ${c.max_turns}` : ''}${c.max_cost_usd !== undefined ? `, cost <= $${c.max_cost_usd}` : ''}\n` : ''}${prompts[i]}\n`));
     console.log(`${suite}: ${cases.length} case(s), dry run only`);
     continue;
@@ -346,7 +378,7 @@ for (const suite of suites) {
     async ({ c, prompt }) => {
       let last;
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        const a = await callJudge(prompt, { cwd: cwdOf(c), json: suite === 'budget' });
+        const a = await callJudge(prompt, { cwd: cwdOf(c), suite });
         if (suite === 'budget') {
           const got = a.ok || a.out ? parseBudget(a.out) : null;
           const v = budgetVerdict(c, got);
@@ -418,11 +450,13 @@ if (!args['dry-run']) {
   );
   // The only memory between runs: a chronic retry-passer is a finding,
   // not noise, and a single run cannot see chronic. Written only for the
-  // real case set (never for test fixtures), gitignored.
+  // real case set (never for test fixtures), gitignored. Each row carries
+  // the judge flags per suite, so a result stays tied to its environment.
   if (args['cases-dir'] === join(ROOT, 'evals')) {
     const entry = {
       date: new Date().toISOString(),
       model: process.env.ACDEV_EVAL_CMD ? 'custom-judge' : args.model,
+      judge: Object.fromEntries(suites.map((s) => [s, SUITE_FLAGS[s]])),
       suites: suiteStats.map(({ suite, passed, total: t, onRetry, viaAccept, failed }) => ({ suite, passed, total: t, onRetry, viaAccept, failed }))
     };
     try {

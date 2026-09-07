@@ -10,7 +10,8 @@ incident has flowed back into the repo as a spec, a fix and a lesson.
 Inputs: `docs/RUNBOOK.md` (service map, rollback command, control bands,
 canary, alerts) and `scripts/verify/canary.mjs`, both written by
 `blueprint` for any project that deploys. If the runbook is missing, write
-it first from `shared/references/templates/runbook.md` as a blueprint
+it first (`node "<plugin-root>/scripts/acdev.mjs" scaffold runbook
+docs/RUNBOOK.md`, then fill only the `<...>` placeholders) as a blueprint
 delta, with the user: operating without a rehearsed rollback and numeric
 bands is guessing under pressure.
 
@@ -48,8 +49,8 @@ session, or it is config drift the next deploy reverts.
 
 ## Incident to spec
 
-Every incident becomes `docs/plans/YYYY-MM-DD-incident-<slug>.md` from
-`shared/references/templates/incident.md` **before any fix is coded**:
+Every incident becomes `docs/plans/YYYY-MM-DD-incident-<slug>.md`
+(`scaffold incident <that path>`) **before any fix is coded**:
 symptom, impact, timeline, immediate action, root cause, fix as goal +
 verify steps, prevention. A hotfix without a spec is a side edit, and the
 pipeline has no such thing. While the incident plan is `status: active`,

@@ -4,6 +4,26 @@ MVP.md is not a new invention — it is the smallest slice of the approved
 VISION that already delivers real, end-to-end value. Cutting it well is a
 discipline, not a formality.
 
+## Procedure
+
+1. Initialize `docs/MVP.md` with `node "<plugin-root>/scripts/acdev.mjs"
+   scaffold mvp docs/MVP.md` (`<plugin-root>` is the path printed as
+   `acdev plugin root:` at session start), in the intake language, and
+   replace each `<!-- ... -->` guidance comment and each `<...>`
+   placeholder with real content.
+2. Cut, in this order: what is IN (a numbered feature list), what is
+   explicitly OUT, and the success criteria, per the rules below.
+3. Each section is shown as document text, corrected with the user, and
+   Edited into `docs/MVP.md` right after its preview, the same way as
+   stage 1; no separate whole-document write follows. A revision Edits
+   the changed section, shows it, then presents the full document once
+   more.
+4. After the gate closes (the skill body holds its wording), advance the
+   state (`node "<plugin-root>/scripts/checkpoint.mjs" write --stage
+   mockups --branch <branch> --next "mockups of every MVP screen"`, or
+   `--stage blueprint` when the project has no UI and the user confirmed
+   the skip) and commit: `docs: mvp contract`.
+
 ## The cut
 
 - Aim for the smallest scope that delivers real value end-to-end. "Smallest"

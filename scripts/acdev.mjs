@@ -12,6 +12,9 @@ import { pluginRoot, projectRoot } from './lib/project.mjs';
 
 const USAGE = `usage: acdev.mjs <command> [flags]
   next [--change "topic"]                     the pipeline step that applies now (~300 tokens)
+  status                                      resume snapshot in one call: state, checkpoint, open plans, current phase
+  scaffold <what> [target] [--layers a,b] [--canary] [--force]   copy the mechanical files verbatim: guard | verify | <template> <target>
+  scaffold mockup-variant <page> <state> | --state <empty|error|loading> [--force]   mockups/<page>-<state>.html: the page with <main> reduced to one marker line
   pack [--screens a,b] [--layers x,y] [--pitfalls]   slice context pack: decisions, phase, checkpoint, spec, checklists
   checklist --layers x,y [--pitfalls]         layer checklists filtered by .acdev/profile.json
   q [--tail N] [--full] -- <command>          quiet runner: the verdict lines, never the log
@@ -19,8 +22,9 @@ const USAGE = `usage: acdev.mjs <command> [flags]
   close --check [--plan P] [--verify]         what the close needs, without committing
   close --slice "n: name" --plan P --next "text" --changelog "text" [--message M] [--notes T] [--full]
   mockup-spec [--write]                       per-screen skeleton of mockups/*.html (writes mockups/SPEC.md)
-  run [--max-slices N] [--model M] [--claude CMD] [--extra "flags"] [--prompt T] [--timeout-min N] [--dry-run]
-  cost [--json]                               the .acdev/cost.jsonl ledger written by run
+  run [--max-slices N] [--model M] [--budget-usd N] [--mcp-config F] [--no-isolate] [--claude CMD] [--extra "flags"] [--prompt T] [--timeout-min N] [--dry-run]
+                                              headless loop: one fresh session per slice, capped per iteration (--budget-usd 0 disables)
+  cost [--json]                               the .acdev/cost.jsonl ledger written by run: total, fresh, per-model share
   checkpoint read | write ...                 scripts/checkpoint.mjs
   lessons list | add ... | promote ...        scripts/lessons.mjs`;
 
@@ -48,6 +52,26 @@ try {
       const { values } = opts({ change: { type: 'string' } });
       const { renderNext } = await import('./lib/next.mjs');
       console.log(renderNext(ROOT, { pluginRoot: PLUGIN, change: values.change ?? null }));
+      break;
+    }
+    case 'status': {
+      opts({});
+      const { renderStatus } = await import('./lib/status.mjs');
+      console.log(renderStatus(ROOT, { pluginRoot: PLUGIN }));
+      break;
+    }
+    case 'scaffold': {
+      const { values, positionals } = opts({ layers: { type: 'string' }, canary: { type: 'boolean', default: false }, force: { type: 'boolean', default: false }, state: { type: 'string' } }, { positionals: true });
+      const [what, target, third] = positionals;
+      if (!what) {
+        console.error(`scaffold: say what to scaffold (guard, verify, mockup-variant, or a template name and its target)\n\n${USAGE}`);
+        process.exit(1);
+      }
+      const { scaffold } = await import('./lib/scaffold.mjs');
+      // mockup-variant takes its state as a third positional or as --state.
+      const r = scaffold(ROOT, { pluginRoot: PLUGIN, what, target: target ?? null, state: values.state ?? third ?? null, layers: list(values.layers), canary: values.canary, force: values.force });
+      console.log(r.text);
+      process.exit(r.ok ? 0 : 1);
       break;
     }
     case 'pack': {
@@ -113,12 +137,21 @@ try {
     case 'run': {
       const { values } = opts({
         'max-slices': { type: 'string', default: '10' }, model: { type: 'string' }, claude: { type: 'string', default: 'claude' },
-        extra: { type: 'string', default: '' }, prompt: { type: 'string' }, 'timeout-min': { type: 'string', default: '120' }, 'dry-run': { type: 'boolean', default: false }
+        extra: { type: 'string', default: '' }, prompt: { type: 'string' }, 'timeout-min': { type: 'string', default: '120' }, 'dry-run': { type: 'boolean', default: false },
+        'budget-usd': { type: 'string' }, 'mcp-config': { type: 'string' }, 'no-isolate': { type: 'boolean', default: false }
       });
+      // A cap that is not a number would silently become NaN and disable
+      // the cap; 0 disables it on purpose, anything else must be >= 0.
+      const budgetUsd = values['budget-usd'] === undefined ? null : Number(values['budget-usd']);
+      if (budgetUsd !== null && (values['budget-usd'].trim() === '' || !Number.isFinite(budgetUsd) || budgetUsd < 0)) {
+        console.error('run: --budget-usd must be a number >= 0');
+        process.exit(1);
+      }
       const { runLoop } = await import('./lib/run.mjs');
-      const r = runLoop(ROOT, {
+      const r = await runLoop(ROOT, {
         pluginRoot: PLUGIN, maxSlices: Number(values['max-slices']) || 10, model: values.model ?? null, claude: values.claude,
-        extra: values.extra, prompt: values.prompt ?? null, timeoutMin: Number(values['timeout-min']) || 120, dryRun: values['dry-run']
+        extra: values.extra, prompt: values.prompt ?? null, timeoutMin: Number(values['timeout-min']) || 120, dryRun: values['dry-run'],
+        budgetUsd, isolate: !values['no-isolate'], mcpConfig: values['mcp-config'] ?? null
       });
       console.log(`run: ${r.iterations} iteration(s), stop: ${r.reason}`);
       break;

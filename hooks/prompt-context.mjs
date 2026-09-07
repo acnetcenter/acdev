@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 // UserPromptSubmit hook: one short line per prompt, only inside a project
 // that runs the pipeline (.acdev/state.md with a stage). Silent everywhere
-// else. The line carries the stage and the step command; the routing rules
-// live in the gateway (injected at session start) and are not repeated
-// here, because every injected line stays in the transcript for the rest
-// of the session.
+// else. The line carries the stage and nothing more: the step command and
+// the plugin root live in the gateway (injected at session start and
+// re-injected after every compaction), and every injected line stays in
+// the transcript for the rest of the session, so a path repeated here
+// would be re-read on every later turn.
 import { readFileSync } from 'node:fs';
-import { join, dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
 try {
   // CLAUDE_PROJECT_DIR points at the project root even when the session was
@@ -16,8 +16,7 @@ try {
   const state = readFileSync(join(root, '.acdev', 'state.md'), 'utf8');
   const stage = state.match(/^stage:\s*(.+)$/m)?.[1]?.trim();
   if (!stage) process.exit(0);
-  const plugin = resolve(dirname(fileURLToPath(import.meta.url)), '..').replace(/\\/g, '/');
-  console.log(`acdev: stage ${stage}. Step: node "${plugin}/scripts/acdev.mjs" next`);
+  console.log(`acdev: stage ${stage}.`);
 } catch {
   // Not an acdev project (or unreadable state): inject nothing.
 }

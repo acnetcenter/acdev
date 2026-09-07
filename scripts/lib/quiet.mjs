@@ -9,10 +9,17 @@ import { spawnSync } from 'node:child_process';
 const ANSI = /\x1b\[[0-9;]*[A-Za-z]/g;
 export const stripAnsi = (s) => String(s ?? '').replace(ANSI, '');
 
+// --- shared with shared/references/templates/guard-hook.mjs (verdictLines) ---
+// The guard is copied into projects file by file, so this block is duplicated
+// there instead of imported; tests/guard-quiet-parity.test.mjs keeps the two
+// copies producing the same text. Change both or neither.
 // Lines a runner prints as its verdict: counts, totals, TAP summaries.
 const SUMMARY = /\b\d+\s+(passed|passing|failed|failing|pending|skipped|todo|problems?|errors?|warnings?|tests?|specs?|examples?)\b|^#\s+(tests|pass|fail|suites|skipped|todo|cancelled)\s+\d+|\bTests?:|\bTest Files\b|\bTest Suites:|\btest result:|\bPassed!|\bFailed!|^ok\s+\S|^FAIL\b|^PASS\b|✖|\bDuration\b|\bTime:/i;
 // Lines that explain a red run: the assertion, the error, the stack head.
 const FAILURE = /\b(fail|failed|failing|error|errors|exception|assert|assertion|expected|received|actual|not ok|panic|traceback|denied|cannot|unhandled)\b|✗|×|✖|^\s+at\s+\S+\s+\(/i;
+// Stack frames, and the ones that point outside the project's own code.
+const FRAME = /^\s+at\s/;
+const VENDOR = /node_modules[\\/]|\bdist[\\/]|\bnode:/;
 
 const dedupe = (lines) => {
   const seen = new Set();
@@ -24,23 +31,61 @@ const dedupe = (lines) => {
   });
 };
 
+// The failure lines of a red log. A failing test starts at a non-frame
+// failure line; its frames follow. Project frames are capped at two per test
+// because the third never names a new file; vendor frames are dropped, except
+// the first one when the test has no project frame at all (the only lead).
+function failureLines(lines) {
+  const out = [];
+  let project = 0;
+  let vendor = null;
+  const flush = () => {
+    if (!project && vendor) out.push(vendor);
+    project = 0;
+    vendor = null;
+  };
+  for (const l of lines) {
+    if (!FAILURE.test(l)) continue;
+    if (!FRAME.test(l)) {
+      flush();
+      out.push(l);
+    } else if (VENDOR.test(l)) {
+      vendor ??= l;
+    } else if (project < 2) {
+      project++;
+      out.push(l);
+    }
+  }
+  flush();
+  return out;
+}
+
+// Body lines of a verdict: green keeps the summary lines plus the last three;
+// red keeps the failure lines and a tail of at most ten lines that the failure
+// section has not already shown, so a red never repeats itself. Vendor frames
+// stay out of the tail too: dropped above, they must not resurface below.
+function verdictLines(lines, ok, tail) {
+  if (ok) {
+    const summary = dedupe(lines.filter((l) => SUMMARY.test(l))).slice(-12);
+    const last = dedupe(lines.slice(-3).filter((l) => !summary.includes(l)));
+    return [...summary, ...last].map((l) => `  ${l.trim()}`);
+  }
+  const failures = dedupe(failureLines(lines)).slice(0, 40);
+  const printed = new Set(failures.map((l) => l.trim()));
+  const tailLines = dedupe(lines.slice(-Math.min(tail, 10))).filter((l) => !printed.has(l.trim()) && !(FRAME.test(l) && VENDOR.test(l)));
+  const out = [];
+  if (failures.length) out.push(`--- failure lines (first ${failures.length}) ---`, ...failures.map((l) => `  ${l.trimEnd()}`));
+  out.push(`--- tail (last ${tailLines.length} line(s)) ---`, ...tailLines.map((l) => `  ${l.trimEnd()}`));
+  return out;
+}
+// --- end of the shared block ---
+
 export function summarize(output, { ok, exit, tail = 30, ms = null, full = false } = {}) {
   const text = stripAnsi(output).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const lines = text.split('\n').filter((l) => l.trim());
   const meta = `exit ${exit ?? (ok ? 0 : 1)}, ${lines.length} line(s)${ms !== null ? `, ${(ms / 1000).toFixed(1)}s` : ''}`;
   if (full) return `${text.trimEnd()}\nq: ${ok ? 'OK' : 'FAIL'} (${meta})`;
-  if (ok) {
-    const summary = dedupe(lines.filter((l) => SUMMARY.test(l))).slice(-12);
-    const last = dedupe(lines.slice(-3).filter((l) => !summary.includes(l)));
-    const body = [...summary, ...last].map((l) => `  ${l.trim()}`);
-    return [`q: OK (${meta})`, ...body].join('\n');
-  }
-  const failures = dedupe(lines.filter((l) => FAILURE.test(l))).slice(0, 40);
-  const tailLines = lines.slice(-tail);
-  const out = [`q: FAIL (${meta})`];
-  if (failures.length) out.push(`--- failure lines (first ${failures.length}) ---`, ...failures.map((l) => `  ${l.trimEnd()}`));
-  out.push(`--- tail (last ${tailLines.length} line(s)) ---`, ...tailLines.map((l) => `  ${l.trimEnd()}`));
-  return out.join('\n');
+  return [`q: ${ok ? 'OK' : 'FAIL'} (${meta})`, ...verdictLines(lines, ok, tail)].join('\n');
 }
 
 // Runs one shell command, captures stdout+stderr together, returns the

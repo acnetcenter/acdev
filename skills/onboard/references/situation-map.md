@@ -5,6 +5,19 @@ into acdev. Every factual line ends with its source tag: `[user]`, `[docs]`,
 `[code]`, `[git]`, or `[gap]`. A line with no evidence behind it is a
 declared gap, tagged `[gap]` — never a guess presented as fact.
 
+Cap: about 80 lines. The eight layer rows are mandatory; every other
+section is one line per fact, no prose. When real complexity needs more
+(several services, several deploy targets, many independent gaps), add
+lines rather than omit or merge facts, and say so when presenting the
+map. The adoption plan lives only in the last section; chat points to
+it ("the plan is the last section of `docs/SITUATION.md`; confirm or
+correct it") instead of repeating it.
+
+Scanning: use subagents for wide scans (searching the tree for config
+files, reading CI workflows, scanning for auth or data-layer code across
+many files) and read their conclusions back into the map, not raw file
+dumps; this keeps the pass cheap regardless of repo size.
+
 ```markdown
 # SITUATION
 
@@ -66,9 +79,10 @@ silently, what has no safety net, what nobody currently owns. -->
 
 ## Recommended adoption plan
 
-<!-- Proposed in the confirm-and-adopt gate, after the map above is
-confirmed by the user: which acdev artifacts are missing and worth
-creating (VISION retroactively if absent, MVP.md only if unbuilt scope
-remains worth gating, as-built ADRs for decisions already embodied in
-code), and which pipeline stage the project should resume at. -->
+<!-- Written in the confirm-and-adopt gate, after the map above is
+confirmed by the user, and only here: which acdev artifacts are missing
+and worth creating (VISION retroactively if absent, MVP.md only if
+unbuilt scope remains worth gating, as-built ADRs for decisions already
+embodied in code), and which pipeline stage the project should resume
+at. One line per item. -->
 ```

@@ -33,18 +33,25 @@ reasoning, link to the ADRs instead.> See [docs/adr/](docs/adr/).
 
 ## Read before working
 
-- [docs/ROADMAP.md](docs/ROADMAP.md) - current phase and what is next.
-- The latest checkpoint - run `/acdev:status` to load it (~2k tokens).
-- [docs/adr/](docs/adr/) - decisions already made; do not re-derive them.
+The acdev step (`next`) and the pack it names already carry the current
+[ROADMAP](docs/ROADMAP.md) phase, the [ADR](docs/adr/) decision lines
+and the latest checkpoint. Do not re-read those documents, and do not run
+`/acdev:status` on top of them, unless the pack prints one of its
+fallback markers: `(+N more lines, open the file if needed)`,
+`(docs/ROADMAP.md missing or without phase headings)`, `(no docs/adr/)`,
+`(+more ADRs beyond 40; ...)`. Resuming a session starts with
+`/acdev:status`, once. Decisions in `docs/adr/` are made; never re-derive
+them.
 
 ## Verification
 
-Run the layer-specific checks in `scripts/verify/` before considering any
-slice done. See each script for the concrete command it runs. The guard
-(`.claude/hooks/acdev-guard.mjs`) records the green run and denies a
-commit without it: run `node .claude/hooks/acdev-guard.mjs verify`
-before every close. A guard denial is a gate, not an obstacle; never
-route around it.
+Run the layer-specific probes in `scripts/verify/` as you go; see each
+script for the command it runs. Do not run the full suite by hand before
+closing: the acdev close command (`node "<plugin-root>/scripts/acdev.mjs"
+close`) runs it as its first step, records the receipt the guard
+(`.claude/hooks/acdev-guard.mjs`) checks, and refuses to commit on red;
+for an early signal run that close with `--check --verify`. A guard
+denial is a gate, not an obstacle; never route around it.
 
 ## Lessons
 
@@ -61,6 +68,8 @@ corrected in the same commit that reveals the drift — never left stale
 
 ## Mirror note
 
-`AGENTS.md`, if present, is kept identical to this file. If you edit one,
-edit both.
+`AGENTS.md`, if present, is regenerated from this file by the acdev close
+command and by the blueprint; never edit it by hand; close recognizes the
+copy by this heading (or by a `<!-- acdev: copy of CLAUDE.md -->` comment)
+and leaves any other `AGENTS.md` alone.
 ```

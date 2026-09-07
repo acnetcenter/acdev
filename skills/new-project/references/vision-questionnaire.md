@@ -7,20 +7,35 @@ sections.
 
 ## Procedure
 
-1. Present the sections one at a time (blocks of 2-3 only if the user asks
-   for speed). For every question, offer your best draft answer as a
-   starting point, seeded from what the user has already told — they
-   correct a draft better than they compose one cold.
+1. Initialize `docs/VISION.md` with `node "<plugin-root>/scripts/acdev.mjs"
+   scaffold vision docs/VISION.md` (`<plugin-root>` is the path printed as
+   `acdev plugin root:` at session start) and replace each
+   `<!-- ... -->` guidance comment and each `<...>` placeholder with real
+   content, in the language chosen at intake (writes under `docs/`
+   are allowed before the gate). Then present the sections one at a time
+   (blocks of 2-3 only if the user asks for speed). For every question,
+   offer your best draft answer as a starting point, seeded from what the
+   user has already told — the intake idea covers much of the early
+   sections; they correct a draft better than they compose one cold.
 2. Close each section by showing it AS DOCUMENT TEXT — "this is what we
-   have so far" — and let the user correct or extend it right there before
-   moving on. The preview is the document being written, not a chat
-   summary; by the last section the user has seen every line of the
-   future VISION.md.
+   have so far" — let the user correct or extend it right there, and Edit
+   the agreed text into its section of `docs/VISION.md` before moving on.
+   The preview is the section just written into the file, not a chat
+   summary; by the last section the user has seen every line of
+   VISION.md and the file holds them all.
 3. Challenge weak answers: if the user says "for everyone," ask who is NOT a
    customer; if they say "as complete as possible," ask what is explicitly OUT
    of the v1. A good VISION says as much through what it excludes as through
    what it includes.
-4. Only once all 7 sections are agreed — and seen — write `docs/VISION.md`.
+4. Once all 7 sections are agreed — and seen — the document is complete;
+   there is no separate whole-document write, which would re-emit every
+   line already agreed. A revision after the gate Edits the changed
+   section, shows that section, then presents the full document once more
+   for re-approval.
+5. After the gate closes (the skill body holds its wording), advance the
+   state and commit: `node "<plugin-root>/scripts/checkpoint.mjs" write
+   --stage mvp --branch <branch> --next "cut MVP.md from the approved
+   VISION"`, then `docs: project vision`.
 
 ## The 7 sections
 
@@ -101,7 +116,7 @@ Ask these at the end of the conversation, making clear where the answers go:
 
 ## Final document structure
 
-`docs/VISION.md` is written with these 7 sections, in the project's
-documentation language, with this footer rule verbatim: "Inconsistencies
+`docs/VISION.md` holds these 7 sections, filled one by one as above, in
+the project's documentation language, with this footer rule verbatim: "Inconsistencies
 between documents and code are corrected in the documents or via ADR; this
 document only changes by explicit decision of the product owner."

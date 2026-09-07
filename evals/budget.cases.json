@@ -6,9 +6,9 @@
       "cwd": "fixtures/budget-project",
       "prompt": "/acdev:status",
       "max_total_tokens": 200000,
-      "max_fresh_tokens": 12000,
-      "max_turns": 8,
-      "why": "The resume snapshot reads three cheap sources and must not scan the repo."
+      "max_fresh_tokens": 8000,
+      "max_turns": 3,
+      "why": "The resume snapshot is one acdev.mjs status call and must not scan the repo."
     },
     {
       "id": "budget-next-step",

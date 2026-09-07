@@ -3,7 +3,7 @@
 // without running anything expensive; `close` verifies, does the
 // bookkeeping, writes the checkpoint and commits, refusing on any red.
 // What used to be ten tool calls read out of a skill body is two.
-import { existsSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, unlinkSync, copyFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { readIf, readJsonIf, readState, git, isGitRepo, currentBranch, changedFiles, latestCheckpoint, slashes, norm } from './project.mjs';
@@ -11,6 +11,9 @@ import { runQuiet, summarize } from './quiet.mjs';
 import { driftCandidates, renderDrift } from './drift.mjs';
 
 const GUARD = '.claude/hooks/acdev-guard.mjs';
+// The router stays under one page: past this many promoted lessons the
+// close refuses until the section is consolidated with the user.
+export const LESSONS_CAP = 12;
 
 export function guardConfig(root) {
   const cfg = readJsonIf(join(root, '.acdev', 'guard.json')) ?? {};
@@ -101,7 +104,25 @@ export function lessonsStatus(root) {
   const raw = readIf(join(root, '.acdev', 'lessons.md')) ?? '';
   const rows = raw.split('\n').filter((l) => /^\|\s*\d+\s*\|/.test(l));
   const promoted = rows.filter((l) => /\|\s*promoted\s*\|/i.test(l)).length;
-  return { candidates: rows.length - promoted, promoted };
+  return { candidates: rows.length - promoted, promoted, over: promoted > LESSONS_CAP };
+}
+
+// An acdev AGENTS.md is a copy of CLAUDE.md, never a hand-kept mirror: the
+// close regenerates it. The copy is recognized by the router template's
+// "## Mirror note" heading or an explicit marker comment; an AGENTS.md an
+// onboarded repo keeps for other agents carries neither and is left alone.
+export const MIRROR_MARKERS = [/^## Mirror note\s*$/m, /<!--\s*acdev:\s*copy of CLAUDE\.md\s*-->/];
+export function isRouterCopy(text) {
+  return typeof text === 'string' && MIRROR_MARKERS.some((re) => re.test(text));
+}
+export function mirrorAgents(root) {
+  const claude = join(root, 'CLAUDE.md');
+  const agents = join(root, 'AGENTS.md');
+  if (!existsSync(agents)) return null;
+  if (!existsSync(claude)) return 'agents: AGENTS.md kept as is (no CLAUDE.md to copy)';
+  if (!isRouterCopy(readIf(agents))) return 'agents: AGENTS.md kept as is (not an acdev router copy: no "## Mirror note" heading or <!-- acdev: copy of CLAUDE.md --> marker)';
+  copyFileSync(claude, agents);
+  return 'agents: AGENTS.md regenerated from CLAUDE.md';
 }
 
 function commitMessage(slice, message) {
@@ -149,8 +170,10 @@ export function closeCheck(root, opts = {}) {
   const fz = freezeStatus(root);
   out.push(`  freeze: ${fz.active ? `active on ${fz.paths.join(', ')} (${fz.reason}); cleared at close` : 'none'}`);
   const ls = lessonsStatus(root);
-  out.push(`  lessons: ${ls.candidates} candidate(s), ${ls.promoted} promoted; add or bump one before close if this slice repeated a mistake`);
-  return { ok: idx.ok, text: out.join('\n') };
+  out.push(ls.over
+    ? `  lessons: ${ls.promoted} promoted > ${LESSONS_CAP}: consolidate the section and .acdev/lessons.md before close`
+    : `  lessons: ${ls.candidates} candidate(s), ${ls.promoted} promoted; add or bump one before close if this slice repeated a mistake`);
+  return { ok: idx.ok && !ls.over, text: out.join('\n') };
 }
 
 export function closeSlice(root, opts) {
@@ -166,6 +189,12 @@ export function closeSlice(root, opts) {
   const v = verifyProject(root, { full: opts.full, tail: opts.tail });
   out.push(`  verify: ${v.ok ? (v.unconfigured ? 'UNCONFIGURED' : 'GREEN') : 'RED'} (${v.via})`, ...v.evidence.split('\n').map((l) => `    ${l}`));
   if (!v.ok) return fail('verification is red; fix it and run close again, or write a --blocked checkpoint');
+  // The Lessons section has a hard cap, like a red verify: nothing below
+  // runs while the router is over a page. The cap counts the ledger's
+  // promoted rows, so the ledger is named next to the section.
+  const ls = lessonsStatus(root);
+  if (ls.over) return fail(`lessons: ${ls.promoted} promoted > ${LESSONS_CAP}; consolidate the Lessons section and its rows in .acdev/lessons.md with the user (merge rows and bullets, or move detail into an ADR) before closing`);
+  out.push(`  lessons: ${ls.candidates} candidate(s), ${ls.promoted} promoted`);
   // 2. docs bookkeeping; the receipt ignores these paths so nothing stales.
   const idx = indexStatus(root);
   if (!idx.ok) return fail(`${idx.note}; update the index in this close`);
@@ -183,8 +212,14 @@ export function closeSlice(root, opts) {
     unlinkSync(join(root, '.acdev', 'freeze.json'));
     out.push(`  freeze: cleared (${fz.paths.join(', ')})`);
   }
-  const ls = lessonsStatus(root);
-  out.push(`  lessons: ${ls.candidates} candidate(s), ${ls.promoted} promoted`);
+  const mirrored = mirrorAgents(root);
+  if (mirrored) out.push(`  ${mirrored}`);
+  // The files list was computed before the mirror: a regenerated AGENTS.md
+  // is committed below, so the checkpoint must list it too.
+  if (mirrored && !files.includes('AGENTS.md')) {
+    const st = git(root, ['status', '--porcelain', '--', 'AGENTS.md']);
+    if (st.status === 0 && st.stdout.trim()) files.push('AGENTS.md');
+  }
   // 3. checkpoint, through the script that owns the format.
   const ckptScript = join(opts.pluginRoot, 'scripts', 'checkpoint.mjs');
   const args = [ckptScript, 'write', '--stage', 'build', '--branch', branch ?? 'HEAD', '--slice', opts.slice, '--files', files.join(','), '--next', opts.next];

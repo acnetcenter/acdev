@@ -1,8 +1,11 @@
-// Layer checklists filtered by the project's profile. A checklist item that
-// opens with a tag marker ("[multi-tenant] ...", "[payments,jobs] ...")
-// applies only when .acdev/profile.json lists one of those tags. Untagged
-// items always apply. No profile file means everything applies: filtering
-// is opt-in per project, never a silent loss of a rule.
+// Layer checklists filtered by the project's profile. Each layer's items live
+// in skills/layer-<x>/references/checklist.md (the SKILL.md body is a stub
+// that points here), so the text enters context once, through this command
+// or the pack, never twice. A checklist item that opens with a tag marker
+// ("[multi-tenant] ...", "[payments,jobs] ...") applies only when
+// .acdev/profile.json lists one of those tags. Untagged items always apply.
+// No profile file means everything applies: filtering is opt-in per
+// project, never a silent loss of a rule.
 import { join } from 'node:path';
 import { readIf, readJsonIf, norm } from './project.mjs';
 
@@ -49,8 +52,8 @@ export function renderChecklists(pluginRoot, layers, profile, { pitfalls = false
   if (unknown.length) throw new Error(`unknown layer(s): ${unknown.join(', ')} (expected ${LAYERS.join(', ')})`);
   out.push(profile ? `profile tags: ${profile.tags.join(', ') || '(none)'}` : 'profile: none (.acdev/profile.json missing; every item applies)');
   for (const layer of layers) {
-    const raw = readIf(join(pluginRoot, 'skills', `layer-${layer}`, 'SKILL.md'));
-    if (raw === null) throw new Error(`skills/layer-${layer}/SKILL.md not found`);
+    const raw = readIf(join(pluginRoot, 'skills', `layer-${layer}`, 'references', 'checklist.md'));
+    if (raw === null) throw new Error(`skills/layer-${layer}/references/checklist.md not found`);
     const { items, pitfalls: pits } = parseLayerSkill(raw);
     const { kept, skipped } = filterItems(items, profile);
     const skippedTags = [...new Set(skipped.flatMap((s) => s.tags))];
