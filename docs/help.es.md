@@ -395,8 +395,8 @@ resultado: el nivel más barato para los subagentes cuyo trabajo juzga un
 test, un lint o el guard (TDD hasta verde, arreglos de lint, ediciones de
 docs), el modelo capaz donde decide el criterio (planificación, causa
 raíz, seguridad, cada conversación contigo). El nivel se nombra en el
-despacho, no se espera: el plugin trae dos agentes, `acdev-builder` (el
-modelo más barato) y `acdev-builder-capable` (el modelo de la sesión), y
+despacho, no se espera: el plugin trae dos agentes, `acdev:acdev-builder` (el
+modelo más barato) y `acdev:acdev-builder-capable` (el modelo de la sesión), y
 el paso de construcción despacha por `subagent_type`; un subagente sin
 nivel nombrado hereda el modelo de la sesión. Durante la construcción el
 prompt del subagente lleva `pack --screens <a.html> --layers <capa>

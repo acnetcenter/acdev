@@ -367,7 +367,7 @@ tier for subagents whose work a test, a lint or the guard judges (TDD to
 green, lint fixes, doc edits), the capable model where judgment decides
 (planning, root cause, security, every conversation with you). The tier
 is named in the dispatch, not hoped for: the plugin ships two agents,
-`acdev-builder` (the cheapest model) and `acdev-builder-capable` (the
+`acdev:acdev-builder` (the cheapest model) and `acdev:acdev-builder-capable` (the
 session's model), and the construct step dispatches by `subagent_type`;
 a subagent without a named tier inherits the session's model. During
 construction the subagent prompt carries `pack --screens <a.html>

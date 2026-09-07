@@ -85,8 +85,8 @@ root:` at session start before dispatching.
 
 Dispatch with the Agent tool and name the tier, because a subagent
 without one inherits the session's model and the oracle rule below
-never fires: `subagent_type: acdev-builder` where a test, a lint or the
-guard judges the result; `subagent_type: acdev-builder-capable` where
+never fires: `subagent_type: acdev:acdev-builder` where a test, a lint or the
+guard judges the result; `subagent_type: acdev:acdev-builder-capable` where
 judgment decides. Both ship with the plugin (`agents/`).
 
 ```
@@ -125,11 +125,11 @@ Pick the subagent's tier by who judges its result, not by the stage,
 and say it in the call (`subagent_type`, or the Agent tool's `model`
 parameter when dispatching without the shipped agents):
 
-- **`acdev-builder`, the cheapest tier** (a test, a lint, a typecheck or
+- **`acdev:acdev-builder`, the cheapest tier** (a test, a lint, a typecheck or
   the guard judges): TDD to green against a written test, lint and type
   fixes, doc edits the drift list names, changelog and checkpoint
   bookkeeping.
-- **`acdev-builder-capable`, the session's model** (judgment judges):
+- **`acdev:acdev-builder-capable`, the session's model** (judgment judges):
   root-cause debugging, anything security-sensitive, a layer whose plan
   steps leave a design choice open. Slice planning, cutting the slice,
   the mockups and every conversation with the user never leave the

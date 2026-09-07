@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- The shipped agents load under their plugin scope: the construct step, the subagent template and the manual now dispatch with  and  (verified with /context after installing 0.4.0).
+
 ## [0.4.0] - 2026-09-06
 
 ### Added
