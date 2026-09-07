@@ -143,7 +143,9 @@ test('scaffold <template> materializes the fenced block with its preamble, creat
   const out = readFileSync(at(p.root, 'docs/ops/RUNBOOK.md'), 'utf8');
   const raw = readFileSync(T('runbook.md'), 'utf8');
   assert.equal(out, splitTemplate(raw).body);
-  assert.ok(out.startsWith('# Runbook\n'), 'the file starts at the block, not at the template heading');
+  // The terminator is the template's own (see the CRLF test below): a
+  // Windows checkout with core.autocrlf=true hands runbook.md back as CRLF.
+  assert.match(out, /^# Runbook\r?\n/, 'the file starts at the block, not at the template heading');
   assert.doesNotMatch(out, /^```/m, 'no fence survives');
   assert.ok(raw.includes(out.trimEnd()), 'the body is a verbatim slice of the template');
   assert.match(out, /<url>/);
