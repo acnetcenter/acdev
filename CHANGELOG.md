@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-06
+
 ### Added
 - Two shipped agents, `agents/acdev-builder.md` (cheapest model) and `agents/acdev-builder-capable.md` (the session's model), so the model-by-oracle rule is a `subagent_type` in the dispatch instead of prose; the subagent template in `skills/build/references/slice-guide.md` names the tier, carries the `pack` command instead of its pasted output, states the TDD loop inline (red for the expected reason, green, full suite through `q`, refactor on green) and tells the subagent not to invoke layer or tdd skills on top of the pack ([plan](docs/plans/2026-09-06-token-cost-findings.md)).
 - `run --budget-usd N` maps to `claude --max-budget-usd` (default: twice the ledger's median iteration cost, never below 5 USD; `0` disables); `--mcp-config F` (or `.acdev/headless-mcp.json` when present) passes `--strict-mcp-config --mcp-config F`; `--exclude-dynamic-system-prompt-sections` is on by default so the static prefix stays a cache read across iterations (`--no-isolate` restores the CLI defaults); the timeout (`--timeout-min N`, 120 minutes by default) kills the whole process tree on both platforms (POSIX: claude is spawned as its own process group and the group is killed; Windows: `taskkill /t`), and Ctrl+C or SIGTERM on the loop takes the running session down with it; `run` warns when the installed acdev plugin's version differs from the CLI's; every ledger entry carries `total_tokens`, `fresh_tokens`, `model_usage` and `budget_usd`, and `cost` prints total, fresh and output tokens plus the per-model share with the budget suite's definitions.

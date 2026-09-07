@@ -2,7 +2,7 @@
 
 How the plugin works, how to use it well, and the questions that come up
 in practice. The README is the overview; this is the manual. Everything
-here describes acdev 0.3.0.
+here describes acdev 0.4.0.
 
 Contents:
 
