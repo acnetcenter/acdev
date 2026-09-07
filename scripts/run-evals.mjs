@@ -39,6 +39,15 @@ const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 const norm = (s) => s.replace(/\r\n/g, '\n');
 const TIMEOUT_MS = Number(process.env.ACDEV_EVAL_TIMEOUT_MS) || 120000;
 
+// process.exit() throws away whatever console.log left buffered, and on
+// POSIX stdout is an async pipe as soon as it is not a TTY: a dry run of
+// a few hundred KB reaches the caller cut in half, which is how CI saw a
+// dry run without its last line. Flushing first keeps the output whole;
+// the promise never settles, so nothing after the call runs.
+const flushExit = (code) => new Promise(() => {
+  process.stdout.write('', () => process.exit(code));
+});
+
 let args;
 try {
   ({ values: args } = parseArgs({
@@ -345,7 +354,7 @@ if (args.ablate) {
     console.log(`judge: ${judgeDisplay('gates')}`);
     cases.forEach((c, i) => console.log(`=== case ${c.id} (ablated) ===\n${prompts[i]}\n`));
     console.log(`gates ablation: ${cases.length} case(s), dry run only`);
-    process.exit(0);
+    await flushExit(0);
   }
   const answers = await runPool(prompts, (p) => callJudge(p, { suite: 'gates' }), Number(args.concurrency) || 4);
   let hits = 0;
@@ -357,7 +366,7 @@ if (args.ablate) {
     }
   });
   console.log(`gates ablation: ${hits}/${cases.length} answerable without context (non-discriminative)`);
-  process.exit(0);
+  await flushExit(0);
 }
 
 const suites = args.suite === 'all' ? ['routing', 'gates'] : [args.suite];
@@ -472,4 +481,4 @@ if (!args['dry-run']) {
     }
   }
 }
-process.exit(failures ? 1 : 0);
+process.exitCode = failures ? 1 : 0;

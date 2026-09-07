@@ -46,6 +46,10 @@ const delegate = (script) => {
   process.exit(r.status ?? 1);
 };
 
+// Commands that print then set a status use process.exitCode, never
+// process.exit(): on POSIX a non-TTY stdout is an async pipe, and exiting
+// drops whatever console.log left buffered — a long `q --full` tail would
+// reach the caller cut off.
 try {
   switch (command) {
     case 'next': {
@@ -71,7 +75,7 @@ try {
       // mockup-variant takes its state as a third positional or as --state.
       const r = scaffold(ROOT, { pluginRoot: PLUGIN, what, target: target ?? null, state: values.state ?? third ?? null, layers: list(values.layers), canary: values.canary, force: values.force });
       console.log(r.text);
-      process.exit(r.ok ? 0 : 1);
+      process.exitCode = r.ok ? 0 : 1;
       break;
     }
     case 'pack': {
@@ -101,7 +105,7 @@ try {
       const { runQuiet } = await import('./lib/quiet.mjs');
       const r = runQuiet(cmd, { cwd: ROOT, tail: Number(values.tail) || 30, full: values.full });
       console.log(r.summary);
-      process.exit(r.status === 0 ? 0 : 1);
+      process.exitCode = r.status === 0 ? 0 : 1;
       break;
     }
     case 'drift': {
@@ -122,7 +126,7 @@ try {
         ? closeCheck(ROOT, { plan: values.plan, verify: values.verify, full: values.full, tail })
         : closeSlice(ROOT, { ...values, tail, pluginRoot: PLUGIN });
       console.log(r.text);
-      process.exit(r.ok ? 0 : 1);
+      process.exitCode = r.ok ? 0 : 1;
       break;
     }
     case 'mockup-spec': {

@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- CI is green again on Linux. Two failures, both invisible on Windows: (1) `run-evals.mjs --dry-run` ended in `process.exit()`, which throws away whatever `console.log` left buffered once stdout is a pipe — the 266 KB routing dry run reached the caller cut at 127 KB, without its last line, so the test that asserts it failed. The suite exits through `process.exitCode` now, and the two `--ablate` exits flush before leaving; `acdev.mjs` does the same after `scaffold`, `q` and `close` print, so a long `q --full` tail can no longer be cut off. (2) `close.test.mjs` read "the last checkpoint" by sorting the directory and taking the last name — when the fixture's seed checkpoint lands in the same second as the one the close writes, both names carry the same stamp and `…-slice-1-walking-skeleton.md` sorts after `…-1-walking-skeleton.md`, so the assertions read the seed. The tests now read the path the close prints.
+
 ### Changed
 - `evals/budget.cases.json` calibrated on a real run of acdev 0.4.2 (haiku judge): every case closes in 2 turns and about 63k total tokens, so the ceilings drop from 8/4/4 turns and 200k/120k/120k total tokens to 3 turns and 80k total, with 14k fresh tokens (the observed 9.7k to 11.1k is mostly the one-time cache write of the system prompt); the observed numbers are recorded in each case.
 

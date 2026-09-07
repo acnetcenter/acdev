@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { makeProject, ok, red } from './fixtures/project.mjs';
 import { appendChangelog } from '../scripts/lib/close.mjs';
@@ -9,6 +9,15 @@ import { tmpdir } from 'node:os';
 
 const PLAN = '2026-09-06-slice-1-skeleton.md';
 const closeArgs = (extra = []) => ['close', '--slice', '1: walking skeleton', '--plan', `docs/plans/${PLAN}`, '--next', 'slice 2: create invoice', '--changelog', 'Walking skeleton deployed', ...extra];
+// The checkpoint the close just wrote, by the path it printed. Reading the
+// directory and taking the last name sorts wrong whenever the fixture's
+// seed checkpoint lands in the same second: both names carry that stamp
+// and "…-slice-1-walking-skeleton.md" sorts after "…-1-walking-skeleton.md".
+const writtenCheckpoint = (p, stdout) => {
+  const rel = stdout.match(/^ {2}checkpoint: (\S+)$/m)?.[1];
+  assert.ok(rel, `the close printed no checkpoint path:\n${stdout}`);
+  return readFileSync(join(p.root, ...rel.split('/')), 'utf8');
+};
 // A lessons ledger in the shape scripts/lessons.mjs writes, N promoted rows plus one candidate.
 const ledger = (promoted) => [
   '# Lessons ledger', '', '| id | seen | first | last | status | source | lesson |', '|---|---|---|---|---|---|---|',
@@ -76,8 +85,7 @@ test('close does the whole bookkeeping and one commit on green', () => {
   assert.equal(log.length, 2);
   assert.match(log[0], /feat: walking skeleton \(slice 1\)/);
   assert.equal(p.g(['status', '--porcelain']).stdout.trim(), '', 'everything committed');
-  const ckpts = readdirSync(join(p.root, '.acdev', 'checkpoints'));
-  const latest = readFileSync(join(p.root, '.acdev', 'checkpoints', ckpts.sort().at(-1)), 'utf8');
+  const latest = writtenCheckpoint(p, r.stdout);
   assert.match(latest, /slice: "1: walking skeleton"/);
   assert.match(latest, /plan: "docs\/plans\/2026-09-06-slice-1-skeleton\.md"/);
   assert.match(latest, /files_modified: \[[^\]]*"src\/invoices\.js"/);
@@ -155,8 +163,7 @@ test('close regenerates AGENTS.md from CLAUDE.md when the project keeps one, in 
   assert.match(p.g(['show', '--stat', '--oneline', 'HEAD']).stdout, /AGENTS\.md/);
   // The mirror runs after the changed files were computed; the checkpoint
   // still lists it, next to the slice's own files.
-  const ckpts = readdirSync(join(p.root, '.acdev', 'checkpoints'));
-  const latest = readFileSync(join(p.root, '.acdev', 'checkpoints', ckpts.sort().at(-1)), 'utf8');
+  const latest = writtenCheckpoint(p, r.stdout);
   const files = latest.match(/^files_modified:\s*\[([^\]]*)\]/m)?.[1] ?? '';
   assert.match(files, /"src\/invoices\.js"/);
   assert.match(files, /"AGENTS\.md"/, `the regenerated AGENTS.md is in the checkpoint files: ${files}`);
