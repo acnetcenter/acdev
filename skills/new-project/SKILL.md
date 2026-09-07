@@ -37,12 +37,14 @@ VISION.md is the source of truth: every later document, and eventually all code,
 
 Run the interview per the Procedure in `references/vision-questionnaire.md`:
 scaffold `docs/VISION.md` in the language chosen at intake, then its 7
-sections one at a time, each drafted first, challenged when weak, shown as
-it will read in the document and Edited into the file before moving on.
+sections one at a time, each drafted first, challenged when weak, pasted
+in the reply as it will read in the document (the user never reads a tool
+call: an Edit diff is not a preview, and no "is this section fine?" goes
+out without the text above it) and Edited into the file before moving on.
 Once all 7 sections are agreed the document is complete: there is no
 separate whole-document write.
 
-**HARD GATE.** Present the full document — never a summary: the user approves what they read, and by now none of it should be new — and ask, in these words or equivalent: "Do you approve this VISION document?" Do not create MVP.md, mockups, or any other artifact until the answer is an explicit approval. A partial or implied approval does not count — this document is the foundation everything else derives from. If the user asks for changes, Edit the changed section, show that section, then present the full document once more and ask for approval of the full document again. Repeat until approved.
+**HARD GATE.** Present the full document pasted in the reply — never a summary, never a `cat`: the user approves what they read, and by now none of it should be new — and ask, in these words or equivalent: "Do you approve this VISION document?" Do not create MVP.md, mockups, or any other artifact until the answer is an explicit approval. A partial or implied approval does not count — this document is the foundation everything else derives from. If the user asks for changes, Edit the changed section, show that section, then present the full document once more and ask for approval of the full document again. Repeat until approved.
 
 On approval, advance the state (`--stage mvp`) and commit: `docs: project
 vision`. The guard now asks before `docs/VISION.md` is edited again.

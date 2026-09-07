@@ -13,9 +13,11 @@ discipline, not a formality.
    placeholder with real content.
 2. Cut, in this order: what is IN (a numbered feature list), what is
    explicitly OUT, and the success criteria, per the rules below.
-3. Each section is shown as document text, corrected with the user, and
-   Edited into `docs/MVP.md` right after its preview, the same way as
-   stage 1; no separate whole-document write follows. A revision Edits
+3. Each section is shown as document text — its full text pasted in the
+   chat reply with the confirmation question below it, never a bare "is
+   this section fine?" with the text only in an Edit diff — corrected
+   with the user, and Edited into `docs/MVP.md` right after its preview,
+   the same way as stage 1; no separate whole-document write follows. A revision Edits
    the changed section, shows it, then presents the full document once
    more.
 4. After the gate closes (the skill body holds its wording), advance the

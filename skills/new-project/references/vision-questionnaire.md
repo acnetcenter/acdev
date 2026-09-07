@@ -20,9 +20,15 @@ sections.
 2. Close each section by showing it AS DOCUMENT TEXT — "this is what we
    have so far" — let the user correct or extend it right there, and Edit
    the agreed text into its section of `docs/VISION.md` before moving on.
-   The preview is the section just written into the file, not a chat
-   summary; by the last section the user has seen every line of
-   VISION.md and the file holds them all.
+   Showing means pasting the section's full text, verbatim, in your chat
+   reply (a quoted or fenced block), with the confirmation question right
+   below it in the same message. A tool call is not a preview: the user
+   does not read Edit diffs, Write payloads or `cat` output, so never ask
+   "is section N fine as written?" about text that is not in that very
+   message. If you ask through a question tool, the pasted section goes
+   in the reply before the tool call. The pasted text is the section as
+   it will land in the file, not a chat summary; by the last section the
+   user has read every line of VISION.md and the file holds them all.
 3. Challenge weak answers: if the user says "for everyone," ask who is NOT a
    customer; if they say "as complete as possible," ask what is explicitly OUT
    of the v1. A good VISION says as much through what it excludes as through

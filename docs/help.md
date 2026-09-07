@@ -2,7 +2,7 @@
 
 How the plugin works, how to use it well, and the questions that come up
 in practice. The README is the overview; this is the manual. Everything
-here describes acdev 0.4.2.
+here describes acdev 0.4.3.
 
 Contents:
 
@@ -170,8 +170,10 @@ pastes the guard's `status` output as evidence.
 
 **VISION.** The model walks the seven sections of the questionnaire one
 at a time. For each it proposes a draft from what you already said, you
-correct it, and it shows you the section as it will read in the
-document. It challenges weak answers: "freelancers" is not a market until
+correct it, and it pastes the section in the chat as it will read in the
+document, with the question below it: you never have to open the file
+or read a tool call to know what you are confirming. It challenges weak
+answers: "freelancers" is not a market until
 you say who is not a customer. Each agreed section is edited into
 `docs/VISION.md` (initialized from the template, in Spanish) the moment
 you accept it. After section 7 it presents the full document and asks

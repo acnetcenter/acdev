@@ -1,8 +1,9 @@
 # Changelog
 
-## [Unreleased]
+## [0.4.3] - 2026-09-07
 
 ### Fixed
+- The VISION and MVP interviews paste each section's text in the chat reply before asking whether it is fine. The procedure said the preview was "the section just written into the file, not a chat summary", which the model read as "the Edit call is the preview": it edited `docs/VISION.md` and then asked "is section N fine as written?" with the text visible only in a tool diff the user never reads. `vision-questionnaire.md`, `mvp-guide.md`, the `new-project` body, the `stage-vision` step and the manual now say the section goes in the message, above the question, and that a tool call is not a preview; the full-document gate is pasted too, never a `cat`.
 - CI is green on Windows too: `scaffold.test.mjs` asserted that a materialized template starts with `# Runbook\n`, but the scaffold keeps the template's own terminator (the CRLF test right below says so) and a Windows checkout with `core.autocrlf=true` hands `runbook.md` back as CRLF. The assertion accepts either terminator now. It only surfaced once the Linux failures stopped cancelling the Windows jobs.
 - CI is green again on Linux. Two failures, both invisible on Windows: (1) `run-evals.mjs --dry-run` ended in `process.exit()`, which throws away whatever `console.log` left buffered once stdout is a pipe — the 266 KB routing dry run reached the caller cut at 127 KB, without its last line, so the test that asserts it failed. The suite exits through `process.exitCode` now, and the two `--ablate` exits flush before leaving; `acdev.mjs` does the same after `scaffold`, `q` and `close` print, so a long `q --full` tail can no longer be cut off. (2) `close.test.mjs` read "the last checkpoint" by sorting the directory and taking the last name — when the fixture's seed checkpoint lands in the same second as the one the close writes, both names carry the same stamp and `…-slice-1-walking-skeleton.md` sorts after `…-1-walking-skeleton.md`, so the assertions read the seed. The tests now read the path the close prints.
 

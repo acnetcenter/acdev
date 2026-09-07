@@ -2,7 +2,7 @@
 
 Cómo funciona el plugin, cómo usarlo bien y las preguntas que surgen en
 la práctica. El README es la visión general; esto es el manual. Todo lo
-que sigue describe acdev 0.4.2. Este documento es el espejo en español
+que sigue describe acdev 0.4.3. Este documento es el espejo en español
 de `docs/help.md`; ambos se mantienen con la misma estructura y el lint
 del repositorio falla cuando divergen.
 
@@ -184,7 +184,9 @@ escribe `.acdev/state.md` en la etapa `vision` y pega la salida de
 
 **VISION.** El modelo recorre las siete secciones del cuestionario una a
 una. Para cada una propone un borrador a partir de lo que ya dijiste, tú
-lo corriges, y te muestra la sección tal como quedará en el documento.
+lo corriges, y te pega la sección en el chat tal como quedará en el
+documento, con la pregunta debajo: nunca tienes que abrir el archivo ni
+leer una llamada a herramienta para saber qué estás confirmando.
 Cuestiona las respuestas débiles: "autónomos" no es un mercado hasta que
 digas quién no es cliente. Cada sección acordada se edita en
 `docs/VISION.md` (inicializado desde la plantilla, en español) en el
