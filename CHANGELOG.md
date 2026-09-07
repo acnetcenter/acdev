@@ -2,8 +2,10 @@
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-09-06
+
 ### Fixed
-- The shipped agents load under their plugin scope: the construct step, the subagent template and the manual now dispatch with  and  (verified with /context after installing 0.4.0).
+- The shipped agents load under their plugin scope: the construct step, the subagent template and the manual now dispatch with `subagent_type: acdev:acdev-builder` and `acdev:acdev-builder-capable` (verified with /context after installing 0.4.0).
 
 ## [0.4.0] - 2026-09-06
 
