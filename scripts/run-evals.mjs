@@ -28,6 +28,12 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { spawn, spawnSync } from 'node:child_process';
 
+// Descriptions are double-quoted YAML scalars (they hold ": "); unwrap them.
+const unquoteYaml = (v) => {
+  const m = v.match(/^"(.*)"$/);
+  return m ? m[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\') : v;
+};
+
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 const norm = (s) => s.replace(/\r\n/g, '\n');
@@ -70,7 +76,7 @@ function skillSurface() {
     const m = raw.match(FRONTMATTER);
     skills.push({
       name: m[1].match(/^name:\s*(.+)$/m)[1].trim(),
-      desc: m[1].match(/^description:\s*(.+)$/m)[1].trim(),
+      desc: unquoteYaml(m[1].match(/^description:\s*(.+)$/m)[1].trim()),
       noModel: /^disable-model-invocation:\s*true$/m.test(m[1]),
       body: norm(raw.slice(m[0].length)).trim()
     });

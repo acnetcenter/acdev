@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Use when closing a slice or phase: run full verification in green, check docs drift, write a checkpoint, commit or PR, and update the ROADMAP.
+description: "Use when closing a slice or phase: run full verification in green, check docs drift, write a checkpoint, commit or PR, and update the ROADMAP."
 ---
 
 # Ship (close a slice or phase)

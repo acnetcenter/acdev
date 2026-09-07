@@ -1,6 +1,6 @@
 ---
 name: onboard
-description: Use when adopting an existing repo into acdev: build a truthful situation map of what exists and what is missing, with declared gaps, then propose adopting the pipeline.
+description: "Use when adopting an existing repo into acdev: build a truthful situation map of what exists and what is missing, with declared gaps, then propose adopting the pipeline."
 disable-model-invocation: true
 ---
 

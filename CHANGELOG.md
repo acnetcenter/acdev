@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-09-07
+
+### Fixed
+- Every skill `description:` is now a double-quoted YAML scalar. Claude Code parses the frontmatter as strict YAML, so an unquoted value holding ": " ("Use when constructing an approved project: vertical slices...") failed to parse and the skill was dropped silently: 18 of the 22 acdev skills were missing from the session listing (only `blueprint`, `mockups`, `planning` and `using-acdev`, whose descriptions carry no colon, loaded), which also disabled their auto-activation. The lint unwraps the quotes for the README rows and the overlap check, and now fails when an unquoted description holds ": " or another YAML indicator; `run-evals.mjs` unwraps them too. Verified with `claude --debug`: "Loaded 22 skills from plugin acdev".
+
 ## [0.4.1] - 2026-09-06
 
 ### Fixed

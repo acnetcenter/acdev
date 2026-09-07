@@ -1,6 +1,6 @@
 ---
 name: operate
-description: Use after a deploy lands or on any production incident: run the release canary against the RUNBOOK bands, roll back on red before diagnosing, turn the incident into a spec that closes as a mini-slice, and rescan security after a release.
+description: "Use after a deploy lands or on any production incident: run the release canary against the RUNBOOK bands, roll back on red before diagnosing, turn the incident into a spec that closes as a mini-slice, and rescan security after a release."
 ---
 
 # Operate (after deploy)

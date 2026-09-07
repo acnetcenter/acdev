@@ -1,6 +1,6 @@
 ---
 name: using-acdev
-description: How and when to use every acdev skill; loaded at session start.
+description: "How and when to use every acdev skill; loaded at session start."
 ---
 
 # Using acdev

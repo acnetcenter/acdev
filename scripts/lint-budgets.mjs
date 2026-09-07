@@ -63,6 +63,11 @@ const LAYER_REQUIRED_HEADINGS = ['## Before advising', '## How to verify'];
 const LAYER_CHECKLIST_HEADINGS = ['## Production checklist', '## Pitfalls'];
 const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 const norm = (s) => s.replace(/\r\n/g, '\n');
+// A double-quoted YAML scalar, unwrapped; anything else is returned as is.
+const unquote = (v) => {
+  const m = v.match(/^"(.*)"$/);
+  return m ? m[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\') : v;
+};
 const fmt = (n) => n.toLocaleString('en-US');
 
 const errors = [];
@@ -118,7 +123,12 @@ for (const dir of dirs) {
   }
   const fm = m[1];
   const name = fm.match(/^name:\s*(.+)$/m)?.[1]?.trim();
-  const desc = fm.match(/^description:\s*(.+)$/m)?.[1]?.trim();
+  const descRaw = fm.match(/^description:\s*(.+)$/m)?.[1]?.trim();
+  const desc = descRaw === undefined ? undefined : unquote(descRaw);
+  // Claude Code parses the frontmatter as strict YAML: an unquoted value that
+  // holds ": " (or another indicator) fails to parse and the whole skill is
+  // dropped silently, which is how 18 of 22 skills vanished from a session once.
+  if (descRaw && !/^".*"$/.test(descRaw) && /(:\s|\s#|^[&*!|>'%@`[\]{},])/.test(descRaw)) errors.push(`${lbl}: description must be double-quoted for YAML (it holds ": " or another indicator)`);
   if (!name) errors.push(`${lbl}: frontmatter missing "name"`);
   else if (name !== dir.name) errors.push(`${lbl}: name "${name}" != directory "${dir.name}"`);
   if (!desc) errors.push(`${lbl}: frontmatter missing "description"`);

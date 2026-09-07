@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Use when implementing any feature or bugfix: write the failing test first, watch it fail, make it pass minimally, refactor. No implementation before a red test.
+description: "Use when implementing any feature or bugfix: write the failing test first, watch it fail, make it pass minimally, refactor. No implementation before a red test."
 ---
 
 # TDD

@@ -1,6 +1,6 @@
 ---
 name: layer-security
-description: Use when touching security-sensitive code: row-level security verified with tests, rate limiting on a shared store, input validation, secrets, headers, OWASP.
+description: "Use when touching security-sensitive code: row-level security verified with tests, rate limiting on a shared store, input validation, secrets, headers, OWASP."
 ---
 
 # Layer: security

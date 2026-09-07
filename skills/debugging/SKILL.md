@@ -1,6 +1,6 @@
 ---
 name: debugging
-description: Use on any bug, failing test or unexpected behavior before proposing fixes: reproduce it, form hypotheses, find the root cause, fix with a test.
+description: "Use on any bug, failing test or unexpected behavior before proposing fixes: reproduce it, form hypotheses, find the root cause, fix with a test."
 ---
 
 # Debugging

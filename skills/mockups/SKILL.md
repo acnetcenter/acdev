@@ -1,6 +1,6 @@
 ---
 name: mockups
-description: Use after MVP approval to build static HTML mockups of every MVP screen plus the post-MVP skeleton inventory, and to run revision rounds until the visual contract is approved.
+description: "Use after MVP approval to build static HTML mockups of every MVP screen plus the post-MVP skeleton inventory, and to run revision rounds until the visual contract is approved."
 ---
 
 # Mockups (stage 3)

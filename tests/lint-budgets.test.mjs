@@ -45,6 +45,9 @@ test('invalid skills fail with named violations', () => {
   assert.match(r.stderr, /layer-broken: missing required heading "## Before advising"/);
   assert.match(r.stderr, /layer-broken\/references\/checklist\.md: missing required heading "## Pitfalls"/);
   assert.match(r.stderr, /layer-broken: "How to verify" is missing the shared verify-probe sentence/);
+  // Claude Code parses the frontmatter as strict YAML: an unquoted ": " in
+  // the description drops the skill silently (18 of 22 vanished once).
+  assert.match(r.stderr, /unquoted-colon: description must be double-quoted for YAML/);
 });
 
 // A layer skill in its stub shape: the gate in "Before advising", the probe

@@ -1,6 +1,6 @@
 ---
 name: build
-description: Use when constructing an approved project: vertical slices end to end, just-in-time spec and plan per slice, TDD loop, decision classification, narrow subagents per layer.
+description: "Use when constructing an approved project: vertical slices end to end, just-in-time spec and plan per slice, TDD loop, decision classification, narrow subagents per layer."
 ---
 
 # Build (stage 5)

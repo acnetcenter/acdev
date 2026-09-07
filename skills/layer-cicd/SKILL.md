@@ -1,6 +1,6 @@
 ---
 name: layer-cicd
-description: Use when setting up or changing CI/CD or repo workflow: lint, typecheck, test and build pipeline, branch protection, conventional commits, releases.
+description: "Use when setting up or changing CI/CD or repo workflow: lint, typecheck, test and build pipeline, branch protection, conventional commits, releases."
 ---
 
 # Layer: cicd

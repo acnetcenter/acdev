@@ -2,7 +2,7 @@
 
 Cómo funciona el plugin, cómo usarlo bien y las preguntas que surgen en
 la práctica. El README es la visión general; esto es el manual. Todo lo
-que sigue describe acdev 0.4.1. Este documento es el espejo en español
+que sigue describe acdev 0.4.2. Este documento es el espejo en español
 de `docs/help.md`; ambos se mantienen con la misma estructura y el lint
 del repositorio falla cuando divergen.
 

@@ -1,6 +1,6 @@
 ---
 name: new-project
-description: Use when starting a new software project from scratch: intake interview, then VISION.md and MVP.md conversed section by section with hard approval gates. Zero product code.
+description: "Use when starting a new software project from scratch: intake interview, then VISION.md and MVP.md conversed section by section with hard approval gates. Zero product code."
 disable-model-invocation: true
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: status
-description: Use when resuming work or asking where the project stands: one acdev.mjs status call prints state, latest checkpoint, current ROADMAP phase and open plans for about 1k tokens; can also write a manual checkpoint.
+description: "Use when resuming work or asking where the project stands: one acdev.mjs status call prints state, latest checkpoint, current ROADMAP phase and open plans for about 1k tokens; can also write a manual checkpoint."
 ---
 
 # Status (resume snapshot)

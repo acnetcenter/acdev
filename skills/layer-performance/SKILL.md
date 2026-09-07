@@ -1,6 +1,6 @@
 ---
 name: layer-performance
-description: Use when working on caching or performance: cache-aside and invalidation, TTLs, CDN, compression, performance budgets.
+description: "Use when working on caching or performance: cache-aside and invalidation, TTLs, CDN, compression, performance budgets."
 ---
 
 # Layer: performance

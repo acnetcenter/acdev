@@ -1,6 +1,6 @@
 ---
 name: layer-delivery
-description: Use when working on hosting, deployment or environments: deploy with rollback, health checks, config and secrets per environment, minimal observability.
+description: "Use when working on hosting, deployment or environments: deploy with rollback, health checks, config and secrets per environment, minimal observability."
 ---
 
 # Layer: delivery

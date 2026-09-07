@@ -1,6 +1,6 @@
 ---
 name: layer-demo
-description: Use when touching the fixture's demo layer: tagged items, probes and pitfalls served from references/checklist.md.
+description: "Use when touching the fixture's demo layer: tagged items, probes and pitfalls served from references/checklist.md."
 ---
 
 # Layer: demo

@@ -1,6 +1,6 @@
 ---
 name: layer-auth
-description: Use when touching authentication or authorization: sessions or JWT, RBAC, multi-tenancy, permission matrix, auth flows.
+description: "Use when touching authentication or authorization: sessions or JWT, RBAC, multi-tenancy, permission matrix, auth flows."
 ---
 
 # Layer: auth

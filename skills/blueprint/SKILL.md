@@ -1,6 +1,6 @@
 ---
 name: blueprint
-description: Use after mockup approval to produce the normative docs, ADRs (stack decided here), technical spikes for unproven dependencies, the AI context system and repo mechanics.
+description: "Use after mockup approval to produce the normative docs, ADRs (stack decided here), technical spikes for unproven dependencies, the AI context system and repo mechanics."
 ---
 
 # Blueprint (stage 4)

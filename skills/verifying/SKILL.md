@@ -1,6 +1,6 @@
 ---
 name: verifying
-description: Use before claiming anything is done, fixed or passing: run the verification and show the evidence. No green claim without command output.
+description: "Use before claiming anything is done, fixed or passing: run the verification and show the evidence. No green claim without command output."
 ---
 
 # Verifying

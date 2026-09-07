@@ -1,6 +1,6 @@
 ---
 name: layer-data
-description: Use when touching the database or storage: modeling, reversible migrations, indexes, PII, backups, object storage.
+description: "Use when touching the database or storage: modeling, reversible migrations, indexes, PII, backups, object storage."
 ---
 
 # Layer: data

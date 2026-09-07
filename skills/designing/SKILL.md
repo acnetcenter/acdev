@@ -1,6 +1,6 @@
 ---
 name: designing
-description: Use before any creative or feature work outside the pipeline stages: converse the design until an approved design doc exists. Inside the pipeline, defer to the VISION and MVP stages.
+description: "Use before any creative or feature work outside the pipeline stages: converse the design until an approved design doc exists. Inside the pipeline, defer to the VISION and MVP stages."
 ---
 
 # Designing

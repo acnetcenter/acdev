@@ -1,6 +1,6 @@
 ---
 name: planning
-description: Use when a task needs a multi-step plan with verifiable completion criteria, including per-slice plans during build and specs for user-requested changes.
+description: "Use when a task needs a multi-step plan with verifiable completion criteria, including per-slice plans during build and specs for user-requested changes."
 ---
 
 # Planning

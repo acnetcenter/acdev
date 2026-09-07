@@ -1,6 +1,6 @@
 ---
 name: layer-api
-description: Use when designing or changing APIs and backend logic: contracts, validation, errors, pagination, idempotency, N+1, transactions, background jobs.
+description: "Use when designing or changing APIs and backend logic: contracts, validation, errors, pagination, idempotency, N+1, transactions, background jobs."
 ---
 
 # Layer: api

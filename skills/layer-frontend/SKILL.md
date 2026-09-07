@@ -1,6 +1,6 @@
 ---
 name: layer-frontend
-description: Use when building or changing UI: structure, state, routing, accessibility, performance, and design tokens from the approved mockups.
+description: "Use when building or changing UI: structure, state, routing, accessibility, performance, and design tokens from the approved mockups."
 ---
 
 # Layer: frontend
