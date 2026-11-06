@@ -1,5 +1,41 @@
 # Changelog
 
+## [0.5.0] - 2026-11-05
+
+A breaking release ([plan](docs/plans/2026-11-05-thin-rework.md)). Measured on 74 sessions of real projects, the plugin's own text was under 6 percent of the context and most tokens were spent on turns carrying more than 400k of it, while most of the plugin went unused: 7 of the 8 layer skills, `verifying`, the cheap builder agent, the headless loop and its cost ledger were never invoked, no lesson was ever promoted, and the guard was not installed in the projects where the work happened. The current models plan, test, debug and verify without being told how, and Anthropic's guides say prescriptive skills can degrade their output. acdev now keeps what a model cannot do from inside: the user's decisions behind gates, the state on disk, and hard rules in a hook. Existing projects move over with `acdev migrate`.
+
+### Changed
+- `docs/VISION.md` is now `docs/PRODUCT.md`, in the schema design tools already read (Impeccable's, which the acfrontend plugin writes) plus two acdev sections, `Model` and `Critical Flows`. The phase sketch moved to the MVP's out-of-scope list, grouped by later phase. The first stage is `product`; `vision` is still read as an alias, and every reader falls back to `docs/VISION.md` in a project not yet migrated.
+- The guard is a plugin-level PreToolUse hook (`hooks/guard.mjs`); nothing is copied into the project and no project settings are written. It enforces three rules: zero product code before build, approved documents ask, and in build a commit that changes code needs a green verification of that code. It also judges the PowerShell tool, finds the project from a subfolder or a monorepo root, and denies a hand edit of `.acdev/state.md`. What was approved asks; a new ADR or a new mockup page beside it does not. Where no prompt can reach the user (`bypassPermissions`, `dontAsk`) an ask becomes a deny that tells the model to put the question in chat, and `acdev allow <path>` opens that path for 15 minutes after the user's yes. Tests, `.husky/`, `.npmrc` and ignore files open at blueprint with the rest of the repo mechanics, and markdown is allowed anywhere. `acdev init` writes `.acdev/guard.json` and the `.gitignore` line; `acdev verify` runs the commands and records the receipt.
+- The verification receipt certifies content, not a diff against HEAD: it is the tree git would record for the code, built in a throwaway index. Staging, committing or amending the same code keeps it valid; a docs-only commit needs no receipt at all; file names with accents, a repository with no commits and files the verify commands leave behind no longer break it. Receipts written by 0.4 are stale once: the first commit after the upgrade needs one `acdev verify`.
+- The guard reads a shell command the way a person skims it: heredoc bodies and quoted text are data, a leading `cd` moves where relative paths land, PowerShell parameters are not mistaken for paths, `git commit` is recognized behind git's own options and ignored inside other text, and a project scaffolder (`npx create-*`, `npm create`) counts as writing an app where it is pointed.
+- `acdev close` checks everything that can refuse before it writes anything, can be run again after a failed commit without duplicating its CHANGELOG line, keeps a CRLF file CRLF, and accepts values that start with a dash. `acdev checkpoint write` announces a stage change, and says so when it unlocks product code.
+- Six skills instead of 22: `new-project`, `onboard`, `mockups`, `blueprint`, `build`, `status`. `build` sizes the process to the change (no plan for a small fix, a reproducing test for a bug, a short plan for a feature or a slice), absorbs the close, incidents and the phase exit, and ends every close by cutting the context. `new-project` sizes the interview to the project. `blueprint` produces ADRs, the ROADMAP and a `CLAUDE.md` under 60 lines; documents that restate the code are no longer produced.
+- The CLI is `acdev` in the Bash tool, through the plugin's `bin/`; the PowerShell tool does not get that PATH, so the session line and the skills that run before a project exists give the full `node` form. SessionStart prints two lines (stage, next step, the CLI path) and only inside an acdev project; outside one the plugin adds nothing but its skill descriptions.
+- `acdev status` ends with what continues from the current stage and a guard line. `acdev close` ends by saying the slice is on disk and the next one starts cheaper in a fresh session.
+- The lint checks the new structure: body cap 6,000 characters, text that names something removed, pointers into `references/` that do not resolve, the hooks and the CLI shims, the eval cases, README and manual drift.
+- Evals moved to the native `claude plugin eval` layout: five cases with fixtures; the unit suite runs each fixture without a model and checks the deterministic half.
+
+### Added
+- `acdev migrate [--apply]`: a dry run by default; with `--apply` it renames the product document with `git mv`, updates references to the old name in `CLAUDE.md`, `AGENTS.md` and `docs/` (plans excluded), renames the stage, and removes the per-project guard copy and its settings entries. It commits nothing.
+- `skills/build/references/production-checklist.md`: the eight layer checklists in one file, read once per phase at the phase exit.
+- `scaffold` templates `product`, `claude-md` and `canary`.
+
+### Removed
+- The process skills (tdd, debugging, verifying, planning, designing), the eight layer skills, the gateway skill, `ship` and `operate`, both builder agents, the per-prompt hook.
+- The commands `next` (and the step files), `pack`, `checklist`, `run`, `cost` and `lessons`; the profile tags; the custom eval runner and its cases.
+- `scaffold guard` and `scaffold verify` with their stubs (the guard hook copy, the settings merge, the per-layer verify scripts, the design-tells scan) and the `docs-index` template. The templates `vision` and `router` are now `product` and `claude-md`; the old names print the new one.
+- The guard's freeze, secrets, destructive-command and inline-node rules, and the docs-index check in the close. A project upgraded from 0.4 still carries the `Bash(node *)` and `Bash(git *)` allow rules that version wrote into `.claude/settings.json`; `acdev migrate` reports them and leaves the decision to the user.
+
+### Reviewed
+- Before the release, four independent reviewers attacked the rework (code correctness, the guard, the skills as instructions, docs and evals) and two more tried to refute their findings: 44 findings, none refuted (three were judged less severe than reported). The fixes are in this release, with a regression test wherever code was involved; the suite went from 89 to 116 tests.
+- The real CLI was then driven against a local fake of the Messages API, with scripted tool calls and no credentials. That confirmed `bin/` on the Bash tool's PATH, a plugin-level deny under bypass mode, the session line and the skills reaching the model, and `${CLAUDE_PLUGIN_ROOT}` expanding in a skill body. It also found two things no unit test could: a hook's `ask` does nothing in bypass mode, and the PowerShell tool does not get `bin/`. Both are handled above.
+
+### Known limits
+- The native evals have not run: they need a signed-in Claude Code on macOS, Linux or WSL2, because they grant Bash and native Windows has no sandbox backend. Their fixtures and the deterministic half of each case run everywhere in `node --test`.
+- A `deny` is measured in headless runs; an interactive session in bypass mode was not driven, but the hook returns the same decision there.
+- The shell parsing finds the usual ways of writing a file, not every way (`curl -o`, `git apply` and similar pass), and `acdev q` through `bin/acdev.cmd` needs a command with shell metacharacters quoted as a whole.
+
 ## [0.4.3] - 2026-09-07
 
 ### Fixed

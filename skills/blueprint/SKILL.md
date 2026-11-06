@@ -1,121 +1,104 @@
 ---
 name: blueprint
-description: "Use after mockup approval to produce the normative docs, ADRs (stack decided here), technical spikes for unproven dependencies, the AI context system and repo mechanics."
+description: "Use after mockup approval to record the lasting decisions as ADRs (stack decided here), write the ROADMAP, run technical spikes for unproven dependencies, and set up CLAUDE.md, the verification commands and the repo mechanics."
 ---
 
-# Blueprint (stage 4)
+# Blueprint (decisions before code)
 
-Stage 4 of the acdev pipeline: the normative documentation package, the
-architecture decisions and the repo mechanics. Inputs are ONLY the approved
-`docs/VISION.md`, the approved `docs/MVP.md`, and the frozen mockups with
-their `mockups/SPEC.md`. Nothing here reopens those documents; it
-derives from them.
+Inputs are only the approved `docs/PRODUCT.md`, the approved `docs/MVP.md`
+and, when the product has a UI, the frozen mockups with `mockups/SPEC.md`.
+Nothing here reopens them; it derives from them.
 
-## Normative docs
+The job is to make the decisions that are expensive to change, write them
+where every later session will find them, and leave the repo ready for
+the first slice to be verified. A document that only restates what the
+code will say is not produced: a session reads the repo.
 
-Choose the document set from `references/docs-catalog.md` and present the
-proposed list to the user before writing anything: one line per document
-with its reason, its reader and its size cap. A document without a reader
-is not produced; a document over its cap is hiding a decision that
-belongs in an ADR. Two further contracts bind:
+## Decisions
 
-- `docs/ROADMAP.md` is ALWAYS produced, every phase with verifiable exit
-  criteria (checkable facts, not wishes); for a project that deploys,
-  phase 1's exit includes the rehearsed rollback. Phase headings are
-  plain ("## Phase 1: MVP"); the phase exit appends " (complete)", which
-  is how the dispenser and the pack find the current phase.
-- `docs/RUNBOOK.md`, for any project that deploys somewhere users reach,
-  carries numeric control bands; a band left as prose ("acceptable
-  latency") is a placeholder and fails the no-placeholder rule.
+One ADR per lasting decision (stack, hosting, data store, auth approach,
+tenancy model, each third-party integration), about 10 lines each:
+`acdev scaffold adr docs/adr/NNNN-<slug>.md`. Write the Decision section
+as the one or two lines a builder needs.
 
-## ADRs and spikes
+The stack is decided here, and its ADR is the single source: later
+sessions read it and never re-derive it. Once it is accepted, replace the
+`## Stack` line in `docs/PRODUCT.md` with the decided stack. That document
+is approved, so the guard stops the edit; the user's acceptance of the
+stack is the yes it needs, and its message says how to go on.
 
-Write one ADR per closed decision (stack,
-hosting, data store, auth approach, tenancy model, any other choice with
-lasting weight), about 10 lines each. The Decision section is what the
-pack quotes to every build slice; write it as the one or two lines a
-builder needs.
-
-The stack is decided here. Its ADR is the single source of truth the
-pipeline reads instead of re-deriving: the layer skills open `docs/adr/`
-before advising and never re-litigate it.
-
-Compliance is decided here too. From the jurisdictions named during the
-VISION interview, write one ADR recording which regulatory regimes apply,
-where data must reside, and what retention and deletion obligations
-follow, or recording, explicitly, that none apply. Jurisdiction and
+Compliance is decided here too. From the jurisdictions in PRODUCT.md
+"Operating Context", write one ADR recording which regulatory regimes
+apply, where data must reside and what retention and deletion obligations
+follow, or recording explicitly that none apply. Jurisdiction and
 compliance posture are user-challenge decisions: asked, never assumed
 from the product's domain.
 
-Then write `.acdev/profile.json` with the `tags` the ADRs justify
-(`shared/references/profile-tags.md`) and list it in the audit table.
-
 A decision that depends on something unproven runs
-`references/spike-protocol.md` before its ADR freezes; the result (works
-/ does not / with limits) is recorded back in the ADR. Spike code never
-merges into product code. A CRUD on a known stack with no unproven
-dependency produces zero spikes.
+`references/spike-protocol.md` before its ADR freezes, and the result is
+recorded in the ADR. Spike code never merges into product code. A CRUD on
+a known stack produces zero spikes.
 
-Classify every decision made in this stage per
-`shared/references/decision-classification.md` and keep the running audit
-table in the blueprint summary, exact format `| Decision | Class |
-Choice | Reason |`. Only user-challenge decisions interrupt the user;
-mechanical and taste decisions are made and listed for review.
+Classify every decision per
+`../../shared/references/decision-classification.md`. Only user-challenge
+decisions interrupt the user. Mechanical decisions are just made; taste
+decisions are made and listed in the audit table, exact format
+`| Decision | Class | Choice | Reason |`.
 
-## AI context system
+## Documents
 
-Generate `CLAUDE.md` at the project root from its scaffold (catalog). Its
-golden rules are derived from VISION §2 (Model) plus the chosen stack.
-Keep it under one page: a router to context, not the context itself; it
-loads in every session. If multi-AI was chosen at intake, `AGENTS.md` is
-a copy of it that the acdev close command (`node "<plugin-root>/scripts/acdev.mjs"
-close`) regenerates from then on, never a hand sync. The router's `## Lessons` section starts empty and is owned by the
-lessons script from then on; nobody hand-writes lessons into it.
+Choose the set from `references/docs-catalog.md` and present it before
+writing anything: one line per document with its reason and its reader. A
+document without a reader is not produced. `docs/ROADMAP.md` is always
+produced, every phase with verifiable exit criteria; phase headings are
+plain ("## Phase 1: MVP") and the phase exit appends " (complete)", which
+is how `acdev status` finds the current phase. A project that deploys
+somewhere users reach gets `docs/RUNBOOK.md` with numeric control bands.
+
+## CLAUDE.md
+
+`acdev scaffold claude-md CLAUDE.md`, then fill the placeholders: the
+golden rules come from PRODUCT.md "Model" plus the stack, the commands
+are the ones a session cannot guess. It loads in every session, so it
+stays under 60 lines and holds nothing the code already says. If other
+coding agents are used, `AGENTS.md` is a copy of it (`cp CLAUDE.md
+AGENTS.md`) that `acdev close` regenerates from then on.
 
 ## Repo mechanics
 
-Produce the mechanical scaffolding per `references/repo-mechanics.md`,
-ending with the guard completed with its `verify` commands. Evidence
-closing this section: `node .claude/hooks/acdev-guard.mjs status`.
+Per `references/repo-mechanics.md`, ending with the project's
+verification commands in `.acdev/guard.json`. Evidence: `acdev status`.
 
 ## Adversarial design review (optional)
 
-When presenting the package, offer one optional pass before approval: an
-adversarial design review per `references/adversarial-review.md` (two
-panels with opposing lenses, findings contrasted before the freeze). It
-is the user's call: it costs real tokens; but a design error caught here
-costs a conversation, and mid-build it costs slices. A high-severity
+When presenting the package, offer one optional pass before approval, per
+`references/adversarial-review.md`: two panels with opposing lenses. It
+is the user's call, because it costs real tokens; a design error caught
+here costs a conversation, and mid-build it costs slices. A high-severity
 finding is resolved or explicitly accepted by the user before the gate
-below can close; acceptance is never automatic.
+closes.
 
 ## Gate
 
-Present the package as a list, never document bodies (the user reads the
-files): (a) the document-set table already agreed, with path, reader and
-lines written; (b) the ADR titles with their one-line Decision; (c) the
-audit table; (d) the guard `status` output. Apply the user's corrections
-in place (Edits, never re-emitted bodies), then ask for explicit
-acceptance of the package; nothing is committed before that acceptance.
-Once accepted, commit:
+**Gate.** Present the package as a list, never as document bodies (the
+user reads the files): the document table (path, reader, lines), the ADR
+titles with their one-line Decision, the audit table, and the `acdev
+status` output. Apply corrections as Edits, then ask for explicit
+acceptance; nothing is committed before it. On acceptance commit `docs:
+project blueprint`, then advance the state:
 
 ```
-docs: full project blueprint and ai context system
+acdev checkpoint write --stage build --branch <branch> --next "await the user's order to start slice 1"
 ```
 
-Advance the pipeline state in the same close (`node
-"<plugin-root>/scripts/acdev.mjs" checkpoint write --stage build --branch
-<branch> --next "await the user's order to start slice 1"`;
-`<plugin-root>` is the path printed as `acdev plugin root:` at session
-start). Only this write unlocks product code in the guard.
+Only this write unlocks product code in the guard.
 
-Next step: the `build` skill. It starts ONLY on the user's explicit
-order; finishing this gate is not itself the order to build, and the
-state write above is not that order either.
+Next is the `build` skill. It starts only on the user's explicit order:
+closing this gate is not that order, and neither is the state write.
 
-**Model switch point and continuous-build offer.** When closing this
-gate, offer the user two choices in one message: a cheaper model (`/model`) for `build`, since
-construction follows instructions and the guard judges the result; and
-continuous build, interactive or headless, under `build`'s
-`references/continuous.md` (per-slice gates stay; a user-challenge
-decision stops the run). Without that approval, build proceeds slice by
-slice as usual.
+When closing the gate, say two things in one message. Construction can
+run on a cheaper model or a lower effort than planning did, since tests
+judge it and the guard blocks a red commit; a model change belongs at the
+start of a fresh session, because switching mid-session re-reads the
+whole conversation uncached. And the whole phase can be built without
+pauses between slices (`build`, continuous mode) if the user asks for it.

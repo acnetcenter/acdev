@@ -11,7 +11,7 @@ const cwd = process.cwd();
 const DIR = join(cwd, '.acdev');
 const CKPT_DIR = join(DIR, 'checkpoints');
 const STATE = join(DIR, 'state.md');
-const STAGES = ['intake', 'vision', 'mvp', 'mockups', 'blueprint', 'build'];
+const STAGES = ['intake', 'product', 'mvp', 'mockups', 'blueprint', 'build'];
 
 function pluginVersion() {
   try {
@@ -58,6 +58,8 @@ if (cmd === 'write') {
       process.exit(1);
     }
   }
+  // Projects started before 0.5.0 called the first stage "vision".
+  if (a.stage === 'vision') a.stage = 'product';
   if (!STAGES.includes(a.stage)) {
     console.error(`invalid --stage "${a.stage}" (expected one of: ${STAGES.join(', ')})`);
     process.exit(1);
@@ -85,8 +87,13 @@ if (cmd === 'write') {
   const rel = relative(cwd, file).replaceAll('\\', '/');
   // language is sticky: set once (usually at onboard), preserved by later writes.
   let lang = a.lang;
-  if (!lang && existsSync(STATE)) {
-    lang = readFileSync(STATE, 'utf8').match(/^language:\s*(.+)$/m)?.[1]?.trim();
+  const before = existsSync(STATE) ? readFileSync(STATE, 'utf8') : '';
+  if (!lang) lang = before.match(/^language:\s*(.+)$/m)?.[1]?.trim();
+  // A stage change is a gate closing: say so where the transcript shows it
+  // (stderr, because stdout is the checkpoint path other commands read).
+  const was = before.match(/^stage:\s*(.+)$/m)?.[1]?.trim();
+  if (was && was !== a.stage && !(was === 'vision' && a.stage === 'product')) {
+    console.error(`acdev: stage ${was} -> ${a.stage}${a.stage === 'build' ? ': product code is unlocked from here' : ''}`);
   }
   writeFileSync(STATE, `# acdev state\n\nstage: ${a.stage}\nupdated: ${t.human}\nacdev_version: ${pluginVersion()}\nlanguage: ${lang ?? 'unknown'}\nlatest_checkpoint: ${rel}\n`);
   console.log(rel);

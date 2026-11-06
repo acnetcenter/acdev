@@ -1,16 +1,16 @@
 # MVP
 
-Derived from VISION.md. This document is the first-delivery contract: what
+Derived from PRODUCT.md. This document is the first-delivery contract: what
 ships in v1, what is deliberately left out, and how success is verified.
 Cap: about 80 lines; a longer MVP is a phase 2 in disguise.
 
 ## In scope (v1)
 
-<!-- Numbered feature list. Every item traces to a flow in VISION §5. -->
+<!-- Numbered feature list. Every item traces to a flow in PRODUCT.md "Critical Flows" or a line in "Capabilities and Constraints". -->
 
 ## Explicitly out of scope
 
-<!-- Each item -> the target phase it moves to, per VISION §7. -->
+<!-- Grouped by the later phase each item moves to (Phase 2, Phase 3, ...), one line per phase naming its theme. This is the phase sketch the ROADMAP is written from. -->
 
 ## Success criteria
 

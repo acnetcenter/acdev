@@ -4,9 +4,23 @@
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join, resolve, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { homedir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 
-export const STAGES = ['intake', 'vision', 'mvp', 'mockups', 'blueprint', 'build'];
+export const STAGES = ['intake', 'product', 'mvp', 'mockups', 'blueprint', 'build'];
+// A stage as written by hand is tolerated ("Build", "mvp # current", a
+// quoted value); projects started before 0.5.0 called the first one "vision".
+export const normStage = (s) => {
+  if (s === null || s === undefined) return s;
+  const v = String(s).split('#')[0].trim().replace(/^["']|["']$/g, '').toLowerCase();
+  return v === 'vision' ? 'product' : v;
+};
+// The product document, newest name first; a project not yet migrated
+// still keeps it as docs/VISION.md and every reader falls back to it.
+export const PRODUCT_DOCS = ['docs/PRODUCT.md', 'docs/VISION.md'];
+export function productDoc(root) {
+  return PRODUCT_DOCS.find((d) => existsSync(join(root, d))) ?? PRODUCT_DOCS[0];
+}
 export const norm = (s) => String(s ?? '').replace(/\r\n/g, '\n');
 export const slashes = (p) => String(p).replace(/\\/g, '/');
 export const tokens = (chars) => Math.round(chars / 4);
@@ -14,14 +28,36 @@ export const tokens = (chars) => Math.round(chars / 4);
 export function pluginRoot() {
   return resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 }
-// CLAUDE_PROJECT_DIR points at the project root even when the session was
-// launched from a subdirectory; cwd is the fallback outside Claude Code.
+// The nearest directory at or above `start` that holds .acdev/state.md.
+// The walk stops at a repository root and never accepts the home
+// directory: a stray ~/.acdev must not turn every folder under it into a
+// project.
+export function findProjectRoot(start) {
+  const home = resolve(homedir());
+  let dir = resolve(start);
+  for (let i = 0; i < 64; i++) {
+    if (dir === home) return null;
+    if (existsSync(join(dir, '.acdev', 'state.md'))) return dir;
+    if (existsSync(join(dir, '.git'))) return null;
+    const up = dirname(dir);
+    if (up === dir) return null;
+    dir = up;
+  }
+  return null;
+}
+// The project a command works on: the acdev project the shell is inside
+// (a command run from a subfolder still finds it), else the one the
+// session was opened in. Where there is none yet (`acdev init`), the
+// session's project dir, or the cwd outside Claude Code.
 export function projectRoot() {
-  return process.env.CLAUDE_PROJECT_DIR ?? process.cwd();
+  const session = process.env.CLAUDE_PROJECT_DIR;
+  return findProjectRoot(process.cwd()) ?? (session ? findProjectRoot(session) : null) ?? session ?? process.cwd();
 }
 export function readIf(path) {
   try {
-    return existsSync(path) ? norm(readFileSync(path, 'utf8')) : null;
+    // PowerShell 5.1 writes a byte-order mark by default; a file that
+    // starts with one must still parse.
+    return existsSync(path) ? norm(readFileSync(path, 'utf8')).replace(/^﻿/, '') : null;
   } catch {
     return null;
   }
@@ -39,8 +75,8 @@ export function readJsonIf(path) {
 export function readState(root) {
   const raw = readIf(join(root, '.acdev', 'state.md'));
   if (raw === null) return null;
-  const field = (k) => raw.match(new RegExp(`^${k}:\\s*(.+)$`, 'm'))?.[1]?.trim() ?? null;
-  return { raw, stage: field('stage'), updated: field('updated'), language: field('language'), latest_checkpoint: field('latest_checkpoint') };
+  const field = (k) => raw.match(new RegExp(`^${k}:\\s*(.+)$`, 'mi'))?.[1]?.trim() ?? null;
+  return { raw, stage: normStage(field('stage')), updated: field('updated'), language: field('language'), latest_checkpoint: field('latest_checkpoint') };
 }
 
 // Checkpoint frontmatter values are JSON-encoded by checkpoint.mjs; a hand
@@ -111,9 +147,11 @@ export function currentBranch(root) {
 // Tracked changes versus HEAD plus untracked files, forward slashes.
 export function changedFiles(root) {
   const out = new Set();
-  const diff = git(root, ['diff', '--name-only', 'HEAD']);
+  // quotePath off: a file name with an accent comes back as it is, not as
+  // an escaped, quoted string that no later step can open.
+  const diff = git(root, ['-c', 'core.quotePath=false', 'diff', '--name-only', 'HEAD']);
   if (diff.status === 0) diff.stdout.split('\n').map((f) => f.trim()).filter(Boolean).forEach((f) => out.add(slashes(f)));
-  const untracked = git(root, ['ls-files', '--others', '--exclude-standard']);
+  const untracked = git(root, ['-c', 'core.quotePath=false', 'ls-files', '--others', '--exclude-standard']);
   if (untracked.status === 0) untracked.stdout.split('\n').map((f) => f.trim()).filter(Boolean).forEach((f) => out.add(slashes(f)));
   return [...out].sort();
 }

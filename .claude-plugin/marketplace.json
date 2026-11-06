@@ -8,7 +8,7 @@
     {
       "name": "acdev",
       "source": "./",
-      "description": "Systematic, gated, documentation-first pipeline that takes a software project from idea to production - or adopts an existing one - with strict token discipline."
+      "description": "A thin, gated pipeline for building a product with Claude Code: your decisions behind explicit gates, the project state on disk so contexts stay small, and hard rules enforced by a hook."
     }
   ]
 }

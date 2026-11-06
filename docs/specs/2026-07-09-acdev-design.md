@@ -341,3 +341,19 @@ All open questions were resolved during the design conversation with the user:
   (`run`) with a cost ledger (`cost`) and a budget eval suite. Section 8's
   budgets tightened (body 8,000 characters, step 1,500) and the
   per-prompt hook line carries only the stage and the `next` command.
+- 2026-11-05 (thin rework, see `docs/plans/2026-11-05-thin-rework.md`):
+  this document describes the plugin up to 0.4 and is kept as history.
+  From 0.5.0 the premise of sections 5, 9 and 10 no longer holds: the
+  current models do not need the process and layer skills, and measured
+  usage showed them unused, so the plugin keeps six skills (sections 5.1
+  and 5.2 are superseded; there is no gateway). The source-of-truth
+  document is `docs/PRODUCT.md` in a schema shared with design tools
+  (section 6's VISION stage is the `product` stage). The guard that the
+  2026-09-05 amendment added is a plugin-level hook with three rules
+  instead of a file copied into each project, and section 11's hook no
+  longer prints a gateway: SessionStart prints two lines, and only inside
+  a project that runs the pipeline. The step dispenser, the context pack, the
+  profile tags, the headless loop, the cost ledger and the lessons ledger
+  of the 2026-09 amendments are removed; `acdev status`, `q`, `verify`
+  and `close` remain. Section 8's budget is now: body 6,000 characters,
+  description 400, and nothing injected outside an acdev project.

@@ -10,7 +10,7 @@ just-in-time during `build`, phase by phase, through the `mockups` skill.
 | <!-- e.g. Team billing | Manage seats and invoices for a team account | Phase 2 | Settings menu, new "Billing" item --> |
 
 <!-- One row per post-MVP screen. Screen: short name. Purpose: one line.
-     Phase: the target phase from VISION §7's phase sketch. Navigation
+     Phase: the later phase the MVP's out-of-scope list assigns it to. Navigation
      placement: where it will attach once built (menu, sidebar section,
      settings tab, etc.). -->
 

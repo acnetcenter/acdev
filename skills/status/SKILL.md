@@ -1,6 +1,6 @@
 ---
 name: status
-description: "Use when resuming work or asking where the project stands: one acdev.mjs status call prints state, latest checkpoint, current ROADMAP phase and open plans for about 1k tokens; can also write a manual checkpoint."
+description: "Use when resuming work or asking where the project stands: one acdev status call prints the stage, the latest checkpoint, the current ROADMAP phase, open plans and what continues, for about 1k tokens; can also write a manual checkpoint."
 ---
 
 # Status (resume snapshot)
@@ -10,40 +10,39 @@ description: "Use when resuming work or asking where the project stands: one acd
 One call:
 
 ```
-node "<plugin-root>/scripts/acdev.mjs" status
+acdev status
 ```
 
-`<plugin-root>` is the path printed as `acdev plugin root:` at session
-start. Report from that output only: stage, branch, last slice, plan,
-next step, blockers, open plans (an `*-incident-*` plan comes first and
-outranks any slice; `operate` owns it), and phase progress (slices and
-exit criteria done versus outstanding) read from the phase section
-alone. Its last line is the `next` command; run it when the
-user wants to continue.
+Report from that output only: stage, branch, last slice, plan, next
+step, blockers, open plans (an `*-incident-*` plan comes first and
+outranks any slice) and phase progress read from the phase section
+alone. Its `to continue:` line names the skill or the user-run command
+that picks the work up.
 
-**Budget.** The whole answer stays under about 1k tokens: no repo
-scanning, no file dumps. More detail is a separate, explicit request.
+The whole answer stays under about 1k tokens: no repo scanning, no file
+dumps. More detail is a separate, explicit request.
 
-**Missing `.acdev/`.** The command says so; stop there, never infer a
-stage from the code. Offer `/acdev:onboard` (existing code) or
-`/acdev:new-project` (empty repo); both are user-run.
+If there is no `.acdev/`, the command says so; stop there and never infer
+a stage from the code. Offer `/acdev:onboard` (existing code) or
+`/acdev:new-project` (empty repo); the user runs them.
+
+`acdev` is the plugin's CLI in the Bash tool; in PowerShell call it as
+`node "${CLAUDE_PLUGIN_ROOT}/scripts/acdev.mjs"`.
 
 ## Write (manual checkpoint)
 
-Mid-work saves (a slice close is `ship`'s job):
+For a save in the middle of work (a slice close writes its own):
 
 ```
-node "<plugin-root>/scripts/checkpoint.mjs" write --stage <s> --branch <b> --next "<text>" [--slice "<n: name>"] [--plan "<docs/plans/...>"] [--files "<a,b>"] [--blocked "<text>"] [--notes "<text>"]
+acdev checkpoint write --stage <s> --branch <b> --next "<text>" [--slice "<n: name>"] [--plan "<docs/plans/...>"] [--files "<a,b>"] [--blocked "<text>"] [--notes "<text>"]
 ```
 
-`--stage` (`intake`, `vision`, `mvp`, `mockups`, `blueprint`, `build`),
-`--branch` and `--next` are required; the script names a missing flag.
-`--plan` whenever the work follows a plan; `--blocked` only when stuck.
-The path the script prints is the proof of the write: confirm it.
+`--stage` (`product`, `mvp`, `mockups`, `blueprint`, `build`), `--branch`
+and `--next` are required. `--blocked` only when stuck on a question for
+the user. The path the command prints is the proof of the write.
 
 ## Trust rule
 
-A checkpoint is a snapshot. When the repo disagrees (branch gone, files
-moved, stage further along), say what differs and trust the repo; never
-rewrite the checkpoint silently. The correction is the user's call, via a
-fresh manual checkpoint or the next `ship`.
+A checkpoint is a snapshot. When the repo disagrees with it (branch gone,
+files moved, stage further along), say what differs and trust the repo;
+never rewrite the checkpoint silently. The correction is the user's call.

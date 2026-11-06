@@ -1,7 +1,7 @@
 {
   "name": "acdev",
-  "version": "0.4.3",
-  "description": "Systematic, gated, documentation-first pipeline that takes a software project from idea to production - or adopts an existing one - with strict token discipline.",
+  "version": "0.5.0",
+  "description": "A thin, gated pipeline for building a product with Claude Code: your decisions behind explicit gates, the project state on disk so contexts stay small, and hard rules enforced by a hook.",
   "author": {
     "name": "acnetcenter",
     "url": "https://github.com/acnetcenter"
@@ -9,5 +9,5 @@
   "homepage": "https://github.com/acnetcenter/acdev",
   "repository": "https://github.com/acnetcenter/acdev",
   "license": "MIT",
-  "keywords": ["pipeline", "documentation-first", "production", "token-economy"]
+  "keywords": ["pipeline", "product", "gates", "guard", "token-economy"]
 }

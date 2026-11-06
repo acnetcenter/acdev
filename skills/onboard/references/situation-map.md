@@ -5,7 +5,7 @@ into acdev. Every factual line ends with its source tag: `[user]`, `[docs]`,
 `[code]`, `[git]`, or `[gap]`. A line with no evidence behind it is a
 declared gap, tagged `[gap]` — never a guess presented as fact.
 
-Cap: about 80 lines. The eight layer rows are mandatory; every other
+Cap: about 80 lines. The eight area rows are mandatory; every other
 section is one line per fact, no prose. When real complexity needs more
 (several services, several deploy targets, many independent gaps), add
 lines rather than omit or merge facts, and say so when presenting the
@@ -22,7 +22,7 @@ dumps; this keeps the pass cheap regardless of repo size.
 # SITUATION
 
 Snapshot of the repo as found, before any acdev document rewrites it.
-Dated at the point of onboarding; superseded by VISION/ROADMAP/ADRs once
+Dated at the point of onboarding; superseded by PRODUCT/ROADMAP/ADRs once
 adoption is complete.
 
 ## Product (observed)
@@ -37,9 +37,9 @@ say so as a gap instead of inferring it from the code's shape. -->
 <!-- Languages, frameworks, runtime, database, hosting/deploy target, and
 key third-party integrations, each with a source tag. -->
 
-## Layer state
+## Area state
 
-| Layer | State | Evidence |
+| Area | State | Evidence |
 |---|---|---|
 | Frontend | present / partial / absent / unknown | <one line, source tag> |
 | API | present / partial / absent / unknown | <one line, source tag> |
@@ -50,14 +50,14 @@ key third-party integrations, each with a source tag. -->
 | Delivery | present / partial / absent / unknown | <one line, source tag> |
 | CI/CD | present / partial / absent / unknown | <one line, source tag> |
 
-<!-- One row per acdev layer, always all 8, even when the state is
+<!-- One row per area, always all 8, even when the state is
 "unknown" or "absent" — a missing row reads as "not checked," which this
 template does not allow. -->
 
 ## Documentation state
 
-<!-- What documentation already exists (README, VISION, ADRs, wikis,
-proyecto-kike-era docs), how current it looks against the code, and which
+<!-- What documentation already exists (README, product or vision docs,
+ADRs, wikis), how current it looks against the code, and which
 acdev documents have no equivalent yet. Each fact with a source tag. -->
 
 ## Tests and CI
@@ -81,7 +81,7 @@ silently, what has no safety net, what nobody currently owns. -->
 
 <!-- Written in the confirm-and-adopt gate, after the map above is
 confirmed by the user, and only here: which acdev artifacts are missing
-and worth creating (VISION retroactively if absent, MVP.md only if
+and worth creating (PRODUCT.md if absent, MVP.md only if
 unbuilt scope remains worth gating, as-built ADRs for decisions already
 embodied in code), and which pipeline stage the project should resume
 at. One line per item. -->

@@ -1,7 +1,7 @@
 // Builds a throwaway acdev project for the CLI tests: git repo, .acdev
-// state, docs, plans, ADRs, mockups, optional guard. Every test gets its
+// state, docs, plans, ADRs, mockups, guard config. Every test gets its
 // own temp dir; nothing here touches the plugin tree.
-import { mkdtempSync, mkdirSync, writeFileSync, copyFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,6 +11,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 export const PLUGIN = join(here, '..', '..');
 export const CLI = join(PLUGIN, 'scripts', 'acdev.mjs');
 export const CHECKPOINT = join(PLUGIN, 'scripts', 'checkpoint.mjs');
+export const GUARD_HOOK = join(PLUGIN, 'hooks', 'guard.mjs');
 const NODE = process.execPath;
 
 export const write = (root, rel, content) => {
@@ -19,12 +20,12 @@ export const write = (root, rel, content) => {
   writeFileSync(p, content);
 };
 
-export function makeProject({ stage = 'build', git = true, guard = false, verify = null, plans = [], adrs = true, roadmap = true, mockups = false, profile = null, docs = true, commit = true } = {}) {
+export function makeProject({ stage = 'build', git = true, verify = null, plans = [], adrs = true, roadmap = true, mockups = false, docs = true, commit = true } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'acdev-cli-'));
   const g = (args) => spawnSync('git', args, { cwd: root, encoding: 'utf8' });
   const cli = (args, opts = {}) => spawnSync(NODE, [CLI, ...args], { cwd: root, encoding: 'utf8', ...opts });
   const checkpoint = (args) => spawnSync(NODE, [CHECKPOINT, 'write', '--stage', stage, '--branch', 'main', ...args], { cwd: root, encoding: 'utf8' });
-  write(root, '.gitignore', '.acdev/verify-receipt.json\n.acdev/freeze.json\n');
+  write(root, '.gitignore', '.acdev/verify-receipt.json\n');
   write(root, 'README.md', '# fixture\n');
   write(root, 'src/invoices.js', 'export const invoices = [];\n');
   if (docs) {
@@ -43,13 +44,8 @@ export function makeProject({ stage = 'build', git = true, guard = false, verify
     write(root, 'mockups/invoice-list-empty.html', '<html><head><title>Invoices (empty)</title></head><body><h1>Invoices</h1><p>No invoices yet</p></body></html>');
     write(root, 'mockups/dashboard.html', '<html><head><title>Dashboard</title></head><body><h1>Dashboard</h1></body></html>');
   }
-  if (profile) write(root, '.acdev/profile.json', JSON.stringify(profile));
   const guardCfg = { enabled: true, verify: verify ?? [], allow_before_build: [], protected: [], receipt_ignore: [] };
   write(root, '.acdev/guard.json', JSON.stringify(guardCfg));
-  if (guard) {
-    mkdirSync(join(root, '.claude', 'hooks'), { recursive: true });
-    copyFileSync(join(PLUGIN, 'shared', 'references', 'templates', 'guard-hook.mjs'), join(root, '.claude', 'hooks', 'acdev-guard.mjs'));
-  }
   if (git) {
     g(['init', '-q', '-b', 'main']);
     g(['config', 'user.email', 'cli@test']);
@@ -62,7 +58,19 @@ export function makeProject({ stage = 'build', git = true, guard = false, verify
     g(['add', '-A']);
     g(['commit', '-q', '-m', 'init']);
   }
-  return { root, g, cli, checkpoint, write: (rel, c) => write(root, rel, c) };
+  // One PreToolUse payload through the plugin's guard hook, the way Claude
+  // Code calls it: JSON on stdin, a decision on stdout (silence is allow).
+  const env = { ...process.env };
+  delete env.ACDEV_GUARD;
+  delete env.CLAUDE_PROJECT_DIR;
+  const hook = (tool_name, tool_input, extraEnv = {}, cwd = root) => {
+    const r = spawnSync(NODE, [GUARD_HOOK], { input: JSON.stringify({ tool_name, tool_input, cwd }), encoding: 'utf8', env: { ...env, ...extraEnv } });
+    if (r.status !== 0) throw new Error(`guard hook exited ${r.status}: ${r.stderr}`);
+    if (!r.stdout.trim()) return { decision: 'allow', stderr: r.stderr };
+    const out = JSON.parse(r.stdout).hookSpecificOutput;
+    return { decision: out.permissionDecision, reason: out.permissionDecisionReason, stderr: r.stderr };
+  };
+  return { root, g, cli, checkpoint, hook, write: (rel, c) => write(root, rel, c) };
 }
 
 export const ok = (cmd) => `"${NODE}" -e "console.log('# tests 3');console.log('# pass 3');console.log('# fail 0');${cmd ?? ''}"`;

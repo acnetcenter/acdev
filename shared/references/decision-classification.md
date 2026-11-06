@@ -73,8 +73,9 @@ one sentence to justify, it probably belongs a class higher.
 ## Audit table format
 
 Every plan document — the blueprint summary, and later every `build` slice
-plan — carries a table of every mechanical and taste decision made along
-the way, in this exact format:
+plan — carries a table of the taste decisions made along the way (a
+mechanical one may be added when a reader would otherwise wonder why), in
+this exact format:
 
 ```
 | Decision | Class | Choice | Reason |

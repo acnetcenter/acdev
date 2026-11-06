@@ -1,9 +1,7 @@
 # Intake
 
-Reference for `new-project` stage 0: the questions that follow the
-opening one, and the mechanics that make the guard live before any
-document exists. The rules (when to stop and send the user to
-`/acdev:onboard`, zero product code) live in the skill body.
+Reference for `new-project`: the questions that follow the opening one,
+and the two commands that make the guard live before any document exists.
 
 ## The questions
 
@@ -11,29 +9,29 @@ Ask them in one message, after the user has told the idea, proposing
 defaults derived from what was just told:
 
 1. Project name (propose one from the idea).
-2. New repository or existing one? An existing repo not yet on acdev
-   sends the user to `/acdev:onboard`; one with `.acdev/` already runs
-   the pipeline and is amended through it. Both stop this skill.
-3. Documentation language: the language every generated artifact
-   (VISION.md, MVP.md, and everything downstream) will be written in.
-4. Claude Code only, or multi-AI (Codex, Cursor, Copilot, ...)? This
-   decides whether an `AGENTS.md` mirror of `CLAUDE.md` is generated
-   later, at blueprint stage.
+2. New repository or existing one? An existing repo without `.acdev/` is
+   adopted with `/acdev:onboard`; one that has `.acdev/` already runs the
+   pipeline and is amended through it. Both stop this skill.
+3. Documentation language: the language of every generated document.
+4. Claude Code only, or other coding agents too? If others, the blueprint
+   stage keeps an `AGENTS.md` copy of `CLAUDE.md`.
 
-## Guard and initial state
+## Project config and first state
 
-With the answers in hand, and before any document is written:
+With the answers in hand, and before any document is written (run `git
+init` first if the folder is not a repository yet):
 
-1. Install the guard per `shared/references/guard-install.md`: `node
-   "<plugin-root>/scripts/acdev.mjs" scaffold guard` (`<plugin-root>` is
-   the absolute path printed as `acdev plugin root:` at session start).
-2. Write the initial pipeline state:
+```
+acdev init
+acdev checkpoint write --stage product --branch <branch> --next "PRODUCT.md interview" --lang "<documentation language>"
+acdev status
+```
 
-   ```
-   node "<plugin-root>/scripts/checkpoint.mjs" write --stage vision --branch <branch> --next "VISION interview, section 1" --lang "<documentation language>"
-   ```
+`acdev init` writes `.acdev/guard.json` (where the blueprint stage later
+lists the project's verification commands) and ignores the verification
+receipt in `.gitignore`. The guard itself ships with the plugin; nothing
+else is installed in the project. `--lang` is recorded once and kept by
+later checkpoint writes. The `status` output is the evidence to paste.
 
-   `--lang` records the documentation language in `.acdev/state.md`;
-   later checkpoint writes preserve it automatically.
-3. Paste `node .claude/hooks/acdev-guard.mjs status` as evidence the guard
-   is live.
+`acdev` is the plugin's CLI, on the PATH of the Bash tool. In PowerShell
+use the `node` form the skill body gives.

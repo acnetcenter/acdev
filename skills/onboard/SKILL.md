@@ -6,100 +6,89 @@ disable-model-invocation: true
 
 # Onboard (adopt an existing repo)
 
-This skill is the user-invoked entry point (`/acdev:onboard`) for adopting
-an existing repo; `new-project` sends the user here when the repo already
-exists. Its job is not to redesign the project — it is to find out, cheaply and
-truthfully, what is already there, write that down as `docs/SITUATION.md`,
-and then propose which acdev artifacts are worth adding on top of it.
+The user-run entry point (`/acdev:onboard`) for a repo that already has
+code. The job is not to redesign the project: it is to find out, cheaply
+and truthfully, what is already there, write it down as
+`docs/SITUATION.md`, and propose which acdev artifacts are worth adding.
+
+A repo that already ran an earlier acdev (it has `.acdev/` and
+`docs/VISION.md`) is not onboarded again: `acdev migrate` shows what
+moving it to the current layout would change.
+
+`acdev` is the plugin's CLI in the Bash tool; in PowerShell call it as
+`node "${CLAUDE_PLUGIN_ROOT}/scripts/acdev.mjs"`.
 
 ## Read before writing
 
-Inventory the repo before writing anything. Every fact goes into the
-situation map with a tag naming its source class, in this order of
-precedence, highest first:
+Inventory the repo before writing anything. Every fact goes into the map
+with a tag naming its source, in this order of precedence:
 
-1. **`[user]`** — explicit statements the user makes this session. These
-   override anything found in the repo; if the user says the deploy target
-   is X, that wins even if the code suggests otherwise (record the
-   conflict instead of silently picking one).
-2. **`[docs]`** — existing documentation: README, VISION, ADRs, wikis. Docs
-   from a proyecto-kike-era project count as `[docs]` evidence, not as
-   noise to discard.
-3. **`[code]`** — code and config reality: manifests, migrations, CI and
-   deploy configs, environment files. Read when docs are silent or
-   contradict what the code actually does.
-4. **`[git]`** — git history: activity, cadence, contributor count. The
-   weakest class: freshness and activity signals, not product intent.
+1. **`[user]`**: what the user states this session. It overrides the
+   repo; if it conflicts with the code, record the conflict.
+2. **`[docs]`**: existing documentation (README, product or vision docs,
+   ADRs, wikis).
+3. **`[code]`**: code and config reality (manifests, migrations, CI and
+   deploy configs). Read when docs are silent or contradicted.
+4. **`[git]`**: history, cadence, contributors. The weakest class: it
+   signals freshness, not product intent.
 
-Anything not found after checking the sources above is a **declared gap**
-— written as a gap line (for example "no deploy configuration found
-`[gap]`"), never filled in with a guess. A gap is a legitimate, complete
-answer; an invented fact is not.
+Anything not found after checking those sources is a **declared gap**,
+written as a gap line ("no deploy configuration found `[gap]`"), never
+filled in with a guess. A gap is a complete answer; an invented fact is
+not.
 
 ## Situation map
 
-Write `docs/SITUATION.md` from `references/situation-map.md`: its
-sections, the eight mandatory layer rows, the cap of about 80 lines and
-how to scan a large repo cheaply are there. Every factual line in the
-document ends with its source tag. A line without one does not belong in
-the map.
+Write `docs/SITUATION.md` from `references/situation-map.md` (sections,
+the eight area rows, the cap of about 80 lines, how to scan a large repo
+cheaply). Every factual line ends with its source tag.
 
 ## Confirm and adopt
 
-Present the situation map to the user. They correct it — wrong reads,
-missing context only they have, outdated assumptions baked into old code.
-Update the map with their corrections, tagged `[user]`.
+Present the map. The user corrects it; update it with their corrections,
+tagged `[user]`.
 
-**GATE.** Ask for explicit confirmation that the map is accurate before
-proposing anything. Do not propose the adoption plan until the map itself
-is confirmed — a plan built on an unconfirmed map inherits its errors.
+**Gate.** Ask for explicit confirmation that the map is accurate before
+proposing anything. A plan built on an unconfirmed map inherits its
+errors.
 
-Once confirmed, write the adoption plan as the map's last section
-("Recommended adoption plan") and only there; chat says "the plan is the
-last section of `docs/SITUATION.md`; confirm or correct it", never a
-second copy of the plan. Its items and the commands that produce each are
-in `references/adoption-plan.md`; the rules they obey:
+Once confirmed, write the adoption plan as the map's last section and
+only there; chat points to it, never repeats it. The commands for each
+item are in `references/adoption-plan.md`; the rules they obey:
 
-- **VISION.md retroactively, if absent**: conversed with the user section
-  by section as in `new-project` stage 1, never autogenerated from the
-  situation map alone. The map informs the conversation; it does not
-  replace it.
-- **MVP.md, only if unbuilt scope remains worth gating.** A product
-  already complete against its own ambitions skips it, and the plan says
-  why; meaningful unbuilt scope is cut as `new-project` stage 2 does.
-- **Blueprint deltas.** Decisions already embodied in the code but never
-  recorded (stack, hosting, data store, auth approach, tenancy model) are
-  written as ADRs marked "as-built" in their Context section — this
-  closes the paper-trail gap without pretending the decision is being
-  made now.
-- **Initial pipeline state**, naming the stage the project resumes at
-  (`intake`, `vision`, `mvp`, `mockups`, `blueprint`, `build`), the
-  documentation language (from the existing docs or agreed with the
-  user) and the concrete next action.
-- **The guard**, with `verify` set to the checks the repo already runs.
-  Show the user what it will enforce before installing; an adopted repo
-  may have conventions (a generated directory, a vendored tree) that
-  belong in `allow_before_build` or `receipt_ignore`. From then on a
-  commit needs a green receipt, approved docs ask before edits, and
-  destructive commands ask.
-- **The profile**, with only the tags the situation map supports; leave
-  it empty rather than guess.
+- **`docs/PRODUCT.md`, if absent**: conversed with the user as in
+  `new-project`, never autogenerated from the map. The map informs the
+  conversation; it does not replace it. An existing product document is
+  kept and completed, not replaced.
+- **`docs/MVP.md`, only if unbuilt scope remains worth gating.** A
+  product already complete against its own ambitions skips it, and the
+  plan says why.
+- **As-built ADRs.** Decisions the code already embodies but nobody
+  recorded (stack, hosting, data store, auth, tenancy) are written as
+  ADRs marked "as-built" in their Context: this closes the paper trail
+  without pretending the decision is being made now.
+- **Pipeline state**, naming the stage the project resumes at
+  (`product`, `mvp`, `mockups`, `blueprint`, `build`), the documentation
+  language and the concrete next action.
+- **The guard config**, with `verify` set to the checks the repo already
+  runs. Tell the user what the guard will enforce from then on: no
+  product code before the build stage, approved documents ask before an
+  edit, and in build a commit needs a green verification.
+- **`CLAUDE.md`.** An existing one is kept; propose adding the "How work
+  closes here" block from the template, as a diff.
 - **`docs/RUNBOOK.md`, if the project deploys** and has no equivalent:
-  what the situation map found, and declared gaps for the rest. An
-  existing runbook or ops doc is read as-is and referenced, never
-  rewritten.
+  what the map found, and declared gaps for the rest. An existing
+  runbook is referenced, never rewritten.
 
-Hand off to whichever skill matches that resume stage — `blueprint` if
-VISION/MVP already exist or were just written and only the normative
-package is missing, `mockups` if screens are still needed, `build` if the
-project is fully documented and mid-construction.
+Hand off to the skill that matches the resume stage: `blueprint` when
+only the decisions and repo mechanics are missing, `mockups` when screens
+are still needed, `build` when the project is mid-construction.
 
 ## Rules
 
 - Never rewrite an existing doc without showing the diff and getting
-  confirmation first. Adoption augments what exists; it does not silently
-  overwrite it.
+  confirmation first. Adoption adds to what exists.
 - Where an existing convention conflicts with an acdev default (naming,
-  doc structure, ADR format), the existing convention wins — record the
-  conflict in the situation map rather than resolving it unilaterally.
+  doc structure, ADR format), the existing convention wins; record the
+  conflict in the map.
 - Commit: `docs: acdev onboarding and situation map`.
