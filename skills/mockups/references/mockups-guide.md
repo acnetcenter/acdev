@@ -25,8 +25,8 @@ page, never toggled with JS: `invoice-list-empty.html`,
 `invoice-list-error.html`, `invoice-list-loading.html`. Link to these from
 the primary screen (e.g. a small "view empty state" link near the top) so
 they stay reachable without cluttering the main flow. A variant is
-produced with `node "<plugin-root>/scripts/acdev.mjs" scaffold mockup-variant
-mockups/<page>.html <state>`, which copies the page with the `<main>` body
+produced with `acdev scaffold mockup-variant mockups/<page>.html
+<state>`, which copies the page with the `<main>` body
 replaced by a one-line marker; write only that block. A variant is never
 authored from scratch, because header, nav and footer are identical by
 definition and re-emitting them is pure output cost. Variants stay
@@ -62,8 +62,7 @@ spacing — not hardcoded values scattered across pages:
 
 These custom properties are not just convenience — they are the product's
 token set: the frontend copies `styles.css` into the stack's token file
-at build, and `pack` prints the `:root` block to every frontend slice;
-UI-DESIGN never transcribes them. Name them clearly and keep the set
+at build, and no document transcribes them. Name them clearly and keep the set
 small and deliberate; a token sprawl here becomes a token sprawl in the
 real design system.
 
@@ -131,12 +130,12 @@ state change.
 
 ## Skeleton inventory
 
-Write `docs/mockups-inventory.md` with `node "<plugin-root>/scripts/acdev.mjs"
-scaffold mockups-inventory docs/mockups-inventory.md` (`<plugin-root>` is
-the path printed as `acdev plugin root:` at session start) and replace each
+Write `docs/mockups-inventory.md` with `acdev scaffold mockups-inventory
+docs/mockups-inventory.md` and replace each
 `<!-- ... -->` guidance comment and each `<...>` placeholder with real
 content: one line per post-MVP screen (name, purpose,
-target phase from VISION §7, where it attaches in navigation). The MVP
+target phase from the MVP's out-of-scope list, where it attaches in
+navigation). The MVP
 menu, sidebar or nav bar shows where those phase-2+ items will attach; the
 screens themselves are not drawn.
 
@@ -152,7 +151,7 @@ Revisions section above.
 Before the gate, and again after every revision round:
 
 ```
-node "<plugin-root>/scripts/acdev.mjs" mockup-spec --write
+acdev mockup-spec --write
 ```
 
 extracts one entry per screen from the HTML (title, headings, nav, fields,
@@ -165,8 +164,11 @@ On an explicit approval (the skill body holds the wording and the freeze
 semantics), advance the state and commit with `mockups/SPEC.md` included:
 
 ```
-node "<plugin-root>/scripts/acdev.mjs" checkpoint write --stage blueprint --branch <branch> --next "blueprint: normative docs, ADRs, repo mechanics"
+acdev checkpoint write --stage blueprint --branch <branch> --next "blueprint: decisions, roadmap, repo mechanics"
 ```
+
+That is the MVP's gate. For a later phase the project is already in
+build: commit the approved pages and leave the stage alone.
 
 ## Accessibility floor
 

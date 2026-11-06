@@ -3,7 +3,7 @@
 An incident is a user-requested change the production system requested.
 It gets the same paper trail as any other change: a spec in
 `docs/plans/YYYY-MM-DD-incident-<slug>.md`, written before any fix is
-coded, then a mini-slice through build and a close through ship. Fill
+coded, then a mini-slice through build, closed with `acdev close`. Fill
 every section; a missing fact is asked or declared as a gap, never
 invented. Cap: about 60 lines.
 
@@ -42,12 +42,12 @@ with the user's answer).
 
 ## Root cause
 
-Found per the debugging skill: reproduced, hypotheses ranked, evidence.
+Reproduced first, then the evidence that singles out one cause.
 The cause, not the symptom. Link the reproducing test.
 
 ## Fix
 
-Goal + verify steps, per the planning skill:
+Goal + verify steps:
 
 1. <do X> - verify: <exact command or observable check>
 2. ...
@@ -57,8 +57,7 @@ Goal + verify steps, per the planning skill:
 
 ## Prevention
 
-- Lesson recorded: `node "<plugin-root>/scripts/lessons.mjs" add ...`
-  (candidate #N, or promoted when a previous candidate matched).
+- Rule earned: <the line added to CLAUDE.md, or why none is needed>.
 - Mechanical check added: <test or scripts/verify/ probe that fails if
   this class of incident recurs>, or why none is possible.
 - RUNBOOK changes: <band, alert or command corrected, in this commit>.

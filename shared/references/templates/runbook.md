@@ -2,16 +2,16 @@
 
 Fill every section below when generating the project's `docs/RUNBOOK.md`
 at blueprint time (only for projects that deploy somewhere users reach).
-It is the operating contract `operate` reads after every deploy and on
-every incident: exact URLs, exact commands, numeric bands. A runbook
+It is the operating contract read after every deploy and on every
+incident: exact URLs, exact commands, numeric bands. A runbook
 that says "check the dashboard" is a placeholder, not a runbook. Cap:
 about 100 lines; numbers and commands, not prose.
 
 ```markdown
 # Runbook
 
-Derived from [VISION.md](VISION.md) and [ARCHITECTURE.md](ARCHITECTURE.md).
-Read by the operate skill after each deploy and on any incident. Repo
+Derived from [PRODUCT.md](PRODUCT.md) and the decisions in [adr/](adr/).
+Read after each deploy and on any incident. Repo
 reality wins: a band or a command proven wrong is corrected here in the
 same commit that proved it.
 
@@ -43,8 +43,8 @@ The most rehearsed path in this document.
 
 ## Control bands
 
-Thresholds come from the phase budgets in ROADMAP.md and
-layer-performance; measured, not guessed.
+Thresholds come from the phase budgets in ROADMAP.md; measured, not
+guessed.
 
 | Signal | Green | Degraded (diagnose, read-only) | Down (roll back first) |
 |---|---|---|---|

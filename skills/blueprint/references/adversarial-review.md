@@ -15,7 +15,7 @@ cost. Neither panel knows of the other:
 
 - **The excess panel** attacks what is there: over-design, speculative
   structure, complexity the MVP does not pay for, dependencies that
-  could be dropped, scope VISION never asked for.
+  could be dropped, scope PRODUCT.md never asked for.
 - **The defect panel** attacks what is missing: unhandled failure modes,
   scale and tenancy traps, unproven dependencies with no spike, security
   or compliance gaps, exit criteria that cannot actually be verified.

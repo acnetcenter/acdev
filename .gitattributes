@@ -1,0 +1,5 @@
+# The CLI shims must keep their platform line endings on every checkout:
+# a CRLF shebang breaks sh, and cmd expects CRLF. Eval fixtures are sh too.
+bin/acdev text eol=lf
+bin/acdev.cmd text eol=crlf
+*.sh text eol=lf

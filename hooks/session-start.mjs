@@ -1,21 +1,28 @@
 #!/usr/bin/env node
-// Prints the using-acdev gateway skill (frontmatter stripped) into session
-// context, plus the plugin root path that pipeline skills substitute for
-// <plugin-root> when running scripts/checkpoint.mjs or reading templates.
-import { readFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+// SessionStart hook: inside a project that runs the pipeline, two lines
+// with where it stands and how to call the CLI. Silent everywhere else, so
+// the plugin costs nothing in a session that does not use it. Runs again
+// after /clear and after a compaction, which is what makes a fresh context
+// cheap to resume: the state is on disk, not in the conversation.
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 try {
-  const here = dirname(fileURLToPath(import.meta.url));
-  const root = resolve(here, '..');
-  const raw = readFileSync(join(root, 'skills', 'using-acdev', 'SKILL.md'), 'utf8');
-  const body = raw.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '').replace(/\r\n/g, '\n');
-  console.log(body.trim());
-  console.log(`\nacdev plugin root: ${root}`);
+  const { readState, latestCheckpoint, slashes, projectRoot } = await import('../scripts/lib/project.mjs');
+  // The same project the CLI and the guard find, also from a subfolder.
+  const root = projectRoot();
+  const state = readState(root);
+  if (state?.stage) {
+    const f = latestCheckpoint(root, state)?.fields ?? {};
+    const parts = [`acdev project: stage ${state.stage}`];
+    if (f.slice) parts.push(`slice ${f.slice}`);
+    if (f.next_step) parts.push(`next: ${f.next_step}`);
+    if (f.blocked_on) parts.push(`BLOCKED: ${f.blocked_on}`);
+    const cli = slashes(resolve(dirname(fileURLToPath(import.meta.url)), '..', 'scripts', 'acdev.mjs'));
+    console.log(parts.join(' | '));
+    console.log(`CLI: \`acdev <command>\` in the Bash tool; in PowerShell, node "${cli}" <command>. \`acdev status\` prints the full snapshot.`);
+  }
 } catch (err) {
-  // Degrade to description-only activation (spec section 11), but leave a
-  // trace on stderr so the failure is visible in hook debug output.
+  // Never block a session over a status line.
   console.error(`acdev session-start hook failed: ${err.message}`);
-  process.exit(0);
 }

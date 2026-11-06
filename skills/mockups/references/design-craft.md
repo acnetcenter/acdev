@@ -44,7 +44,7 @@ explicitly calls for one:
   as noise.
 - Tokens from the first mockup: colors, spacing and type steps live in
   `styles.css` as custom properties, because the frontend copies that
-  file into the stack's token file and `pack` prints its `:root` block.
+  file into the stack's token file at build.
 
 ## Per-screen audit pass
 

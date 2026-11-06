@@ -1,6 +1,6 @@
 {
   "name": "acdev",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -9,6 +9,6 @@
   "scripts": {
     "test": "node --test",
     "lint": "node scripts/lint-budgets.mjs",
-    "evals": "node scripts/run-evals.mjs"
+    "evals": "claude plugin eval . --scaffold --allow-tools Write Edit Bash --runs 1 --max-cost-usd 5"
   }
 }

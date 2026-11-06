@@ -1,0 +1,3 @@
+#!/bin/sh
+# acdev CLI shim: the plugin puts bin/ on the PATH of the shell tool.
+exec node "$(dirname "$0")/../scripts/acdev.mjs" "$@"

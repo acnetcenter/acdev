@@ -1,116 +1,77 @@
 // The slice close as two commands. `close --check` reports what the close
-// will need (drift candidates, changelog, plan, index, freeze, lessons)
-// without running anything expensive; `close` verifies, does the
-// bookkeeping, writes the checkpoint and commits, refusing on any red.
-// What used to be ten tool calls read out of a skill body is two.
-import { existsSync, readFileSync, writeFileSync, unlinkSync, copyFileSync } from 'node:fs';
+// will need (drift candidates, changelog, plan) without running anything
+// expensive; `close` verifies, does the bookkeeping, writes the checkpoint
+// and commits, refusing on any red.
+import { existsSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { readIf, readJsonIf, readState, git, isGitRepo, currentBranch, changedFiles, latestCheckpoint, slashes, norm } from './project.mjs';
-import { runQuiet, summarize } from './quiet.mjs';
+import { readIf, readState, git, isGitRepo, currentBranch, changedFiles, slashes } from './project.mjs';
+import { loadGuardConfig, verify } from './guard.mjs';
 import { driftCandidates, renderDrift } from './drift.mjs';
 
-const GUARD = '.claude/hooks/acdev-guard.mjs';
-// The router stays under one page: past this many promoted lessons the
-// close refuses until the section is consolidated with the user.
-export const LESSONS_CAP = 12;
+// The close is where a context can be dropped safely: the state, the plan
+// and the commit hold everything the next slice needs.
+export const CUT_NOTE = 'context: this slice is on disk (state, plan, commit); a fresh session (/clear) resumes from the session-start line and costs less than carrying this one';
 
-export function guardConfig(root) {
-  const cfg = readJsonIf(join(root, '.acdev', 'guard.json')) ?? {};
-  return {
-    verify: Array.isArray(cfg.verify) ? cfg.verify : [],
-    changelog: { path: cfg.changelog?.path ?? 'CHANGELOG.md', section: cfg.changelog?.section ?? '## [Unreleased]' }
-  };
-}
+// A file is written back with the line terminator it had: a one-line
+// change must not turn into a whole-file line-ending diff.
+const readRaw = (path) => (existsSync(path) ? readFileSync(path, 'utf8') : null);
+const eolOf = (raw) => (raw?.includes('\r\n') ? '\r\n' : '\n');
 
-// Verification: the guard's verify when the guard is installed (it writes
-// the receipt the hook checks), else the configured commands through the
-// quiet runner. Unconfigured warns and passes, exactly as the hook does.
-export function verifyProject(root, { full = false, tail = 30 } = {}) {
-  const cfg = guardConfig(root);
-  const guard = join(root, GUARD);
-  if (existsSync(guard)) {
-    const r = spawnSync(process.execPath, [guard, 'verify', ...(full ? ['--full'] : [])], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 64 * 1024 * 1024 });
-    const out = `${r.stdout ?? ''}${r.stderr ? `\n${r.stderr}` : ''}`.trim();
-    return { ok: r.status === 0, evidence: out || `(guard verify exited ${r.status})`, via: 'guard' };
-  }
-  if (!cfg.verify.length) return { ok: true, unconfigured: true, evidence: 'verify: no commands configured in .acdev/guard.json (fill "verify" at blueprint); closing unverified', via: 'none' };
-  const lines = [];
-  for (const cmd of cfg.verify) {
-    const r = runQuiet(cmd, { cwd: root, full, tail });
-    lines.push(`$ ${cmd}`, r.summary);
-    if (r.status !== 0) return { ok: false, evidence: lines.join('\n'), via: 'config' };
-  }
-  return { ok: true, evidence: lines.join('\n'), via: 'config' };
-}
-
-export function appendChangelog(root, line, cfg = guardConfig(root)) {
+// Adds one bullet under the section, newest first. Idempotent: a close
+// that failed after this point and is run again does not add it twice.
+export function appendChangelog(root, line, cfg = loadGuardConfig(root)) {
   const path = join(root, cfg.changelog.path);
   const section = cfg.changelog.section;
-  let text = readIf(path);
-  if (text === null) text = `# Changelog\n\n${section}\n\n`;
-  if (!text.includes(section)) {
-    const h1 = text.match(/^# .*\n/m);
-    text = h1 ? text.replace(h1[0], `${h1[0]}\n${section}\n\n`) : `${section}\n\n${text}`;
+  const raw = readRaw(path);
+  const lines = (raw === null ? `# Changelog\n\n${section}\n` : raw.replace(/\r\n/g, '\n')).split('\n');
+  // The section is a whole line, never a substring of another heading.
+  let at = lines.findIndex((l) => l.trim() === section);
+  if (at < 0) {
+    const h1 = lines.findIndex((l) => /^# /.test(l));
+    const tail = lines.slice(h1 + 1);
+    while (tail.length && !tail[0].trim()) tail.shift();
+    lines.splice(0, lines.length, ...lines.slice(0, h1 + 1), ...(h1 < 0 ? [] : ['']), section, '', ...tail);
+    at = lines.findIndex((l) => l.trim() === section);
   }
-  const at = text.indexOf(section) + section.length;
-  const after = text.slice(at);
-  const rest = after.replace(/^\n+/, '');
-  // Newest first, directly above the existing bullets; a blank line before
-  // anything else (a subsection, the next release heading, the end).
-  const gap = rest.startsWith('- ') ? '\n' : rest ? '\n\n' : '\n';
-  text = `${text.slice(0, at)}\n\n- ${line}${gap}${rest}`;
-  writeFileSync(path, text.replace(/\n{3,}/g, '\n\n'));
+  let first = at + 1;
+  while (first < lines.length && !lines[first].trim()) first++;
+  const rest = lines.slice(first);
+  const bullet = `- ${line}`;
+  let end = 0;
+  while (end < rest.length && rest[end].startsWith('- ')) end++;
+  if (!rest.slice(0, end).includes(bullet)) {
+    // Directly above the existing bullets; a blank line before anything
+    // else (a subsection, the next release heading).
+    const gap = rest.some((l) => l.trim()) && !rest[0].startsWith('- ') ? [''] : [];
+    lines.splice(at + 1, lines.length - (at + 1), '', bullet, ...gap, ...rest);
+  }
+  writeFileSync(path, lines.join('\n').replace(/\n*$/, '\n').replace(/\n/g, eolOf(raw)));
   return slashes(relative(root, path));
 }
 
-export function flipPlan(root, plan) {
-  const path = join(root, plan);
-  const raw = readIf(path);
+// The plan's state, read-only: the close checks it before it writes
+// anything, so a plan that cannot be flipped stops the close clean.
+export function planState(root, plan) {
+  const raw = readRaw(join(root, plan));
   if (raw === null) return { ok: false, note: `${plan} not found` };
-  const m = raw.match(/^---\n([\s\S]*?)\n---/);
-  if (!m) return { ok: false, note: `${plan} has no frontmatter (expected status: active)` };
-  if (/^status:\s*shipped\s*$/m.test(m[1])) return { ok: true, note: `${plan} already shipped` };
-  if (!/^status:\s*active\s*$/m.test(m[1])) return { ok: false, note: `${plan} status is not active` };
-  writeFileSync(path, raw.replace(/^status:\s*active\s*$/m, 'status: shipped'));
+  const fm = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!fm) return { ok: false, note: `${plan} has no frontmatter (expected status: active)` };
+  if (/^status:\s*shipped\s*$/m.test(fm[1])) return { ok: true, shipped: true, note: `${plan} already shipped` };
+  if (!/^status:\s*active\s*$/m.test(fm[1])) return { ok: false, note: `${plan} status is not active` };
+  return { ok: true, shipped: false, raw };
+}
+export function flipPlan(root, plan) {
+  const s = planState(root, plan);
+  if (!s.ok || s.shipped) return s;
+  writeFileSync(join(root, plan), s.raw.replace(/^(status:\s*)active([ \t]*\r?)$/m, '$1shipped$2'));
   return { ok: true, note: `${plan}: status active -> shipped` };
 }
 
-// A singleton doc added or removed under docs/ needs the index touched in
-// the same commit; series folders (plans, adr, designs, domain) never do.
-export function indexStatus(root) {
-  const index = join(root, 'docs', 'README.md');
-  if (!existsSync(index)) return { ok: true, note: 'docs/README.md absent (no index convention); skipped' };
-  const st = git(root, ['status', '--porcelain']);
-  if (st.status !== 0) return { ok: true, note: 'git status unavailable; skipped' };
-  const added = [];
-  let indexTouched = false;
-  for (const line of st.stdout.split('\n')) {
-    if (!line.trim()) continue;
-    const code = line.slice(0, 2);
-    const file = slashes(line.slice(3).trim().replace(/^"|"$/g, ''));
-    if (file === 'docs/README.md') indexTouched = true;
-    else if (/^docs\/[^/]+\.md$/.test(file) && /[AD?]/.test(code)) added.push(file);
-  }
-  if (!added.length || indexTouched) return { ok: true, note: added.length ? 'docs/README.md updated with the new docs' : 'no singleton docs added or removed' };
-  return { ok: false, note: `docs/README.md not updated after adding/removing ${added.join(', ')}` };
-}
-
-export function freezeStatus(root) {
-  const f = readJsonIf(join(root, '.acdev', 'freeze.json'));
-  return f?.paths?.length ? { active: true, paths: f.paths, reason: f.reason ?? '' } : { active: false };
-}
-export function lessonsStatus(root) {
-  const raw = readIf(join(root, '.acdev', 'lessons.md')) ?? '';
-  const rows = raw.split('\n').filter((l) => /^\|\s*\d+\s*\|/.test(l));
-  const promoted = rows.filter((l) => /\|\s*promoted\s*\|/i.test(l)).length;
-  return { candidates: rows.length - promoted, promoted, over: promoted > LESSONS_CAP };
-}
-
 // An acdev AGENTS.md is a copy of CLAUDE.md, never a hand-kept mirror: the
-// close regenerates it. The copy is recognized by the router template's
-// "## Mirror note" heading or an explicit marker comment; an AGENTS.md an
-// onboarded repo keeps for other agents carries neither and is left alone.
+// close regenerates it. The copy is recognized by the template's "## Mirror
+// note" heading or an explicit marker comment; an AGENTS.md an onboarded
+// repo keeps for other agents carries neither and is left alone.
 export const MIRROR_MARKERS = [/^## Mirror note\s*$/m, /<!--\s*acdev:\s*copy of CLAUDE\.md\s*-->/];
 export function isRouterCopy(text) {
   return typeof text === 'string' && MIRROR_MARKERS.some((re) => re.test(text));
@@ -120,7 +81,7 @@ export function mirrorAgents(root) {
   const agents = join(root, 'AGENTS.md');
   if (!existsSync(agents)) return null;
   if (!existsSync(claude)) return 'agents: AGENTS.md kept as is (no CLAUDE.md to copy)';
-  if (!isRouterCopy(readIf(agents))) return 'agents: AGENTS.md kept as is (not an acdev router copy: no "## Mirror note" heading or <!-- acdev: copy of CLAUDE.md --> marker)';
+  if (!isRouterCopy(readIf(agents))) return 'agents: AGENTS.md kept as is (not an acdev copy: no "## Mirror note" heading or <!-- acdev: copy of CLAUDE.md --> marker)';
   copyFileSync(claude, agents);
   return 'agents: AGENTS.md regenerated from CLAUDE.md';
 }
@@ -151,29 +112,20 @@ export function closeCheck(root, opts = {}) {
   const files = changedFiles(root);
   const stat = git(root, ['diff', '--stat', 'HEAD']).stdout.trim().split('\n').filter(Boolean);
   out.push(`  changed: ${files.length} file(s)`, ...stat.slice(-Math.min(stat.length, 15)).map((l) => `    ${l.trim()}`));
-  const cfg = guardConfig(root);
-  const guard = existsSync(join(root, GUARD));
-  out.push(`  verify: ${guard ? `guard installed (${cfg.verify.length} command(s))` : cfg.verify.length ? `${cfg.verify.length} command(s) in guard.json` : 'NOT CONFIGURED (closes unverified; fill guard.json verify)'}; runs at close`);
+  const cfg = loadGuardConfig(root);
+  out.push(`  verify: ${cfg.verify.length ? `${cfg.verify.length} command(s) in .acdev/guard.json` : 'NOT CONFIGURED (closes unverified; fill "verify" in .acdev/guard.json)'}; runs at close`);
   if (opts.verify) {
-    const v = verifyProject(root, { full: opts.full, tail: opts.tail });
-    out.push(`  verify now: ${v.ok ? 'GREEN' : 'RED'}`, ...v.evidence.split('\n').map((l) => `    ${l}`));
+    const v = verify(root, { full: opts.full, tail: opts.tail });
+    out.push(`  verify now: ${v.ok ? (v.unconfigured ? 'UNCONFIGURED' : 'GREEN') : 'RED'}`, ...v.evidence.split('\n').map((l) => `    ${l}`));
   }
-  out.push(renderDrift(driftCandidates(root, files)).split('\n').map((l, i) => (i ? `  ${l}` : `  ${l}`)).join('\n'));
+  out.push(renderDrift(driftCandidates(root, files)).split('\n').map((l) => `  ${l}`).join('\n'));
   const cl = readIf(join(root, cfg.changelog.path));
   out.push(`  changelog: ${cl === null ? `${cfg.changelog.path} will be created` : cl.includes(cfg.changelog.section) ? `${cfg.changelog.path} has ${cfg.changelog.section}` : `${cfg.changelog.section} will be added to ${cfg.changelog.path}`}; pass --changelog "<what shipped>"`);
   if (opts.plan) {
     const raw = readIf(join(root, opts.plan));
     out.push(`  plan: ${raw === null ? `${opts.plan} NOT FOUND` : `${opts.plan} status ${raw.match(/^status:\s*(.+)$/m)?.[1] ?? 'missing'}`}`);
-  } else out.push('  plan: pass --plan <docs/plans/...> (omit only for a trivial fix)');
-  const idx = indexStatus(root);
-  out.push(`  index: ${idx.ok ? 'ok' : 'NEEDS UPDATE'} (${idx.note})`);
-  const fz = freezeStatus(root);
-  out.push(`  freeze: ${fz.active ? `active on ${fz.paths.join(', ')} (${fz.reason}); cleared at close` : 'none'}`);
-  const ls = lessonsStatus(root);
-  out.push(ls.over
-    ? `  lessons: ${ls.promoted} promoted > ${LESSONS_CAP}: consolidate the section and .acdev/lessons.md before close`
-    : `  lessons: ${ls.candidates} candidate(s), ${ls.promoted} promoted; add or bump one before close if this slice repeated a mistake`);
-  return { ok: idx.ok && !ls.over, text: out.join('\n') };
+  } else out.push('  plan: pass --plan <docs/plans/...> (omit only for a small fix that needed no plan)');
+  return { ok: true, text: out.join('\n') };
 }
 
 export function closeSlice(root, opts) {
@@ -185,33 +137,25 @@ export function closeSlice(root, opts) {
   const branch = currentBranch(root);
   const files = changedFiles(root);
   if (!files.length) return fail('nothing to commit (no changes versus HEAD)');
+  // Everything that can refuse is checked before anything is written, so a
+  // refused close leaves the tree as it found it.
+  if (opts.plan) {
+    const p = planState(root, opts.plan);
+    if (!p.ok) return fail(p.note);
+  }
   // 1. verification, first and always: nothing below runs on a red tree.
-  const v = verifyProject(root, { full: opts.full, tail: opts.tail });
-  out.push(`  verify: ${v.ok ? (v.unconfigured ? 'UNCONFIGURED' : 'GREEN') : 'RED'} (${v.via})`, ...v.evidence.split('\n').map((l) => `    ${l}`));
+  const v = verify(root, { full: opts.full, tail: opts.tail });
+  out.push(`  verify: ${v.ok ? (v.unconfigured ? 'UNCONFIGURED' : 'GREEN') : 'RED'}`, ...v.evidence.split('\n').map((l) => `    ${l}`));
   if (!v.ok) return fail('verification is red; fix it and run close again, or write a --blocked checkpoint');
-  // The Lessons section has a hard cap, like a red verify: nothing below
-  // runs while the router is over a page. The cap counts the ledger's
-  // promoted rows, so the ledger is named next to the section.
-  const ls = lessonsStatus(root);
-  if (ls.over) return fail(`lessons: ${ls.promoted} promoted > ${LESSONS_CAP}; consolidate the Lessons section and its rows in .acdev/lessons.md with the user (merge rows and bullets, or move detail into an ADR) before closing`);
-  out.push(`  lessons: ${ls.candidates} candidate(s), ${ls.promoted} promoted`);
   // 2. docs bookkeeping; the receipt ignores these paths so nothing stales.
-  const idx = indexStatus(root);
-  if (!idx.ok) return fail(`${idx.note}; update the index in this close`);
-  out.push(`  index: ${idx.note}`);
-  const cfg = guardConfig(root);
+  const cfg = loadGuardConfig(root);
   const clLine = opts.plan ? `${opts.changelog} ([plan](${opts.plan}))` : opts.changelog;
   out.push(`  changelog: appended to ${appendChangelog(root, clLine, cfg)} under ${cfg.changelog.section}`);
   if (opts.plan) {
     const p = flipPlan(root, opts.plan);
     if (!p.ok) return fail(p.note);
     out.push(`  plan: ${p.note}`);
-  } else out.push('  plan: none (trivial fix; the CHANGELOG line is its trace)');
-  const fz = freezeStatus(root);
-  if (fz.active) {
-    unlinkSync(join(root, '.acdev', 'freeze.json'));
-    out.push(`  freeze: cleared (${fz.paths.join(', ')})`);
-  }
+  } else out.push('  plan: none (small fix; the CHANGELOG line is its trace)');
   const mirrored = mirrorAgents(root);
   if (mirrored) out.push(`  ${mirrored}`);
   // The files list was computed before the mirror: a regenerated AGENTS.md
@@ -222,9 +166,10 @@ export function closeSlice(root, opts) {
   }
   // 3. checkpoint, through the script that owns the format.
   const ckptScript = join(opts.pluginRoot, 'scripts', 'checkpoint.mjs');
-  const args = [ckptScript, 'write', '--stage', 'build', '--branch', branch ?? 'HEAD', '--slice', opts.slice, '--files', files.join(','), '--next', opts.next];
-  if (opts.plan) args.push('--plan', opts.plan);
-  if (opts.notes) args.push('--notes', opts.notes);
+  // --flag=value, so a value that starts with a dash is not read as a flag.
+  const args = [ckptScript, 'write', '--stage=build', `--branch=${branch ?? 'HEAD'}`, `--slice=${opts.slice}`, `--files=${files.join(',')}`, `--next=${opts.next}`];
+  if (opts.plan) args.push(`--plan=${opts.plan}`);
+  if (opts.notes) args.push(`--notes=${opts.notes}`);
   const ck = spawnSync(process.execPath, args, { cwd: root, encoding: 'utf8' });
   if (ck.status !== 0) return fail(`checkpoint write failed: ${(ck.stderr || ck.stdout).trim()}`);
   out.push(`  checkpoint: ${ck.stdout.trim()}`);
@@ -236,7 +181,8 @@ export function closeSlice(root, opts) {
   if (commit.status !== 0) return fail(`git commit failed: ${(commit.stderr || commit.stdout).trim()}`);
   const hash = git(root, ['rev-parse', '--short', 'HEAD']).stdout.trim();
   out.push(`  commit: ${hash} ${msg}`, `  next: ${opts.next}`);
+  // A planned slice or change is a natural place to drop the context; a
+  // small fix closed without a plan is not worth a new session.
+  if (opts.plan) out.push(`  ${CUT_NOTE}`);
   return { ok: true, text: out.join('\n') };
 }
-
-export { summarize, norm, readFileSync };

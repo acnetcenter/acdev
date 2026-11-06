@@ -1,17 +1,39 @@
-// The resume snapshot in one command: state, latest checkpoint, open plans
-// and the current ROADMAP phase, about 1k tokens, so a status check costs
-// the model one tool call instead of a checkpoint read, a ROADMAP read and
-// a plans grep. Read-only; never scans the code.
-import { readState, latestCheckpoint, openPlans, roadmapPhase, slashes, norm } from './project.mjs';
+// The resume snapshot in one command: state, latest checkpoint, open plans,
+// the current ROADMAP phase, the guard and what continues from here. About
+// 1k tokens, so a status check costs the model one tool call instead of a
+// checkpoint read, a ROADMAP read and a plans grep. Read-only; never scans
+// the code.
+import { readState, latestCheckpoint, openPlans, roadmapPhase, productDoc, norm } from './project.mjs';
+import { guardStatusLine } from './guard.mjs';
 
-// Same cap as pack.mjs: kept local so status does not pull the checklist
-// rendering that pack imports.
 const cap = (text, maxLines) => {
   const lines = norm(text).split('\n');
   return lines.length <= maxLines ? lines.join('\n') : `${lines.slice(0, maxLines).join('\n')}\n  (+${lines.length - maxLines} more lines, open the file if needed)`;
 };
 
-export function renderStatus(root, { pluginRoot } = {}) {
+// What continues from each stage. new-project and onboard are user-run:
+// the model names the command, the user types it.
+function continueLine(stage, { doc, plans, blocked }) {
+  if (blocked) return 'blocked: put the question in blocked_on to the user and wait; nothing is planned, built or closed until they answer';
+  if (plans.some((p) => /-incident-/.test(p))) return `an open incident outranks any slice: ${plans.find((p) => /-incident-/.test(p))} (build skill, incidents)`;
+  switch (stage) {
+    case 'intake':
+    case 'product':
+      return `${doc} is being conversed and its gate is open; the user runs /acdev:new-project to continue`;
+    case 'mvp':
+      return `${doc} is approved; docs/MVP.md is being cut. The user runs /acdev:new-project to continue`;
+    case 'mockups':
+      return 'docs/MVP.md is approved; the mockups skill builds and gates the visual contract';
+    case 'blueprint':
+      return 'the blueprint skill records the decisions, the ROADMAP and the repo mechanics, then gates';
+    case 'build':
+      return 'the build skill: plan or continue the slice named in next_step';
+    default:
+      return 'unknown stage; the user runs /acdev:onboard (existing code) or /acdev:new-project (empty repo)';
+  }
+}
+
+export function renderStatus(root) {
   const state = readState(root);
   const out = ['# acdev status'];
   if (!state) {
@@ -32,6 +54,8 @@ export function renderStatus(root, { pluginRoot } = {}) {
   const phase = roadmapPhase(root);
   out.push('', '## roadmap phase');
   out.push(phase ? `${phase.heading}\n${cap(phase.body, 40)}` : '(docs/ROADMAP.md missing or without phase headings)');
-  out.push('', `to continue: node "${slashes(pluginRoot ?? '<plugin-root>')}/scripts/acdev.mjs" next`);
+  out.push('', guardStatusLine(root));
+  out.push(`to continue: ${continueLine(state.stage, { doc: productDoc(root), plans, blocked: ckpt?.fields?.blocked_on })}`);
+  if (productDoc(root) === 'docs/VISION.md') out.push('legacy: this project still keeps docs/VISION.md; `acdev migrate` shows what moving it to docs/PRODUCT.md would change');
   return out.join('\n');
 }

@@ -5,7 +5,7 @@
 - Class: mechanical | taste | user-challenge
 
 ## Context
-<2-4 lines: the forces at play, link to VISION/MVP section or spike>
+<2-4 lines: the forces at play, link to the PRODUCT.md or MVP.md section, or the spike>
 
 ## Decision
 <1-2 lines: what was decided>

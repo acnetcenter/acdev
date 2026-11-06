@@ -1,18 +1,14 @@
 // The quiet runner: a command's output enters the context as its verdict,
 // never as its log. Green prints the summary lines a test runner, linter or
 // typechecker ends with, plus the last lines; red prints the failure lines
-// and a tail. --full streams everything. The same filter, inlined, lives in
-// the guard template's verify (the guard is self-contained by design).
+// and a tail. --full streams everything. The guard's verify runs its
+// commands through this same runner.
 import { spawnSync } from 'node:child_process';
 
 // eslint-disable-next-line no-control-regex
 const ANSI = /\x1b\[[0-9;]*[A-Za-z]/g;
 export const stripAnsi = (s) => String(s ?? '').replace(ANSI, '');
 
-// --- shared with shared/references/templates/guard-hook.mjs (verdictLines) ---
-// The guard is copied into projects file by file, so this block is duplicated
-// there instead of imported; tests/guard-quiet-parity.test.mjs keeps the two
-// copies producing the same text. Change both or neither.
 // Lines a runner prints as its verdict: counts, totals, TAP summaries.
 const SUMMARY = /\b\d+\s+(passed|passing|failed|failing|pending|skipped|todo|problems?|errors?|warnings?|tests?|specs?|examples?)\b|^#\s+(tests|pass|fail|suites|skipped|todo|cancelled)\s+\d+|\bTests?:|\bTest Files\b|\bTest Suites:|\btest result:|\bPassed!|\bFailed!|^ok\s+\S|^FAIL\b|^PASS\b|✖|\bDuration\b|\bTime:/i;
 // Lines that explain a red run: the assertion, the error, the stack head.
@@ -78,7 +74,6 @@ function verdictLines(lines, ok, tail) {
   out.push(`--- tail (last ${tailLines.length} line(s)) ---`, ...tailLines.map((l) => `  ${l.trimEnd()}`));
   return out;
 }
-// --- end of the shared block ---
 
 export function summarize(output, { ok, exit, tail = 30, ms = null, full = false } = {}) {
   const text = stripAnsi(output).replace(/\r\n/g, '\n').replace(/\r/g, '\n');

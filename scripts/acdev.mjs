@@ -2,31 +2,28 @@
 // acdev CLI: one entry point for the pipeline's mechanical procedures, so a
 // procedure costs the model one or two turns instead of a chain of tool
 // calls read out of a skill body. Run from the project; the plugin root is
-// derived from this file's location.
-//
-//   node "<plugin-root>/scripts/acdev.mjs" <command> [flags]
+// derived from this file's location. The plugin's bin/ puts it on PATH as
+// `acdev`; the session-start line carries the absolute path as a fallback.
 import { parseArgs } from 'node:util';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { pluginRoot, projectRoot } from './lib/project.mjs';
 
-const USAGE = `usage: acdev.mjs <command> [flags]
-  next [--change "topic"]                     the pipeline step that applies now (~300 tokens)
-  status                                      resume snapshot in one call: state, checkpoint, open plans, current phase
-  scaffold <what> [target] [--layers a,b] [--canary] [--force]   copy the mechanical files verbatim: guard | verify | <template> <target>
-  scaffold mockup-variant <page> <state> | --state <empty|error|loading> [--force]   mockups/<page>-<state>.html: the page with <main> reduced to one marker line
-  pack [--screens a,b] [--layers x,y] [--pitfalls]   slice context pack: decisions, phase, checkpoint, spec, checklists
-  checklist --layers x,y [--pitfalls]         layer checklists filtered by .acdev/profile.json
-  q [--tail N] [--full] -- <command>          quiet runner: the verdict lines, never the log
-  drift                                       docs that mention the files changed since HEAD
+const USAGE = `usage: acdev <command> [flags]
+  status                                      resume snapshot in one call: state, checkpoint, open plans, phase, guard, what continues
+  init [--force]                              .acdev/guard.json and the .gitignore line (the guard itself ships with the plugin)
+  checkpoint write --stage S --branch B --next "text" [--slice T] [--plan P] [--files a,b] [--blocked T] [--notes T] [--lang L]
+  checkpoint read                             state plus the latest checkpoint
+  q [--tail N] [--full] -- <command>          quiet runner: the verdict lines, never the log (quote the whole command if it has shell metacharacters)
+  verify [--full]                             the project's verification commands; records the receipt a commit needs in build
   close --check [--plan P] [--verify]         what the close needs, without committing
-  close --slice "n: name" --plan P --next "text" --changelog "text" [--message M] [--notes T] [--full]
+  close --slice "n: name" --next "text" --changelog "text" [--plan P] [--message M] [--notes T] [--full]
+  allow <path...>                             after the user's explicit yes: lets an approved document be edited for 15 minutes
+  drift                                       docs that mention the files changed since HEAD
+  scaffold <template> <target> [--force]      product | mvp | adr | runbook | incident | claude-md | mockups-inventory | canary
+  scaffold mockup-variant <page> <state> [--force]   mockups/<page>-<state>.html with <main> reduced to one marker line
   mockup-spec [--write]                       per-screen skeleton of mockups/*.html (writes mockups/SPEC.md)
-  run [--max-slices N] [--model M] [--budget-usd N] [--mcp-config F] [--no-isolate] [--claude CMD] [--extra "flags"] [--prompt T] [--timeout-min N] [--dry-run]
-                                              headless loop: one fresh session per slice, capped per iteration (--budget-usd 0 disables)
-  cost [--json]                               the .acdev/cost.jsonl ledger written by run: total, fresh, per-model share
-  checkpoint read | write ...                 scripts/checkpoint.mjs
-  lessons list | add ... | promote ...        scripts/lessons.mjs`;
+  migrate [--apply]                           move a pre-0.5 project over (VISION.md -> PRODUCT.md, old guard copy); dry run by default`;
 
 const ROOT = projectRoot();
 const PLUGIN = pluginRoot();
@@ -40,7 +37,6 @@ function opts(options, { positionals = false } = {}) {
     process.exit(1);
   }
 }
-const list = (s) => (s ?? '').split(',').map((x) => x.trim()).filter(Boolean);
 const delegate = (script) => {
   const r = spawnSync(process.execPath, [join(PLUGIN, 'scripts', script), ...rest], { cwd: ROOT, stdio: 'inherit' });
   process.exit(r.status ?? 1);
@@ -52,52 +48,56 @@ const delegate = (script) => {
 // reach the caller cut off.
 try {
   switch (command) {
-    case 'next': {
-      const { values } = opts({ change: { type: 'string' } });
-      const { renderNext } = await import('./lib/next.mjs');
-      console.log(renderNext(ROOT, { pluginRoot: PLUGIN, change: values.change ?? null }));
-      break;
-    }
     case 'status': {
       opts({});
       const { renderStatus } = await import('./lib/status.mjs');
-      console.log(renderStatus(ROOT, { pluginRoot: PLUGIN }));
+      console.log(renderStatus(ROOT));
       break;
     }
+    case 'init':
     case 'scaffold': {
-      const { values, positionals } = opts({ layers: { type: 'string' }, canary: { type: 'boolean', default: false }, force: { type: 'boolean', default: false }, state: { type: 'string' } }, { positionals: true });
-      const [what, target, third] = positionals;
+      const { values, positionals } = opts({ force: { type: 'boolean', default: false }, state: { type: 'string' } }, { positionals: true });
+      const [what, target, third] = command === 'init' ? ['init'] : positionals;
       if (!what) {
-        console.error(`scaffold: say what to scaffold (guard, verify, mockup-variant, or a template name and its target)\n\n${USAGE}`);
+        console.error(`scaffold: say what to scaffold (a template name and its target, or mockup-variant)\n\n${USAGE}`);
         process.exit(1);
       }
       const { scaffold } = await import('./lib/scaffold.mjs');
       // mockup-variant takes its state as a third positional or as --state.
-      const r = scaffold(ROOT, { pluginRoot: PLUGIN, what, target: target ?? null, state: values.state ?? third ?? null, layers: list(values.layers), canary: values.canary, force: values.force });
+      const r = scaffold(ROOT, { pluginRoot: PLUGIN, what, target: target ?? null, state: values.state ?? third ?? null, force: values.force });
       console.log(r.text);
       process.exitCode = r.ok ? 0 : 1;
       break;
     }
-    case 'pack': {
-      const { values } = opts({ screens: { type: 'string' }, layers: { type: 'string' }, pitfalls: { type: 'boolean', default: false } });
-      const { buildPack } = await import('./lib/pack.mjs');
-      console.log(buildPack(ROOT, { pluginRoot: PLUGIN, screens: list(values.screens), layers: list(values.layers), pitfalls: values.pitfalls }));
+    case 'verify': {
+      const { values } = opts({ full: { type: 'boolean', default: false }, tail: { type: 'string', default: '30' } });
+      const { verify } = await import('./lib/guard.mjs');
+      const r = verify(ROOT, { full: values.full, tail: Number(values.tail) || 30 });
+      console.log(r.evidence);
+      process.exitCode = r.ok ? 0 : 1;
       break;
     }
-    case 'checklist': {
-      const { values } = opts({ layers: { type: 'string' }, pitfalls: { type: 'boolean', default: false } });
-      const layers = list(values.layers);
-      if (!layers.length) {
-        console.error(`checklist: --layers is required\n\n${USAGE}`);
-        process.exit(1);
-      }
-      const { loadProfile, renderChecklists } = await import('./lib/checklist.mjs');
-      console.log(renderChecklists(PLUGIN, layers, loadProfile(ROOT), { pitfalls: values.pitfalls }));
+    case 'allow': {
+      const { positionals } = opts({}, { positionals: true });
+      const { allowEdit } = await import('./lib/guard.mjs');
+      const r = allowEdit(ROOT, positionals);
+      console.log(r.text);
+      process.exitCode = r.ok ? 0 : 1;
+      break;
+    }
+    case 'migrate': {
+      const { values } = opts({ apply: { type: 'boolean', default: false } });
+      const { migrate } = await import('./lib/migrate.mjs');
+      const r = migrate(ROOT, { apply: values.apply });
+      console.log(r.text);
+      process.exitCode = r.ok ? 0 : 1;
       break;
     }
     case 'q': {
       const { values, positionals } = opts({ tail: { type: 'string', default: '30' }, full: { type: 'boolean', default: false } }, { positionals: true });
-      const cmd = positionals.join(' ').trim();
+      // One word is a command line as written. Several are the words the
+      // shell already split: one that holds a space gets its quotes back.
+      const cmd = (positionals.length === 1 ? positionals[0] : positionals.map((a) => (/\s/.test(a) && !/^".*"$/.test(a) ? `"${a}"` : a)).join(' ')).trim();
       if (!cmd) {
         console.error(`q: no command given (usage: q [--tail N] [--full] -- <command>)`);
         process.exit(1);
@@ -138,46 +138,23 @@ try {
       } else console.log(renderSpec(ROOT));
       break;
     }
-    case 'run': {
-      const { values } = opts({
-        'max-slices': { type: 'string', default: '10' }, model: { type: 'string' }, claude: { type: 'string', default: 'claude' },
-        extra: { type: 'string', default: '' }, prompt: { type: 'string' }, 'timeout-min': { type: 'string', default: '120' }, 'dry-run': { type: 'boolean', default: false },
-        'budget-usd': { type: 'string' }, 'mcp-config': { type: 'string' }, 'no-isolate': { type: 'boolean', default: false }
-      });
-      // A cap that is not a number would silently become NaN and disable
-      // the cap; 0 disables it on purpose, anything else must be >= 0.
-      const budgetUsd = values['budget-usd'] === undefined ? null : Number(values['budget-usd']);
-      if (budgetUsd !== null && (values['budget-usd'].trim() === '' || !Number.isFinite(budgetUsd) || budgetUsd < 0)) {
-        console.error('run: --budget-usd must be a number >= 0');
-        process.exit(1);
-      }
-      const { runLoop } = await import('./lib/run.mjs');
-      const r = await runLoop(ROOT, {
-        pluginRoot: PLUGIN, maxSlices: Number(values['max-slices']) || 10, model: values.model ?? null, claude: values.claude,
-        extra: values.extra, prompt: values.prompt ?? null, timeoutMin: Number(values['timeout-min']) || 120, dryRun: values['dry-run'],
-        budgetUsd, isolate: !values['no-isolate'], mcpConfig: values['mcp-config'] ?? null
-      });
-      console.log(`run: ${r.iterations} iteration(s), stop: ${r.reason}`);
-      break;
-    }
-    case 'cost': {
-      const { values } = opts({ json: { type: 'boolean', default: false } });
-      const { readLedger, renderCost } = await import('./lib/cost.mjs');
-      const entries = readLedger(ROOT);
-      console.log(values.json ? JSON.stringify(entries, null, 2) : renderCost(entries));
-      break;
-    }
     case 'checkpoint':
       delegate('checkpoint.mjs');
-      break;
-    case 'lessons':
-      delegate('lessons.mjs');
       break;
     case undefined:
     case 'help':
     case '--help':
     case '-h':
       console.log(USAGE);
+      break;
+    case 'next':
+    case 'pack':
+    case 'checklist':
+    case 'run':
+    case 'cost':
+    case 'lessons':
+      console.error(`"${command}" was removed in 0.5.0: \`acdev status\` says what continues, and the skills hold the rest.`);
+      process.exit(1);
       break;
     default:
       console.error(`unknown command "${command}"\n\n${USAGE}`);
